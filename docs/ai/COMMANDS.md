@@ -1,107 +1,170 @@
 # Commands
 
-## Rule
+## Status
 
-Prefer commands already defined in `package.json`.
+This document lists the project commands that AI agents should use for the TriageFlowOPD Patient Mobile App.
 
-If a command below does not exist or does not work, inspect `package.json` first and use the correct project command.
+Do not invent commands that are not available in `package.json`.
+
+If a command is missing, explain it before suggesting changes.
 
 ## Package manager
 
-Default package manager:
-
-```bash
-npm
-```
-
-Update this section later if the project uses:
-
-```bash
-yarn
-pnpm
-bun
-```
-
-## Install dependencies
+Use npm by default.
 
 ```bash
 npm install
 ```
 
-## Start development server
+## Main commands
+
+Start the Expo development server:
 
 ```bash
-npx expo start
+npm start
 ```
 
-## Run on Android
+Start with a cleared Expo cache:
 
 ```bash
-npx expo start --android
+npx expo start --clear
 ```
 
-## Run on iOS
+Run on Android:
 
 ```bash
-npx expo start --ios
+npm run android
 ```
 
-## Run on web
+Run on iOS:
 
 ```bash
-npx expo start --web
+npm run ios
 ```
 
-## Typecheck
+Run on web:
 
 ```bash
-npx tsc --noEmit
+npm run web
 ```
 
-## Lint
+Run lint:
 
 ```bash
 npm run lint
 ```
 
-## Test
+## Current package scripts
 
-```bash
-npm test
+The current `package.json` includes:
+
+```json
+{
+  "start": "expo start",
+  "android": "expo start --android",
+  "ios": "expo start --ios",
+  "web": "expo start --web",
+  "lint": "expo lint",
+  "reset-project": "node ./scripts/reset-project.js"
+}
 ```
 
-Only use this if the project has a test script.
+## Reset project warning
 
-## Build
-
-Use the project-specific build command from `package.json` or Expo/EAS configuration.
-
-Common examples:
+Do not run:
 
 ```bash
-npx expo export
+npm run reset-project
 ```
+
+unless `scripts/reset-project.js` exists.
+
+The project was reset earlier and the `scripts/` folder may no longer exist.
+
+If the reset script is missing, either remove the script from `package.json` or avoid using it.
+
+## Dependency checks
+
+Check installed Expo version:
 
 ```bash
-eas build
+npm ls expo
 ```
 
-Do not add or change build configuration unless the task requires it.
+Check installed React Native version:
 
-## Tailwind/NativeWind notes
+```bash
+npm ls react-native
+```
 
-If styling issues happen, inspect these files when they exist:
+Check NativeWind installation:
 
-- `tailwind.config.js`
-- `babel.config.js`
-- `global.css`
-- `nativewind-env.d.ts`
-- `metro.config.js`
+```bash
+npm ls nativewind
+```
 
-Do not modify Tailwind/NativeWind configuration unless the issue is related to styling setup.
+## When Expo cannot be found
 
-## Notes
+If the terminal shows an error like:
 
-- Check `package.json` before assuming scripts.
-- Do not add new scripts unless useful.
-- Do not change dependency versions unless needed.
+```txt
+Unable to find expo in this project
+```
+
+try:
+
+```bash
+npm install
+npx expo start --clear
+```
+
+If it still fails, check that `expo` exists in `dependencies`.
+
+## NativeWind config check
+
+NativeWind should scan the whole `src` folder.
+
+Recommended `tailwind.config.js` content setting:
+
+```js
+content: ["./src/**/*.{js,jsx,ts,tsx}"]
+```
+
+## TypeScript
+
+No dedicated TypeScript check command is currently documented.
+
+If a type-check script is added later, document it here.
+
+Possible future script:
+
+```json
+"typecheck": "tsc --noEmit"
+```
+
+Do not assume this command exists until it is added to `package.json`.
+
+## Tests
+
+No test command is currently documented.
+
+Do not run or invent test commands unless testing tools are added to the project.
+
+If tests are added later, document the exact command here.
+
+## Build commands
+
+No production build command is currently documented.
+
+Do not invent EAS build commands unless EAS is configured in the project.
+
+If EAS is added later, document the exact commands here.
+
+## Command rules for AI agents
+
+- Prefer commands already defined in `package.json`.
+- Do not add new scripts unless explicitly requested.
+- Do not add new dependencies just to run a command.
+- Do not run destructive commands without warning.
+- Do not run reset commands unless the user explicitly asks.
+- If a command fails, explain the likely reason and suggest the smallest safe fix.
