@@ -4,7 +4,9 @@
 
 Use this skill when building a new feature or patient flow for the TriageFlowOPD Patient Mobile App.
 
-This skill helps the agent create the right files in the right places without over-engineering.
+This skill helps the agent create only the files required by the current task.
+
+It must not be used to scaffold unrelated parts of the app.
 
 ## When to use
 
@@ -79,20 +81,72 @@ Heavy logic must not live directly inside `src/app`.
 
 First identify:
 
-- What patient feature is being requested
+- What feature or flow is being requested
 - Which route or screen is involved
 - Which feature folder owns the logic
 - Whether API endpoint details are available
 - Whether Figma/UI details are available
 - Whether new dependencies are required
+- Which files are directly needed for this task
 
 If important information is missing, ask before implementing.
+
+## Current task boundary
+
+Create only files directly required by the current feature or flow.
+
+Architecture examples are not permission to scaffold the whole app.
+
+Do not create routes, feature folders, mocks, screens, services, or shared files for unrelated features just because they are listed in the architecture document.
+
+For every feature task:
+
+- Create only files directly needed by the requested feature.
+- Do not create future screens or future feature folders.
+- Do not create placeholder modules for unrelated features.
+- Do not create patient tab screens unless the current task is about those tabs.
+- Do not create services for API groups unrelated to the current task.
+- Do not create mock data for features unrelated to the current task.
+- If unsure whether a file is needed, ask before creating it.
+
+Examples:
+
+- Auth task → create only auth routes, auth feature files, and shared/config files directly needed by Auth.
+- Payment task → create only payment routes, payment feature files, and shared/config files directly needed by Payment.
+- Ticket task → create only ticket/queue files directly needed by Ticket.
+- Scan task → create only scan/checkpoint files directly needed by Scan.
+- Navigation task → create only navigation/map files directly needed by Navigation.
+- Profile task → create only profile files directly needed by Profile.
+
+Do not create files for other features unless the user explicitly asks.
+
+If the task requires many files, show a file plan first and wait for confirmation.
+
+## API reading scope
+
+Only read API endpoints related to the current feature.
+
+Do not scan the full Swagger/API documentation unless the user explicitly asks.
+
+Examples:
+
+- Auth task → only read Auth endpoints.
+- Payment task → only read Payment endpoints.
+- Ticket task → only read Ticket/Queue endpoints.
+- Scan task → only read Scan/Checkpoint endpoints.
+- Navigation task → only read Map/Checkpoint/Route endpoints.
+- Profile task → only read Profile/User endpoints.
+- Notification task → only read Notification endpoints.
+
+Ask before reading unrelated API groups.
+
+If an endpoint schema is unclear, ask the user for that specific endpoint schema instead of scanning the whole API documentation.
 
 ## File creation rules
 
 Create only the files needed for the requested task.
 
-It is okay to create folders because the project is still early, but follow the documented structure.
+It is okay to create folders because the project is still early, but follow the documented structure and current task boundary.
 
 Do not create a large folder tree unrelated to the task.
 
@@ -133,6 +187,8 @@ src/app/(patient)/notifications/
 src/app/(patient)/journey/
 ```
 
+Do not create these routes unless they are directly needed for the current task.
+
 ## Feature placement
 
 Use `src/features/<feature>/` for feature-specific code.
@@ -148,7 +204,7 @@ utils/
 mocks/
 ```
 
-Do not create all subfolders unless needed.
+Do not create all subfolders unless needed by the current task.
 
 Example for Ticket:
 
@@ -162,7 +218,7 @@ src/features/ticket/types/ticket.types.ts
 
 ## Shared placement
 
-Use `src/shared` only for code reused by multiple features.
+Use `src/shared` only for code reused by multiple features or directly needed by the current task.
 
 Good shared examples:
 
@@ -176,6 +232,8 @@ src/shared/utils/formatDate.ts
 ```
 
 Do not move feature-specific code into `shared` too early.
+
+Do not create shared components that are not used by the current task.
 
 ## API rules
 
@@ -250,13 +308,7 @@ For data screens, handle:
 - Error state
 - Success state
 
-Use shared components if available:
-
-```txt
-LoadingState
-EmptyState
-ErrorState
-```
+Use shared components if available.
 
 Do not leave a screen blank while loading or when an error occurs.
 
@@ -328,7 +380,11 @@ Before adding a dependency, explain:
 
 Before finishing, check:
 
+- Files are directly related to the current task.
 - Files are in the correct folders.
+- No unrelated feature folders were scaffolded.
+- No unrelated routes or screens were created.
+- No unrelated API groups were read without explanation.
 - Route files are lowercase.
 - Components are PascalCase.
 - Hooks start with `use`.

@@ -72,11 +72,40 @@ Main screen UI may live directly inside `src/app`.
 
 Keep heavy logic out of `src/app`.
 
+## Current task boundary
+
+Only create files and folders directly required by the current user request.
+
+Architecture examples are not permission to scaffold the whole app.
+
+Do not create routes, feature folders, mocks, screens, services, or shared files for unrelated features just because they are listed in the architecture document.
+
+For every task:
+
+- Identify the exact feature or flow being requested.
+- Create only files directly needed for that feature or flow.
+- Do not create future screens, future features, placeholder modules, or full app scaffolding.
+- Do not create unrelated tab screens, feature folders, mocks, services, or components.
+- If unsure whether a file is needed, ask before creating it.
+
+Examples:
+
+- Auth task → create only auth routes, auth feature files, and shared/config files directly needed by Auth.
+- Payment task → create only payment routes, payment feature files, and shared/config files directly needed by Payment.
+- Ticket task → create only ticket/queue files directly needed by Ticket.
+- Scan task → create only scan/checkpoint files directly needed by Scan.
+- Navigation task → create only navigation/map files directly needed by Navigation.
+- Profile task → create only profile files directly needed by Profile.
+
+Do not create files for other features unless the user explicitly asks.
+
+If a task requires many new files, first provide a short planned file list and wait for confirmation unless the user clearly asked to generate the full structure.
+
 ## File creation rules
 
 The project is still early and may not contain all folders yet.
 
-AI agents may create new folders and files when they are needed for the requested task, but they must follow the structure documented in:
+AI agents may create new folders and files when they are needed for the current task, but they must follow the structure documented in:
 
 ```txt
 docs/ai/ARCHITECTURE.md
@@ -85,57 +114,20 @@ docs/ai/CONVENTIONS.md
 
 Allowed:
 
-- Create documented route groups when needed.
+- Create documented route groups when needed for the current task.
 - Create documented feature folders when implementing that feature.
-- Create shared components when a component is truly reused.
-- Create config files when app-level config is needed.
+- Create shared components only when they are directly used by the current task or clearly reused.
+- Create config files only when app-level config is needed by the current task.
 
 Not allowed without approval:
 
+- Scaffold the whole app just because the architecture document lists future folders.
 - Create a new architecture style.
 - Create large folder structures unrelated to the current task.
 - Create staff/admin modules by default.
 - Create files outside the documented structure without explaining why.
 - Add new dependencies without approval.
 - Add map, auth, storage, notification, or state libraries without approval.
-
-If a task requires many new files, first provide a short planned file list and wait for confirmation unless the user clearly asked to generate the full structure.
-
-## Routing rules
-
-The project uses Expo Router.
-
-Routes are under:
-
-```txt
-src/app/
-```
-
-Use route groups such as:
-
-```txt
-src/app/(auth)/
-src/app/(patient)/
-src/app/(patient)/(tabs)/
-```
-
-The 5 bottom tabs are:
-
-```txt
-home.tsx
-ticket.tsx
-scan.tsx
-navigation.tsx
-profile.tsx
-```
-
-Only these 5 screens should live directly inside `(patient)/(tabs)`.
-
-Use lowercase route names.
-
-Use `.tsx` for screens and components.
-
-Do not use `.jsx` in this TypeScript project.
 
 ## API rules
 
@@ -161,6 +153,26 @@ Feature API services should call the shared API client.
 Do not call Axios directly inside screen files.
 
 If an API endpoint, request body, response shape, auth behavior, payment behavior, or map format is unclear, ask before implementing.
+
+## API reading scope
+
+Do not crawl or read the entire Swagger/API documentation by default.
+
+For each task, only inspect the API group and endpoints directly related to the current user request.
+
+Examples:
+
+- Auth task → only read Auth endpoints.
+- Payment task → only read Payment endpoints.
+- Ticket task → only read Ticket/Queue endpoints.
+- Scan task → only read Scan/Checkpoint endpoints.
+- Navigation task → only read Map/Checkpoint/Route endpoints.
+- Profile task → only read Profile/User endpoints.
+- Notification task → only read Notification endpoints.
+
+Do not read unrelated API groups unless the user explicitly asks or you explain why they are required for the current task.
+
+When API details are unclear, ask the user for the specific endpoint schema instead of scanning the whole API documentation.
 
 ## Payment rules
 
