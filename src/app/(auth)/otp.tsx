@@ -2,29 +2,38 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   Alert,
   Keyboard,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "@/shared/components/AppButton";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useOtpLogin } from "@/features/auth/hooks/useOtpLogin";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 
-const OTP_LENGTH = 6;
 const RESEND_COUNTDOWN = 60;
 
 /**
  * OTP screen
- * UI theo Figma: back button, title, description, 6 ô OTP box, "Gửi lại mã" + countdown
+ * Hỗ trợ xác thực OTP SĐT cũ (6 số) hoặc OTP Email mới (8 số)
  */
 export default function OtpScreen() {
   const router = useRouter();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
-  const { verifyOtp, resendOtp, isLoading, error, clearError } = useAuth();
+  const { phone, email, mode } = useLocalSearchParams<{
+    phone?: string;
+    email?: string;
+    mode?: string;
+  }>();
 
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
+  const isEmailOtp = mode === "otp-login";
+  const otpLength = isEmailOtp ? 8 : 6;
+
+  const { verifyOtpLogin, sendOtp, isLoading, error, clearError } = useOtpLogin();
+
+  const [otp, setOtp] = useState<string[]>(() =>
+    Array(isEmailOtp ? 8 : 6).fill("")
+  );
   const [countdown, setCountdown] = useState(RESEND_COUNTDOWN);
   const [canResend, setCanResend] = useState(false);
 
@@ -50,20 +59,20 @@ export default function OtpScreen() {
       setOtp(newOtp);
 
       // Auto focus next
-      if (digit && index < OTP_LENGTH - 1) {
+      if (digit && index < otpLength - 1) {
         inputRefs.current[index + 1]?.focus();
       }
 
       // Tự động submit khi điền đủ
-      if (digit && index === OTP_LENGTH - 1) {
-        const fullOtp = [...newOtp.slice(0, OTP_LENGTH - 1), digit].join("");
-        if (fullOtp.length === OTP_LENGTH) {
+      if (digit && index === otpLength - 1) {
+        const fullOtp = [...newOtp.slice(0, otpLength - 1), digit].join("");
+        if (fullOtp.length === otpLength) {
           Keyboard.dismiss();
           handleVerify(fullOtp);
         }
       }
     },
-    [otp, error, clearError]
+    [otp, error, clearError, otpLength]
   );
 
   const handleKeyPress = useCallback(
@@ -81,44 +90,51 @@ export default function OtpScreen() {
   const handleVerify = useCallback(
     async (otpValue?: string) => {
       const code = otpValue ?? otp.join("");
-      if (code.length < OTP_LENGTH) {
+      if (code.length < otpLength) {
         Alert.alert("Thông báo", "Vui lòng nhập đủ mã OTP.");
         return;
       }
 
-      const success = await verifyOtp({ phone: phone ?? "", otp: code });
-      if (success) {
-        router.replace("/(auth)/success");
+      if (isEmailOtp) {
+        const success = await verifyOtpLogin(email ?? "", code);
+        if (success) {
+          router.replace("/(patient)/(tabs)/home");
+        }
       }
     },
-    [otp, phone, verifyOtp, router]
+    [otp, email, isEmailOtp, otpLength, verifyOtpLogin, router]
   );
 
   const handleResend = useCallback(async () => {
     if (!canResend) return;
-    const success = await resendOtp({ phone: phone ?? "" });
+
+    let success = false;
+    if (isEmailOtp && email) {
+      success = await sendOtp(email);
+    }
+
     if (success) {
       setCountdown(RESEND_COUNTDOWN);
       setCanResend(false);
-      setOtp(Array(OTP_LENGTH).fill(""));
+      setOtp(Array(otpLength).fill(""));
       inputRefs.current[0]?.focus();
     }
-  }, [canResend, phone, resendOtp]);
+  }, [canResend, email, isEmailOtp, sendOtp, otpLength]);
 
-  const maskedPhone = phone
-    ? phone.replace(/(\d{3})\d{4}(\d+)/, "$1****$2")
-    : "";
+  const targetLabel = isEmailOtp
+    ? `email ${email}`
+    : `số điện thoại +${phone?.replace(/(\d{3})\d{4}(\d+)/, "$1****$2")}`;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <ScreenWrapper>
       {/* Back button */}
       <View className="px-5 pt-4 pb-2">
-        <TouchableOpacity
+        <Pressable
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-lg border border-gray-200 items-center justify-center"
+          className="w-9 h-9 rounded-lg border border-gray-200 items-center justify-center active:opacity-70"
         >
-          <Text className="text-gray-600" style={{ fontSize: 16 }}>‹</Text>
-        </TouchableOpacity>
+          <Text className="text-gray-600 text-[16px]">‹</Text>
+        </Pressable>
       </View>
 
       <View className="flex-1 px-6 pt-4">
@@ -127,13 +143,12 @@ export default function OtpScreen() {
           Nhập mã OTP
         </Text>
         <Text className="text-sm text-gray-400 mb-8 leading-5">
-          Chúng tôi đã gửi tin nhắn SMS chứa mã kích hoạt đến số điện thoại của bạn{" "}
-          {maskedPhone ? `+${maskedPhone}` : ""}
+          Chúng tôi đã gửi mã xác minh OTP gồm {otpLength} chữ số đến {targetLabel}.
         </Text>
 
-        {/* OTP Inputs – style theo Figma: box vuông, border nhẹ */}
-        <View className="flex-row justify-between mb-4">
-          {Array.from({ length: OTP_LENGTH }).map((_, index) => (
+        {/* OTP Inputs */}
+        <View className="flex-row justify-between mb-4 gap-1">
+          {Array.from({ length: otpLength }).map((_, index) => (
             <TextInput
               key={index}
               ref={(ref) => {
@@ -145,22 +160,15 @@ export default function OtpScreen() {
               keyboardType="number-pad"
               maxLength={1}
               selectTextOnFocus
-              style={{
-                width: 48,
-                height: 56,
-                borderWidth: otp[index] ? 2 : 1,
-                borderColor: error
-                  ? "#FCA5A5"
+              className={`flex-1 h-14 text-center text-lg font-bold text-gray-800 rounded-xl ${
+                otp[index] ? "border-2 bg-blue-50/50" : "border bg-gray-50/50"
+              } ${
+                error
+                  ? "border-red-300"
                   : otp[index]
-                  ? "#5B9BD5"
-                  : "#E5E7EB",
-                borderRadius: 12,
-                backgroundColor: otp[index] ? "#EFF6FF" : "#F9FAFB",
-                textAlign: "center",
-                fontSize: 20,
-                fontWeight: "700",
-                color: "#1F2937",
-              }}
+                  ? "border-primary"
+                  : "border-neutral-200"
+              }`}
             />
           ))}
         </View>
@@ -172,11 +180,12 @@ export default function OtpScreen() {
           </View>
         ) : null}
 
-        {/* Resend row – "Gửi lại mã" trái, countdown phải */}
+        {/* Resend row */}
         <View className="flex-row justify-between items-center mb-8">
-          <TouchableOpacity
+          <Pressable
             onPress={handleResend}
             disabled={!canResend || isLoading}
+            className={canResend ? "active:opacity-70" : ""}
           >
             <Text
               className={`text-sm font-medium ${
@@ -185,7 +194,7 @@ export default function OtpScreen() {
             >
               Gửi lại mã
             </Text>
-          </TouchableOpacity>
+          </Pressable>
 
           {!canResend ? (
             <Text className="text-gray-400 text-sm">
@@ -200,9 +209,10 @@ export default function OtpScreen() {
           variant="primary"
           isLoading={isLoading}
           onPress={() => handleVerify()}
-          disabled={otp.join("").length < OTP_LENGTH}
+          disabled={otp.join("").length < otpLength}
         />
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
+

@@ -1,7 +1,7 @@
 import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "@/shared/components/AppButton";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 
 /**
  * Success screen – sau khi verify OTP thành công
@@ -15,7 +15,7 @@ export default function SuccessScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <ScreenWrapper>
       <View className="flex-1 items-center justify-center px-8">
         {/* Checkmark icon – vòng tròn xanh nhạt ngoài, xanh đậm trong */}
         <View
@@ -57,6 +57,6 @@ export default function SuccessScreen() {
           onPress={handleContinue}
         />
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

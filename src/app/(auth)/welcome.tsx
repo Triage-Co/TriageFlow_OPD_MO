@@ -1,57 +1,90 @@
-import { View, Text, TouchableOpacity, Image, Dimensions } from "react-native";
-import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors } from "@/config/colors";
 import { AppButton } from "@/shared/components/AppButton";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { Dimensions, Image, Pressable, Text, View } from "react-native";
 
 const { width } = Dimensions.get("window");
+const ICON_CIRCLE = width * 0.52;
 
 /**
- * Welcome / Splash screen
- * UI theo Figma: illustration trên, title + desc giữa, 2 button dưới
+ * Welcome / Intro screen
+ * UI theo Figma "intro": icon AI, title, pagination dots, nút "Tiếp theo"
+ * Bỏ qua hoặc Tiếp theo → chuyển đến màn Login
  */
 export default function WelcomeScreen() {
   const router = useRouter();
 
+  const goToLogin = () => router.replace("/(auth)/login");
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Illustration area */}
-      <View className="flex-1 items-center justify-center px-8 pt-10">
-        <Image
-          source={require("../../../assets/images/splash-illustration.png")}
-          style={{ width: width * 0.65, height: width * 0.65 }}
-          resizeMode="contain"
-        />
+    <ScreenWrapper>
+      {/* Bỏ qua – top right */}
+      <View className="items-end px-7 pt-4">
+        <Pressable onPress={goToLogin} className="active:opacity-70" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text className="text-[15px] text-neutral-400">Bỏ qua</Text>
+        </Pressable>
       </View>
 
-      {/* Content area */}
-      <View className="px-8 pb-2">
-        <Text
-          className="text-2xl font-bold text-center text-gray-800 mb-3"
-          style={{ lineHeight: 34 }}
-        >
-          Ứng dụng điều phối{"\n"}khám ngoại trú
+      {/* Phần giữa: icon + text */}
+      <View className="flex-1 items-center justify-center px-8">
+        <View className="mb-5 items-center justify-center">
+          <LinearGradient
+            colors={["#FFFFFF", Colors.gradientStart, Colors.gradientMid]}
+            locations={[0, 0.6, 1]}
+            start={{ x: 0.3, y: 0 }}
+            end={{ x: 0.7, y: 1 }}
+            className="shadow shadow-black/10"
+            style={{
+              width: ICON_CIRCLE,
+              height: ICON_CIRCLE,
+              borderRadius: ICON_CIRCLE / 2,
+              elevation: 4,
+            }}
+          >
+            {/* Khung trong để ép icon nằm giữa vòng tròn */}
+            <View className="h-full w-full flex-1 justify-center items-center">
+              <AiHeadIcon />
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Title */}
+        <Text className="text-3xl font-bold text-neutral-700 text-center mb-3.5 tracking-tight">
+          Ứng dụng điều phối {"\n"} khám ngoại trú
         </Text>
-        <Text className="text-center text-gray-400 text-sm leading-6 px-2">
-          Đăng ký tài khoản, theo dõi lịch khám và điều hướng trong bệnh viện với cách dễ dàng.
+
+        {/* Subtitle */}
+        <Text className="text-[14px] text-neutral-400 text-center leading-[22px] px-2">
+          Đăng ký khám, theo dõi hàng chờ và điều hướng trong bệnh viện một cách dễ dàng.
         </Text>
       </View>
 
-      {/* Buttons */}
-      <View className="px-8 pb-10 pt-8 gap-3">
-        <AppButton
-          title="Đăng Ký"
-          variant="primary"
-          onPress={() => router.push("/(auth)/register")}
-        />
+      {/* Phần dưới: dots + button */}
+      <View className="px-7 pb-12">
+        {/* Pagination dots */}
+        <View className="flex-row justify-center items-center gap-2 mb-6">
+          <View className="w-6 h-[7px] rounded-full bg-primary" />
+          <View className="w-2 h-[7px] rounded-full bg-neutral-200" />
+        </View>
 
-        {/* Đăng Nhập là text-only link theo Figma */}
-        <TouchableOpacity
-          className="items-center py-3"
-          onPress={() => router.push("/(auth)/login")}
-        >
-          <Text className="text-gray-500 text-base font-medium">Đăng Nhập</Text>
-        </TouchableOpacity>
+        <AppButton title="Tiếp theo" variant="primary" onPress={goToLogin} />
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
+
+/**
+ * Icon AI – load từ assets/images/SVG.png
+ */
+function AiHeadIcon() {
+  return (
+    <Image
+      source={require("../../../assets/images/SVG.png")}
+      className="w-[90px] h-[90px]"
+      resizeMode="contain"
+    />
+  );
+}
+

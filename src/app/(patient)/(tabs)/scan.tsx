@@ -1,9 +1,9 @@
 import { View, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 
 export default function ScanScreen() {
   return (
-    <SafeAreaView className="flex-1 bg-blue-50">
+    <ScreenWrapper>
       <View className="flex-1 items-center justify-center px-8">
         <Text style={{ fontSize: 56 }} className="mb-4">📷</Text>
         <Text className="text-xl font-bold text-gray-800 mb-2">Quét mã QR</Text>
@@ -11,6 +11,6 @@ export default function ScanScreen() {
           Quét mã QR tại các điểm kiểm tra trong bệnh viện để cập nhật vị trí và nhận hướng dẫn tiếp theo.
         </Text>
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

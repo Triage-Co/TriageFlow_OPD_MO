@@ -6,8 +6,8 @@ import React, {
   useCallback,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { authService } from "@/features/auth/services/auth.service";
-import { TOKEN_KEY } from "@/shared/services/api-client";
+import { loginService, decodeSupabaseJwt } from "@/features/auth/services/login.service";
+import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/shared/services/api-client";
 import { UserProfile, LoginRequest } from "@/features/auth/types/auth.types";
 
 type AuthContextValue = {
@@ -17,7 +17,7 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
-  setAuthData: (token: string, user: UserProfile) => Promise<void>;
+  loginWithToken: (token: string, refreshToken: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,13 +33,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
         if (savedToken) {
-          setToken(savedToken);
-          const profile = await authService.getProfile();
-          setUser(profile);
+          const profile = decodeSupabaseJwt(savedToken);
+          if (profile) {
+            setToken(savedToken);
+            setUser(profile);
+          } else {
+            throw new Error("Invalid token payload");
+          }
         }
       } catch {
         // Token hết hạn hoặc không hợp lệ – xóa session
         await AsyncStorage.removeItem(TOKEN_KEY);
+        await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
         setToken(null);
         setUser(null);
       } finally {
@@ -50,30 +55,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadSession();
   }, []);
 
-  const setAuthData = useCallback(
-    async (newToken: string, newUser: UserProfile) => {
+  const loginWithToken = useCallback(
+    async (newToken: string, newRefreshToken: string) => {
       await AsyncStorage.setItem(TOKEN_KEY, newToken);
-      setToken(newToken);
-      setUser(newUser);
+      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+      try {
+        const profile = decodeSupabaseJwt(newToken);
+        if (profile) {
+          setToken(newToken);
+          setUser(profile);
+        } else {
+          // null có thể do token không hợp lệ HOẶC do role không phải USER
+          throw new Error(
+            "Tài khoản này không có quyền truy cập ứng dụng bệnh nhân."
+          );
+        }
+      } catch (error) {
+        await AsyncStorage.removeItem(TOKEN_KEY);
+        await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+        throw error;
+      }
     },
     []
   );
 
   const login = useCallback(
     async (data: LoginRequest) => {
-      const response = await authService.login(data);
-      await setAuthData(response.accessToken, response.user);
+      let response;
+      if ("email" in data) {
+        response = await loginService.loginWithEmail(data);
+      } else {
+        response = await loginService.loginWithCitizen(data);
+      }
+      if (response && response.data?.token) {
+        await loginWithToken(response.data.token, response.data.refreshToken);
+      } else {
+        throw new Error("Không nhận được mã truy cập hợp lệ từ máy chủ.");
+      }
     },
-    [setAuthData]
+    [loginWithToken]
   );
 
   const logout = useCallback(async () => {
     try {
-      await authService.logout();
+      await loginService.logout();
     } catch {
       // Bỏ qua lỗi logout từ server
     } finally {
       await AsyncStorage.removeItem(TOKEN_KEY);
+      await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
       setToken(null);
       setUser(null);
     }
@@ -88,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         logout,
-        setAuthData,
+        loginWithToken,
       }}
     >
       {children}
@@ -103,3 +133,5 @@ export function useAuthContext(): AuthContextValue {
   }
   return context;
 }
+
+

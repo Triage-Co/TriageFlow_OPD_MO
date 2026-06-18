@@ -1,46 +1,77 @@
+import { useRegister } from "@/features/auth/hooks/useRegister";
+import type { Gender } from "@/features/auth/types/auth.types";
+import { AppButton } from "@/shared/components/AppButton";
+import { AppInput } from "@/shared/components/AppInput";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   Alert,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { AppInput } from "@/shared/components/AppInput";
-import { AppButton } from "@/shared/components/AppButton";
-import { useAuth } from "@/features/auth/hooks/useAuth";
 
 /**
  * Register screen
- * UI theo Figma: nền kem ấm, back arrow, "Tạo tài khoản", form đầy đủ
- * Không có illustration
+ * UI theo Figma: back arrow, header card primary, form đầy đủ theo API
+ * Fields: email, fullName, dob (YYYY-MM-DD), gender, citizen_id, password
  */
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register, isLoading, error, clearError } = useAuth();
+  const { register, isLoading, error, clearError } = useRegister();
 
   const [form, setForm] = useState({
+    email: "",
     fullName: "",
-    phone: "",
-    dateOfBirth: "",
-    nationalId: "",
-    insuranceId: "",
+    dob: "",        // YYYY-MM-DD – gửi lên API
+    gender: "" as Gender | "",
+    citizen_id: "",
     password: "",
   });
+
+  // Date picker state
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerDate, setPickerDate] = useState(new Date(2000, 0, 1));
 
   const update = (field: keyof typeof form) => (value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (error) clearError();
   };
 
-  const handleRegister = async () => {
-    const { fullName, phone, dateOfBirth, nationalId, password } = form;
+  /** Format Date → "YYYY-MM-DD" để gửi API */
+  const toApiDate = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
-    if (!fullName.trim() || !phone.trim() || !dateOfBirth.trim() || !nationalId.trim() || !password.trim()) {
+  /** Format Date → "DD/MM/YYYY" để hiển thị cho người dùng */
+  const toDisplayDate = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${d}/${m}/${y}`;
+  };
+
+  const onDateChange = (_event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === "android") setShowPicker(false);
+    if (selected) {
+      setPickerDate(selected);
+      setForm((prev) => ({ ...prev, dob: toApiDate(selected) }));
+      if (error) clearError();
+    }
+  };
+
+  const handleRegister = async () => {
+    const { email, fullName, dob, gender, citizen_id, password } = form;
+
+    if (!email.trim() || !fullName.trim() || !dob.trim() || !gender || !citizen_id.trim() || !password.trim()) {
       Alert.alert("Thông báo", "Vui lòng điền đầy đủ các trường bắt buộc.");
       return;
     }
@@ -50,27 +81,34 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!dob) {
+      Alert.alert("Thông báo", "Vui lòng chọn ngày sinh.");
+      return;
+    }
+
     const success = await register({
+      email: email.trim(),
       fullName: fullName.trim(),
-      phone: phone.trim(),
-      dateOfBirth: dateOfBirth.trim(),
-      nationalId: nationalId.trim(),
-      insuranceId: form.insuranceId.trim() || undefined,
+      dob: dob.trim(),
+      gender: gender as Gender,
+      citizen_id: citizen_id.trim(),
       password,
+      role: "USER",
     });
 
     if (success) {
-      router.push({
-        pathname: "/(auth)/otp",
-        params: { phone: phone.trim() },
-      });
+      Alert.alert(
+        "Đăng ký thành công",
+        "Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.",
+        [{ text: "Đăng nhập ngay", onPress: () => router.replace("/(auth)/login") }]
+      );
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F0E6D8" }}>
+    <ScreenWrapper>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
@@ -78,54 +116,29 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Back button */}
-          <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 }}>
-            <TouchableOpacity
+          <View className="bg-primary rounded-b-[28px] px-6 pt-5 pb-8">
+            <Pressable
               onPress={() => router.back()}
-              style={{
-                width: 36,
-                height: 36,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              className="mb-5 self-start active:opacity-70"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Text style={{ fontSize: 22, color: "#3A2A1A" }}>←</Text>
-            </TouchableOpacity>
-          </View>
+              <Text className="text-2xl text-white">←</Text>
+            </Pressable>
 
-          {/* Title block */}
-          <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 24 }}>
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "800",
-                color: "#1A1208",
-                marginBottom: 6,
-                letterSpacing: -0.3,
-              }}
-            >
+            <Text className="text-[28px] font-extrabold text-white tracking-tight mb-1.5">
               Tạo tài khoản
             </Text>
-            <Text style={{ fontSize: 13, color: "#8A7060" }}>
+            <Text className="text-[13px] text-white/80">
               Đăng ký để sử dụng đầy đủ tính năng
             </Text>
           </View>
 
-          {/* Form */}
-          <View style={{ paddingHorizontal: 24, paddingBottom: 32 }}>
+          {/* ── Form ── */}
+          <View className="px-6 pt-6 pb-8">
             {/* Error */}
             {error ? (
-              <View
-                style={{
-                  backgroundColor: "#FEE2E2",
-                  borderWidth: 1,
-                  borderColor: "#FCA5A5",
-                  borderRadius: 12,
-                  padding: 12,
-                  marginBottom: 12,
-                }}
-              >
-                <Text style={{ color: "#EF4444", fontSize: 13 }}>{error}</Text>
+              <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3">
+                <Text className="text-red-500 text-sm">{error}</Text>
               </View>
             ) : null}
 
@@ -137,34 +150,106 @@ export default function RegisterScreen() {
             />
 
             <AppInput
-              placeholder="Số điện thoại"
-              value={form.phone}
-              onChangeText={update("phone")}
-              keyboardType="phone-pad"
+              placeholder="Email"
+              value={form.email}
+              onChangeText={update("email")}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
             />
 
-            <AppInput
-              placeholder="mm/dd/yyyy"
-              value={form.dateOfBirth}
-              onChangeText={update("dateOfBirth")}
-              keyboardType="numeric"
-              rightIcon={
-                <Text style={{ fontSize: 16, color: "#9CA3AF" }}>📅</Text>
-              }
-            />
+            {/* Ngày sinh – mở native date picker */}
+            <Pressable
+              className="flex-row items-center bg-white border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 active:opacity-75"
+              onPress={() => setShowPicker(true)}
+            >
+              <Text
+                className={
+                  form.dob
+                    ? "flex-1 text-sm text-neutral-700"
+                    : "flex-1 text-sm text-neutral-400"
+                }
+              >
+                {form.dob ? toDisplayDate(pickerDate) : "Ngày sinh"}
+              </Text>
+              <Text className="text-base text-neutral-400">📅</Text>
+            </Pressable>
+
+            {/* Native date picker */}
+            {showPicker && (
+              <View>
+                <DateTimePicker
+                  value={pickerDate}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  maximumDate={new Date()}
+                  minimumDate={new Date(1900, 0, 1)}
+                  onChange={onDateChange}
+                  locale="vi"
+                />
+                {Platform.OS === "ios" && (
+                  <Pressable
+                    className="self-end px-5 py-2.5 mt-1 mb-2 active:opacity-70"
+                    onPress={() => setShowPicker(false)}
+                  >
+                    <Text className="text-primary font-semibold text-base">Chọn</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
 
             <AppInput
               placeholder="Số CCCD"
-              value={form.nationalId}
-              onChangeText={update("nationalId")}
+              value={form.citizen_id}
+              onChangeText={update("citizen_id")}
               keyboardType="numeric"
             />
 
-            <AppInput
-              placeholder="Số thẻ BHYT"
-              value={form.insuranceId}
-              onChangeText={update("insuranceId")}
-            />
+            {/* Giới tính – 2 nút toggle */}
+            <View className="flex-row gap-3 mb-3.5">
+              <Pressable
+                className={
+                  form.gender === "MALE"
+                    ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
+                    : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center active:opacity-90"
+                }
+                onPress={() => {
+                  setForm((p) => ({ ...p, gender: "MALE" }));
+                  if (error) clearError();
+                }}
+              >
+                <Text
+                  className={
+                    form.gender === "MALE"
+                      ? "text-primary font-bold text-sm"
+                      : "text-neutral-400 font-medium text-sm"
+                  }
+                >
+                  Nam
+                </Text>
+              </Pressable>
+              <Pressable
+                className={
+                  form.gender === "FEMALE"
+                    ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
+                    : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center active:opacity-90"
+                }
+                onPress={() => {
+                  setForm((p) => ({ ...p, gender: "FEMALE" }));
+                  if (error) clearError();
+                }}
+              >
+                <Text
+                  className={
+                    form.gender === "FEMALE"
+                      ? "text-primary font-bold text-sm"
+                      : "text-neutral-400 font-medium text-sm"
+                  }
+                >
+                  Nữ
+                </Text>
+              </Pressable>
+            </View>
 
             <AppInput
               placeholder="Mật khẩu"
@@ -173,7 +258,7 @@ export default function RegisterScreen() {
               secureTextEntry
             />
 
-            <View style={{ marginTop: 6 }}>
+            <View className="mt-1.5">
               <AppButton
                 title="Đăng ký"
                 variant="primary"
@@ -183,26 +268,16 @@ export default function RegisterScreen() {
             </View>
 
             {/* Login link */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                marginTop: 18,
-              }}
-            >
-              <Text style={{ color: "#8A7060", fontSize: 13 }}>
-                Đã có tài khoản?{" "}
-              </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-                <Text style={{ color: "#4A90C4", fontWeight: "600", fontSize: 13 }}>
-                  Đăng nhập
-                </Text>
-              </TouchableOpacity>
+            <View className="flex-row justify-center items-center mt-[18px]">
+              <Text className="text-neutral-400 text-xs">Đã có tài khoản? </Text>
+              <Pressable className="active:opacity-70" onPress={() => router.push("/(auth)/login")}>
+                <Text className="text-primary font-semibold text-xs">Đăng nhập</Text>
+              </Pressable>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
+

@@ -6,12 +6,24 @@ module.exports = {
     theme: {
         extend: {
             colors: {
+                // Primary – "#84AFEB" từ Figma Variable Collection
                 primary: {
-                    50: "#EFF6FF",
-                    100: "#DBEAFE",
-                    400: "#60A5FA",
-                    500: "#5B9BD5",
-                    600: "#2563EB",
+                    DEFAULT: "#84AFEB",
+                    light:   "#B8D0F5",
+                    dark:    "#5B8FD0",
+                },
+                // Neutral tokens từ Figma
+                neutral: {
+                    50:  "#F3F4F6",
+                    100: "#FFFFFF",
+                    200: "#E5E7EB",
+                    700: "#374151",
+                },
+                // Gradient nền toàn app – "Gradientsss" từ Figma
+                gradient: {
+                    start: "#DFE1FF",
+                    mid:   "#F0D2C1",
+                    end:   "#FFE1C4",
                 },
             },
         },

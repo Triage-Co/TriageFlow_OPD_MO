@@ -2,46 +2,61 @@ import { useState } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { AppInput } from "@/shared/components/AppInput";
 import { AppButton } from "@/shared/components/AppButton";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useLogin } from "@/features/auth/hooks/useLogin";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 
 /**
  * Login screen
- * UI theo Figma: nền xanh nhạt toàn màn hình, logo + title trên, form bên dưới
+ * UI theo Figma: header card màu primary bo góc dưới, form bên dưới trên nền gradient
+ * Hỗ trợ 2 phương thức: Email + Mật khẩu, CCCD + Mật khẩu
+ * Có nút liên kết đăng nhập bằng OTP qua Email
  */
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError } = useLogin();
 
-  const [phoneOrId, setPhoneOrId] = useState("");
+  const [activeTab, setActiveTab] = useState<"email" | "citizen">("email");
+  const [email, setEmail] = useState("");
+  const [citizenId, setCitizenId] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    if (!phoneOrId.trim() || !password.trim()) {
-      Alert.alert("Thông báo", "Vui lòng nhập đầy đủ thông tin.");
-      return;
-    }
-
-    clearError();
-    const success = await login(phoneOrId.trim(), password);
-    if (success) {
-      router.replace("/(patient)/(tabs)/home");
+    if (activeTab === "email") {
+      if (!email.trim() || !password.trim()) {
+        Alert.alert("Thông báo", "Vui lòng nhập đầy đủ thông tin.");
+        return;
+      }
+      clearError();
+      const success = await login({ email: email.trim(), password });
+      if (success) {
+        router.replace("/(patient)/(tabs)/home");
+      }
+    } else {
+      if (!citizenId.trim() || !password.trim()) {
+        Alert.alert("Thông báo", "Vui lòng nhập đầy đủ thông tin.");
+        return;
+      }
+      clearError();
+      const success = await login({ citizen_id: citizenId.trim(), password });
+      if (success) {
+        router.replace("/(patient)/(tabs)/home");
+      }
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#C2D9F0" }}>
+    <ScreenWrapper>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
@@ -49,161 +64,158 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo row: icon vuông + "TriageFlowOPD" */}
-          <View style={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 6 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              {/* Logo icon – hình vuông nhỏ xanh đậm */}
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "#4A90C4",
-                  borderRadius: 8,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {/* Cross / plus shape */}
-                <View style={{ position: "relative", width: 16, height: 16, alignItems: "center", justifyContent: "center" }}>
-                  <View style={{ position: "absolute", width: 10, height: 2.5, backgroundColor: "#fff", borderRadius: 2 }} />
-                  <View style={{ position: "absolute", width: 2.5, height: 10, backgroundColor: "#fff", borderRadius: 2 }} />
-                </View>
+          {/* ── Header card màu primary ── */}
+          <View className="bg-primary rounded-b-[28px] px-6 pt-6 pb-9 shadow-sm">
+            {/* Logo row */}
+            <View className="flex-row items-center gap-2 mb-7">
+              <View className="w-8 h-8 bg-white/25 rounded-lg items-center justify-center relative">
+                <View className="absolute w-3.5 h-[3px] bg-white rounded-sm" />
+                <View className="absolute w-[3px] h-3.5 bg-white rounded-sm" />
               </View>
-              <Text style={{ color: "#2A5F8A", fontSize: 14, fontWeight: "600" }}>
-                TriageFlowOPD
-              </Text>
+              <Text className="text-white text-sm font-semibold">TriageFlowOPD</Text>
             </View>
-          </View>
 
-          {/* Title block */}
-          <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 28 }}>
-            <Text style={{ fontSize: 36, fontWeight: "800", color: "#1A2F45", marginBottom: 4, letterSpacing: -0.5 }}>
+            {/* Title + subtitle */}
+            <Text className="text-[34px] font-extrabold text-white tracking-tighter mb-1.5">
               Chào mừng
             </Text>
-            <Text style={{ fontSize: 14, color: "#5A7A95" }}>
-              Đăng nhập để tiếp tục
-            </Text>
+            <Text className="text-[14px] text-white/80">Đăng nhập để tiếp tục</Text>
           </View>
 
-          {/* Form area */}
-          <View style={{ paddingHorizontal: 24, flex: 1 }}>
-            {/* Demo hint – box nhạt hơn nền */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#AECDE8",
-                borderRadius: 10,
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                marginBottom: 16,
-                gap: 8,
-              }}
-            >
-              {/* Checkbox */}
-              <View
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 4,
-                  borderWidth: 1.5,
-                  borderColor: "#6AACDA",
-                  backgroundColor: "#fff",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: "#5B9BD5" }} />
-              </View>
-              <Text style={{ fontSize: 12, color: "#2A5F8A", flex: 1 }}>
-                Demo: nhập bất kỳ thông tin nào để đăng nhập
-              </Text>
-            </TouchableOpacity>
-
+          {/* ── Form area ── */}
+          <View className="px-6 pt-6 flex-1">
             {/* Error */}
             {error ? (
-              <View
-                style={{
-                  backgroundColor: "#FEE2E2",
-                  borderWidth: 1,
-                  borderColor: "#FCA5A5",
-                  borderRadius: 12,
-                  padding: 12,
-                  marginBottom: 12,
-                }}
-              >
-                <Text style={{ color: "#EF4444", fontSize: 13 }}>{error}</Text>
+              <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
+                <Text className="text-red-500 text-sm">{error}</Text>
               </View>
             ) : null}
 
-            {/* Inputs */}
-            <AppInput
-              placeholder="Số điện thoại / CCCD"
-              value={phoneOrId}
-              onChangeText={setPhoneOrId}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-            />
+            {/* Tab Selector */}
+            <View className="flex-row gap-3 mb-[18px]">
+              <Pressable
+                className={
+                  activeTab === "email"
+                    ? "flex-1 h-12 rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
+                    : "flex-1 h-12 rounded-xl border border-neutral-200 bg-neutral-100 items-center justify-center active:opacity-90"
+                }
+                onPress={() => {
+                  setActiveTab("email");
+                  if (error) clearError();
+                }}
+              >
+                <Text
+                  className={
+                    activeTab === "email"
+                      ? "text-primary text-[14px] font-bold"
+                      : "text-neutral-700 text-[14px] font-medium opacity-60"
+                  }
+                >
+                  Email
+                </Text>
+              </Pressable>
+              <Pressable
+                className={
+                  activeTab === "citizen"
+                    ? "flex-1 h-12 rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
+                    : "flex-1 h-12 rounded-xl border border-neutral-200 bg-neutral-100 items-center justify-center active:opacity-90"
+                }
+                onPress={() => {
+                  setActiveTab("citizen");
+                  if (error) clearError();
+                }}
+              >
+                <Text
+                  className={
+                    activeTab === "citizen"
+                      ? "text-primary text-[14px] font-bold"
+                      : "text-neutral-700 text-[14px] font-medium opacity-60"
+                  }
+                >
+                  Số CCCD
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Inputs dựa trên activeTab */}
+            {activeTab === "email" ? (
+              <AppInput
+                placeholder="Email của bạn"
+                value={email}
+                onChangeText={(v) => {
+                  setEmail(v);
+                  if (error) clearError();
+                }}
+                keyboardType="email-address"
+                autoComplete="email"
+                autoCapitalize="none"
+              />
+            ) : (
+              <AppInput
+                placeholder="Số CMND/CCCD"
+                value={citizenId}
+                onChangeText={(v) => {
+                  setCitizenId(v);
+                  if (error) clearError();
+                }}
+                keyboardType="numeric"
+              />
+            )}
 
             <AppInput
               placeholder="Mật khẩu"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => {
+                setPassword(v);
+                if (error) clearError();
+              }}
               secureTextEntry
             />
 
-            {/* Quên mật khẩu */}
-            <TouchableOpacity
-              style={{ alignSelf: "flex-end", marginTop: -4, marginBottom: 20 }}
-            >
-              <Text style={{ color: "#4A90C4", fontSize: 13 }}>Quên mật khẩu?</Text>
-            </TouchableOpacity>
+            {/* Nút đăng nhập */}
+            <View className="mt-1.5">
+              <AppButton
+                title="Đăng nhập"
+                variant="primary"
+                isLoading={isLoading}
+                onPress={handleLogin}
+              />
+            </View>
 
-            <AppButton
-              title="Đăng nhập"
-              variant="primary"
-              isLoading={isLoading}
-              onPress={handleLogin}
-            />
+            {/* Nút đăng nhập bằng OTP */}
+            <Pressable
+              className="items-center justify-center h-[52px] border border-primary rounded-xl mt-3 bg-transparent active:opacity-75"
+              onPress={() => router.push("/(auth)/email-otp")}
+            >
+              <Text className="text-primary text-[14px] font-semibold">
+                Đăng nhập bằng mã OTP qua Email
+              </Text>
+            </Pressable>
+
+            {/* Quên mật khẩu */}
+            <Pressable className="self-end mt-3.5 mb-2.5 active:opacity-70">
+              <Text className="text-primary text-xs">Quên mật khẩu?</Text>
+            </Pressable>
 
             {/* Divider */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginVertical: 20,
-              }}
-            >
-              <View style={{ flex: 1, height: 1, backgroundColor: "#9BBCD6" }} />
-              <Text style={{ marginHorizontal: 14, color: "#5A7A95", fontSize: 13 }}>
-                hoặc
-              </Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: "#9BBCD6" }} />
+            <View className="flex-row items-center my-5">
+              <View className="flex-1 h-[1px] bg-neutral-200" />
+              <Text className="mx-3.5 text-neutral-400 text-xs">hoặc</Text>
+              <View className="flex-1 h-[1px] bg-neutral-200" />
             </View>
 
             {/* Register link */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                paddingBottom: 32,
-              }}
-            >
-              <Text style={{ color: "#5A7A95", fontSize: 13 }}>
-                Chưa có tài khoản?{" "}
-              </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-                <Text style={{ color: "#4A90C4", fontWeight: "600", fontSize: 13 }}>
-                  Đăng ký ngay
-                </Text>
-              </TouchableOpacity>
+            <View className="flex-row justify-center items-center pb-8">
+              <Text className="text-neutral-400 text-xs">Chưa có tài khoản? </Text>
+              <Pressable className="active:opacity-70" onPress={() => router.push("/(auth)/register")}>
+                <Text className="text-primary font-semibold text-xs">Đăng ký ngay</Text>
+              </Pressable>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
+
+

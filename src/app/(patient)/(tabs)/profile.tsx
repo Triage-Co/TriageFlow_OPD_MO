@@ -1,17 +1,19 @@
-import { View, Text, TouchableOpacity, Alert, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useState } from "react";
+import { View, Text, Pressable, Alert, ScrollView } from "react-native";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
-import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useRouter } from "expo-router";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { StatusBar } from "expo-status-bar";
+import { SymbolView } from "expo-symbols";
 
 /**
- * Profile tab – Hồ sơ bệnh nhân
- * Hiển thị thông tin user và nút Đăng xuất
+ * Profile screen – Hồ sơ bệnh nhân
+ * Thiết kế lại toàn bộ theo Figma, sử dụng 100% NativeWind và expo-symbols
  */
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user } = useAuthContext();
-  const { logout, isLoading } = useAuth();
+  const { user, logout } = useAuthContext();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = () => {
     Alert.alert("Đăng xuất", "Bạn có chắc muốn đăng xuất không?", [
@@ -20,84 +22,153 @@ export default function ProfileScreen() {
         text: "Đăng xuất",
         style: "destructive",
         onPress: async () => {
-          await logout();
-          router.replace("/(auth)/login");
+          setIsLoggingOut(true);
+          try {
+            await logout();
+            router.replace("/(auth)/login");
+          } finally {
+            setIsLoggingOut(false);
+          }
         },
       },
     ]);
   };
 
+  /** Trích xuất 2 chữ cái đầu in hoa của tên bệnh nhân (Ví dụ: "Nguyễn Văn An" -> "NA") */
+  const getInitials = (name?: string) => {
+    if (!name) return "BN";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    const first = parts[0].charAt(0);
+    const last = parts[parts.length - 1].charAt(0);
+    return (first + last).toUpperCase();
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-blue-50">
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="bg-blue-500 px-6 pt-8 pb-16 rounded-b-3xl items-center">
-          <View className="bg-white/20 rounded-full w-20 h-20 items-center justify-center mb-3">
-            <Text style={{ fontSize: 40 }}>👤</Text>
+    <ScreenWrapper edges={["left", "right"]}>
+      <StatusBar style="light" />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+        
+        {/* ── Header Immersive (Nền primary tràn viền phẳng đáy theo Figma) ── */}
+        <View className="px-6 pt-14 pb-16 bg-primary">
+          <Text className="text-white text-[24px] font-extrabold tracking-tight">
+            Hồ sơ cá nhân
+          </Text>
+        </View>
+
+        {/* ── Card thông tin bệnh nhân ── */}
+        <View className="mx-5 -mt-10 bg-white rounded-[24px] p-5 flex-row items-center gap-4 shadow shadow-black/5">
+          {/* Avatar vuông viết tắt chữ cái tên (Nền primary, chữ trắng chuẩn Figma) */}
+          <View className="bg-primary w-16 h-16 rounded-2xl items-center justify-center shadow-sm">
+            <Text className="text-white text-xl font-bold">
+              {getInitials(user?.fullName)}
+            </Text>
           </View>
-          <Text className="text-white text-lg font-bold">
-            {user?.fullName ?? "Bệnh nhân"}
-          </Text>
-          <Text className="text-blue-100 text-sm mt-1">
-            {user?.phone ?? ""}
-          </Text>
+          
+          <View className="flex-1">
+            <Text className="text-gray-800 text-lg font-bold">
+              {user?.fullName ?? "Bệnh nhân"}
+            </Text>
+            {/* Số điện thoại */}
+            <View className="flex-row items-center gap-2 mt-1.5">
+              <SymbolView 
+                name={{ ios: "phone", android: "phone" }} 
+                size={14} 
+                tintColor="#9CA3AF" 
+              />
+              <Text className="text-gray-500 text-xs font-medium">
+                {user?.phone ?? "0912 345 678"}
+              </Text>
+            </View>
+            {/* Email */}
+            <View className="flex-row items-center gap-2 mt-1">
+              <SymbolView 
+                name={{ ios: "envelope", android: "mail" }} 
+                size={14} 
+                tintColor="#9CA3AF" 
+              />
+              <Text className="text-gray-500 text-xs font-medium">
+                {user?.email ?? "nguyenvanan@email.com"}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* Info Card */}
-        <View className="mx-5 -mt-8 bg-white rounded-2xl shadow-sm p-5 mb-5" style={{ elevation: 4 }}>
-          <Text className="text-gray-700 font-semibold mb-4">Thông tin cá nhân</Text>
-
-          <InfoRow label="Họ và tên" value={user?.fullName} />
-          <InfoRow label="Số điện thoại" value={user?.phone} />
-          <InfoRow label="Số CCCD" value={user?.nationalId} />
-          <InfoRow label="Số thẻ BHYT" value={user?.insuranceId} />
-          <InfoRow label="Ngày sinh" value={user?.dateOfBirth} isLast />
+        {/* ── Các tùy chọn (Action Cards độc lập) ── */}
+        <View className="mt-6 px-5 gap-3.5">
+          <ActionCard 
+            iconName={{ ios: "person", android: "person" }} 
+            title="Thông tin cá nhân" 
+            onPress={() => {}} 
+          />
+          <ActionCard 
+            iconName={{ ios: "shield", android: "shield" }} 
+            title="Thông tin bảo hiểm" 
+            onPress={() => {}} 
+          />
+          <ActionCard 
+            iconName={{ ios: "clock", android: "history" }} 
+            title="Lịch sử khám bệnh" 
+            onPress={() => {}} 
+          />
+          <ActionCard 
+            iconName={{ ios: "bell", android: "notifications" }} 
+            title="Thông báo" 
+            onPress={() => {}} 
+          />
+          <ActionCard 
+            iconName={{ ios: "gear", android: "settings" }} 
+            title="Cài đặt" 
+            onPress={() => {}} 
+          />
         </View>
 
-        {/* Account actions */}
-        <View className="mx-5 bg-white rounded-2xl shadow-sm overflow-hidden mb-8" style={{ elevation: 2 }}>
-          <ActionRow emoji="🔒" title="Đổi mật khẩu" />
-          <View className="h-px bg-gray-100 mx-4" />
-          <ActionRow emoji="🔔" title="Cài đặt thông báo" />
-          <View className="h-px bg-gray-100 mx-4" />
-          <TouchableOpacity
-            onPress={handleLogout}
-            disabled={isLoading}
-            className="flex-row items-center px-5 py-4 gap-3"
-          >
-            <Text style={{ fontSize: 20 }}>🚪</Text>
-            <Text className="text-red-500 font-medium flex-1">Đăng xuất</Text>
-            <Text className="text-gray-300">›</Text>
-          </TouchableOpacity>
-        </View>
+        {/* ── Nút Đăng xuất ── */}
+        <Pressable 
+          onPress={handleLogout}
+          disabled={isLoggingOut}
+          className="flex-row items-center justify-center py-4 mt-8 mb-28 gap-2 active:opacity-70"
+        >
+          <SymbolView 
+            name={{ ios: "rectangle.portrait.and.arrow.right", android: "logout" }} 
+            size={18} 
+            tintColor="#EF4444" 
+          />
+          <Text className="text-red-500 text-[15px] font-bold">Đăng xuất</Text>
+        </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-  isLast = false,
-}: {
-  label: string;
-  value?: string;
-  isLast?: boolean;
+function ActionCard({ 
+  iconName, 
+  title, 
+  onPress 
+}: { 
+  iconName: { ios: any; android: any }; 
+  title: string; 
+  onPress: () => void;
 }) {
   return (
-    <View className={`py-3 ${!isLast ? "border-b border-gray-100" : ""}`}>
-      <Text className="text-xs text-gray-400 mb-1">{label}</Text>
-      <Text className="text-sm text-gray-800">{value ?? "—"}</Text>
-    </View>
+    <Pressable 
+      onPress={onPress}
+      className="bg-white px-5 py-4 rounded-[18px] flex-row items-center justify-between shadow shadow-black/5 active:opacity-75"
+    >
+      <View className="flex-row items-center gap-4">
+        <SymbolView 
+          name={iconName} 
+          size={20} 
+          tintColor="#374151" 
+        />
+        <Text className="text-gray-800 text-[15px] font-semibold">{title}</Text>
+      </View>
+      <SymbolView 
+        name={{ ios: "chevron.right", android: "chevron_right" }} 
+        size={16} 
+        tintColor="#9CA3AF" 
+      />
+    </Pressable>
   );
 }
 
-function ActionRow({ emoji, title }: { emoji: string; title: string }) {
-  return (
-    <TouchableOpacity className="flex-row items-center px-5 py-4 gap-3">
-      <Text style={{ fontSize: 20 }}>{emoji}</Text>
-      <Text className="text-gray-700 font-medium flex-1">{title}</Text>
-      <Text className="text-gray-300">›</Text>
-    </TouchableOpacity>
-  );
-}

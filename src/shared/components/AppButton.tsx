@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   View,
 } from "react-native";
+import { Colors } from "@/config/colors";
 
 type AppButtonVariant = "primary" | "secondary" | "outline" | "ghost";
 
@@ -31,7 +32,7 @@ export function AppButton({
     switch (variant) {
       case "primary":
         return {
-          backgroundColor: "#5B9BD5",
+          backgroundColor: Colors.primary,
           borderRadius: 999,
           height: 52,
           alignItems: "center" as const,
@@ -41,7 +42,7 @@ export function AppButton({
         };
       case "secondary":
         return {
-          backgroundColor: "#DBEAFE",
+          backgroundColor: Colors.neutral50,
           borderRadius: 999,
           height: 52,
           alignItems: "center" as const,
@@ -57,7 +58,7 @@ export function AppButton({
           alignItems: "center" as const,
           justifyContent: "center" as const,
           borderWidth: 1.5,
-          borderColor: "#5B9BD5",
+          borderColor: Colors.primary,
           width: fullWidth ? ("100%" as const) : undefined,
           opacity: isDisabled ? 0.6 : 1,
         };
@@ -74,10 +75,10 @@ export function AppButton({
 
   const textColor = (() => {
     switch (variant) {
-      case "primary": return "#FFFFFF";
-      case "secondary": return "#2563EB";
-      case "outline": return "#5B9BD5";
-      case "ghost": return "#5B9BD5";
+      case "primary":   return Colors.neutral100;
+      case "secondary": return Colors.neutral700;
+      case "outline":   return Colors.primary;
+      case "ghost":     return Colors.primary;
     }
   })();
 
@@ -90,7 +91,10 @@ export function AppButton({
     >
       {isLoading ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <ActivityIndicator size="small" color={variant === "primary" ? "#fff" : "#5B9BD5"} />
+          <ActivityIndicator
+            size="small"
+            color={variant === "primary" ? Colors.neutral100 : Colors.primary}
+          />
           <Text style={{ color: textColor, fontSize: 15, fontWeight: "600" }}>
             Đang xử lý...
           </Text>
