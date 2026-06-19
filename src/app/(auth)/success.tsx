@@ -1,7 +1,7 @@
-import { View, Text } from "react-native";
-import { useRouter } from "expo-router";
 import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { useRouter } from "expo-router";
+import { Text, View } from "react-native";
 
 /**
  * Success screen – sau khi verify OTP thành công

@@ -100,7 +100,7 @@ export default function CustomTabBar({ state, descriptors, navigation }: CustomT
           >
             <Image
               source={iconSource}
-              className="w-[25px] h-[25px]"
+              className="w-[37px] h-[37px]"
               resizeMode="contain"
             />
           </Pressable>
