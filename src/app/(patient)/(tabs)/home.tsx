@@ -47,7 +47,7 @@ export default function HomeScreen() {
         <View className="flex-row justify-around items-center px-5 py-6 gap-4">
           {/* Nút 1: Đặt lịch khám */}
           <Pressable 
-            onPress={() => router.push("/(patient)/(tabs)/ticket")}
+            onPress={() => router.push("/(patient)/body-map")}
             className="items-center gap-2 flex-1 active:opacity-75"
           >
             <View className="bg-purple-100/70 w-14 h-14 rounded-2xl items-center justify-center">
@@ -96,7 +96,7 @@ export default function HomeScreen() {
         {/* ── Banner Đặt Khám ── */}
         <View className="px-5 mb-6">
           <Pressable 
-            onPress={() => router.push("/(patient)/(tabs)/ticket")}
+            onPress={() => router.push("/(patient)/body-map")}
             className="bg-primary rounded-[24px] p-5 flex-row items-center justify-between shadow-sm shadow-primary/20 active:opacity-90"
           >
             <View className="flex-1 pr-4">
