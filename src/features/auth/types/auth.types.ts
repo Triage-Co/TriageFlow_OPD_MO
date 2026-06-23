@@ -89,3 +89,26 @@ export type ApiError = {
   message: string;
   statusCode?: number;
 };
+
+export type ForgotPasswordRequest = {
+  email: string;
+};
+
+export type ForgotPasswordResponse = {
+  code: number;
+  status: string;
+  message: string;
+};
+
+export type ForgotPasswordVerifyRequest = {
+  email: string;
+  otp: string;
+  password: string;
+};
+
+export type ForgotPasswordVerifyResponse = {
+  code: number;
+  status: string;
+  message: string;
+};
+

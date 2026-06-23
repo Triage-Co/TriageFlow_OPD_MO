@@ -116,9 +116,9 @@ export default function ProfileScreen() {
             onPress={() => { }}
           />
           <ActionCard
-            iconName={{ ios: "gear", android: "settings" }}
-            title="Cài đặt"
-            onPress={() => { }}
+            iconName={{ ios: "key", android: "key" }}
+            title="Quên mật khẩu"
+            onPress={() => router.push("/(auth)/forgot")}
           />
         </View>
         {/* ── Nút Đăng xuất ── */}

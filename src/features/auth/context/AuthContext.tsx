@@ -18,6 +18,7 @@ type AuthContextValue = {
   login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   loginWithToken: (token: string, refreshToken: string) => Promise<void>;
+  updateUser: (updatedFields: Partial<UserProfile>) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -109,6 +110,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const updateUser = useCallback((updatedFields: Partial<UserProfile>) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedFields } : null));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -119,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         loginWithToken,
+        updateUser,
       }}
     >
       {children}

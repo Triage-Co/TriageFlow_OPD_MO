@@ -1,25 +1,19 @@
+import { useLogin } from "@/features/auth/hooks/useLogin";
+import { AppButton } from "@/shared/components/AppButton";
+import { AppInput } from "@/shared/components/AppInput";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  Pressable,
   Alert,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { AppInput } from "@/shared/components/AppInput";
-import { AppButton } from "@/shared/components/AppButton";
-import { useLogin } from "@/features/auth/hooks/useLogin";
-import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 
-/**
- * Login screen
- * UI theo Figma: header card màu primary bo góc dưới, form bên dưới trên nền gradient
- * Hỗ trợ 2 phương thức: Email + Mật khẩu, CCCD + Mật khẩu
- * Có nút liên kết đăng nhập bằng OTP qua Email
- */
 export default function LoginScreen() {
   const router = useRouter();
   const { login, isLoading, error, clearError } = useLogin();
@@ -193,7 +187,10 @@ export default function LoginScreen() {
             </Pressable>
 
             {/* Quên mật khẩu */}
-            <Pressable className="self-end mt-3.5 mb-2.5 active:opacity-70">
+            <Pressable
+              onPress={() => router.push("/(auth)/forgot")}
+              className="self-end mt-3.5 mb-2.5 active:opacity-70"
+            >
               <Text className="text-primary text-xs">Quên mật khẩu?</Text>
             </Pressable>
 

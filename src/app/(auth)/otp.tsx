@@ -1,16 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useOtpLogin } from "@/features/auth/hooks/useOtpLogin";
+import { AppButton } from "@/shared/components/AppButton";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  Pressable,
-  TextInput,
   Alert,
   Keyboard,
+  Pressable,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { AppButton } from "@/shared/components/AppButton";
-import { useOtpLogin } from "@/features/auth/hooks/useOtpLogin";
-import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 
 const RESEND_COUNTDOWN = 60;
 
@@ -35,19 +35,36 @@ export default function OtpScreen() {
     Array(isEmailOtp ? 8 : 6).fill("")
   );
   const [countdown, setCountdown] = useState(RESEND_COUNTDOWN);
-  const [canResend, setCanResend] = useState(false);
+  const canResend = countdown <= 0;
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // Countdown timer
   useEffect(() => {
     if (countdown <= 0) {
-      setCanResend(true);
       return;
     }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
+
+  const handleVerify = useCallback(
+    async (otpValue?: string) => {
+      const code = otpValue ?? otp.join("");
+      if (code.length < otpLength) {
+        Alert.alert("Thông báo", "Vui lòng nhập đủ mã OTP.");
+        return;
+      }
+
+      if (isEmailOtp) {
+        const success = await verifyOtpLogin(email ?? "", code);
+        if (success) {
+          router.replace("/(patient)/(tabs)/home");
+        }
+      }
+    },
+    [otp, email, isEmailOtp, otpLength, verifyOtpLogin, router]
+  );
 
   const handleOtpChange = useCallback(
     (value: string, index: number) => {
@@ -72,7 +89,7 @@ export default function OtpScreen() {
         }
       }
     },
-    [otp, error, clearError, otpLength]
+    [otp, error, clearError, otpLength, handleVerify]
   );
 
   const handleKeyPress = useCallback(
@@ -87,24 +104,6 @@ export default function OtpScreen() {
     [otp]
   );
 
-  const handleVerify = useCallback(
-    async (otpValue?: string) => {
-      const code = otpValue ?? otp.join("");
-      if (code.length < otpLength) {
-        Alert.alert("Thông báo", "Vui lòng nhập đủ mã OTP.");
-        return;
-      }
-
-      if (isEmailOtp) {
-        const success = await verifyOtpLogin(email ?? "", code);
-        if (success) {
-          router.replace("/(patient)/(tabs)/home");
-        }
-      }
-    },
-    [otp, email, isEmailOtp, otpLength, verifyOtpLogin, router]
-  );
-
   const handleResend = useCallback(async () => {
     if (!canResend) return;
 
@@ -115,7 +114,6 @@ export default function OtpScreen() {
 
     if (success) {
       setCountdown(RESEND_COUNTDOWN);
-      setCanResend(false);
       setOtp(Array(otpLength).fill(""));
       inputRefs.current[0]?.focus();
     }
@@ -160,15 +158,13 @@ export default function OtpScreen() {
               keyboardType="number-pad"
               maxLength={1}
               selectTextOnFocus
-              className={`flex-1 h-14 text-center text-lg font-bold text-gray-800 rounded-xl ${
-                otp[index] ? "border-2 bg-blue-50/50" : "border bg-gray-50/50"
-              } ${
-                error
+              className={`flex-1 h-14 text-center text-lg font-bold text-gray-800 rounded-xl ${otp[index] ? "border-2 bg-blue-50/50" : "border bg-gray-50/50"
+                } ${error
                   ? "border-red-300"
                   : otp[index]
-                  ? "border-primary"
-                  : "border-neutral-200"
-              }`}
+                    ? "border-primary"
+                    : "border-neutral-200"
+                }`}
             />
           ))}
         </View>
@@ -188,9 +184,8 @@ export default function OtpScreen() {
             className={canResend ? "active:opacity-70" : ""}
           >
             <Text
-              className={`text-sm font-medium ${
-                canResend ? "text-blue-500" : "text-gray-400"
-              }`}
+              className={`text-sm font-medium ${canResend ? "text-blue-500" : "text-gray-400"
+                }`}
             >
               Gửi lại mã
             </Text>
