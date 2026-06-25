@@ -20,7 +20,13 @@ export const profileService = {
    * PATCH /api/auth/update
    */
   async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
-    const response = await apiClient.patch<UpdateProfileResponse>("/api/auth/update", data);
+    const payload = {
+      fullName: data.fullName,
+      full_name: data.fullName || data.full_name,
+      dob: data.dob,
+      gender: data.gender,
+    };
+    const response = await apiClient.patch<UpdateProfileResponse>("/api/auth/update", payload);
     return response.data;
   },
 };

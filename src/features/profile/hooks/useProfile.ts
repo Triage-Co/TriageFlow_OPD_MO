@@ -22,14 +22,16 @@ export function useProfile() {
         const apiData = response.data;
         const mappedData: UserProfile = {
           id: apiData.id,
-          fullName: apiData.fullName,
+          fullName: apiData.full_name || apiData.fullName || "",
           // Phản hồi trả về ngày sinh có thể bao gồm giờ, cần lấy YYYY-MM-DD
           dob: apiData.dob ? apiData.dob.split("T")[0] : "",
           gender: apiData.gender,
           citizen_id: apiData.citizen_id,
-          phone: apiData.phone,
+          phone: apiData.phone || "",
           email: apiData.email,
           role: apiData.role,
+          createdAt: apiData.createdAt,
+          updatedAt: apiData.updatedAt,
         };
         setProfileData(mappedData);
         

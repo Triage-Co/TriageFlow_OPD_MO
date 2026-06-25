@@ -13,12 +13,14 @@ import { AppInput } from "@/shared/components/AppInput";
 import { AppButton } from "@/shared/components/AppButton";
 import { useForgotPassword } from "@/features/auth/hooks/useForgotPassword";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * Screen nhập Email để nhận OTP đặt lại mật khẩu
  */
 export default function ForgotScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { sendForgotPasswordOtp, isLoading, error, clearError } = useForgotPassword();
   const [email, setEmail] = useState("");
 
@@ -57,7 +59,7 @@ export default function ForgotScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper edges={["bottom", "left", "right"]}>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -68,13 +70,13 @@ export default function ForgotScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Header card màu primary ── */}
-          <View className="bg-primary rounded-b-[28px] px-6 pt-5 pb-8">
+          <View className="bg-primary rounded-b-[28px] px-6 pb-8" style={{ paddingTop: insets.top + 20 }}>
             <Pressable
               onPress={() => router.back()}
               className="mb-5 self-start active:opacity-70"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
             >
-              <Text className="text-2xl text-white">←</Text>
+              <Text className="text-[40px] text-white">←</Text>
             </Pressable>
 
             <Text className="text-[28px] font-extrabold text-white tracking-tight mb-1.5">

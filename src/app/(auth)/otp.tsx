@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const RESEND_COUNTDOWN = 60;
 
@@ -20,6 +21,7 @@ const RESEND_COUNTDOWN = 60;
  */
 export default function OtpScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { phone, email, mode } = useLocalSearchParams<{
     phone?: string;
     email?: string;
@@ -124,14 +126,15 @@ export default function OtpScreen() {
     : `số điện thoại +${phone?.replace(/(\d{3})\d{4}(\d+)/, "$1****$2")}`;
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper edges={["bottom", "left", "right"]}>
       {/* Back button */}
-      <View className="px-5 pt-4 pb-2">
+      <View className="px-5 pb-2" style={{ paddingTop: insets.top + 16 }}>
         <Pressable
           onPress={() => router.back()}
-          className="w-9 h-9 rounded-lg border border-gray-200 items-center justify-center active:opacity-70"
+          className="w-[56px] h-[56px] rounded-xl border border-gray-200 items-center justify-center active:opacity-70"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Text className="text-gray-600 text-[16px]">‹</Text>
+          <Text className="text-gray-600 text-[28px] font-light">‹</Text>
         </Pressable>
       </View>
 

@@ -1,34 +1,18 @@
-import React from "react";
-import { StyleSheet, StyleProp, ViewStyle } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView, Edge } from "react-native-safe-area-context";
 import { Colors } from "@/config/colors";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { Edge, SafeAreaView } from "react-native-safe-area-context";
 
-/**
- * ScreenWrapper – wrapper dùng chung cho tất cả màn hình
- *
- * Áp dụng gradient nền "Gradientsss" từ Figma:
- *   0%  → #DFE1FF (lavender nhạt)
- *   87% → #F0D2C1 (đào hồng nhạt)
- *   100%→ #FFE1C4 (cam đào nhạt)
- *
- * Dùng thay thế <SafeAreaView> trên mọi màn hình:
- *   <ScreenWrapper>...</ScreenWrapper>
- */
-
-// Màu gradient từ Figma "Gradientsss" – tham chiếu từ Colors config
-const GRADIENT_COLORS: [string, string, string] = [
+const GRADIENT_COLORS: [string, string] = [
   Colors.gradientStart,
   Colors.gradientMid,
-  Colors.gradientEnd,
 ];
-const GRADIENT_LOCATIONS: [number, number, number] = [0, 0.87, 1];
+const GRADIENT_LOCATIONS: [number, number] = [0.5, 1];
 
 type ScreenWrapperProps = {
   children: React.ReactNode;
-  /** Style thêm cho SafeAreaView bên trong */
   style?: StyleProp<ViewStyle>;
-  /** Safe area edges – mặc định tất cả */
   edges?: Edge[];
 };
 
@@ -38,26 +22,32 @@ export function ScreenWrapper({
   edges,
 }: ScreenWrapperProps) {
   return (
-    <LinearGradient
-      colors={GRADIENT_COLORS}
-      locations={GRADIENT_LOCATIONS}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.gradient}
-    >
+    <View style={styles.container}>
+      <LinearGradient
+        colors={GRADIENT_COLORS}
+        locations={GRADIENT_LOCATIONS}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBg}
+      />
       <SafeAreaView
         style={[styles.safeArea, style]}
         edges={edges}
       >
         {children}
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
+  container: {
     flex: 1,
+    backgroundColor: Colors.neutral100,
+  },
+  gradientBg: {
+    ...StyleSheet.absoluteFill,
+    opacity: 0.6,
   },
   safeArea: {
     flex: 1,

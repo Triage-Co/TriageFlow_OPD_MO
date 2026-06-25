@@ -119,9 +119,9 @@ export default function ForgotVerifyScreen() {
             <Pressable
               onPress={() => router.back()}
               className="mb-5 self-start active:opacity-70"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
             >
-              <Text className="text-2xl text-white">←</Text>
+              <Text className="text-[40px] text-white">←</Text>
             </Pressable>
 
             <Text className="text-[28px] font-extrabold text-white tracking-tight mb-1.5">

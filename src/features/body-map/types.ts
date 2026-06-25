@@ -6,4 +6,5 @@ export type BodyRegion = {
   labelEn: string;
   side: BodySide;
   searchPhrase: string;
+  fallbackSearchPhrases?: string[];
 };

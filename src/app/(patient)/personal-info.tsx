@@ -217,14 +217,15 @@ export default function PersonalInfoScreen() {
             <View className="flex-row items-center justify-between mb-4">
               <Pressable
                 onPress={() => (isEditing ? handleCancelEditing() : router.back())}
-                className="flex-row items-center gap-1 active:opacity-70"
+                className="flex-row items-center gap-1 active:opacity-70 p-1"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <SymbolView
                   name={{ ios: "chevron.left", android: "arrow_back" }}
-                  size={16}
+                  size={24}
                   tintColor="#FFFFFF"
                 />
-                <Text className="text-white text-[13px] font-medium">
+                <Text className="text-white text-[16px] font-medium">
                   {isEditing ? "Hủy" : "Quay lại"}
                 </Text>
               </Pressable>

@@ -13,9 +13,11 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { login, isLoading, error, clearError } = useLogin();
 
   const [activeTab, setActiveTab] = useState<"email" | "citizen">("email");
@@ -48,7 +50,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper edges={["bottom", "left", "right"]}>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -59,7 +61,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Header card màu primary ── */}
-          <View className="bg-primary rounded-b-[28px] px-6 pt-6 pb-9 shadow-sm">
+          <View className="bg-primary rounded-b-[28px] px-6 pb-9 shadow-sm" style={{ paddingTop: insets.top + 24 }}>
             {/* Logo row */}
             <View className="flex-row items-center gap-2 mb-7">
               <View className="w-8 h-8 bg-white/25 rounded-lg items-center justify-center relative">
@@ -177,14 +179,13 @@ export default function LoginScreen() {
             </View>
 
             {/* Nút đăng nhập bằng OTP */}
-            <Pressable
-              className="items-center justify-center h-[52px] border border-primary rounded-xl mt-3 bg-transparent active:opacity-75"
-              onPress={() => router.push("/(auth)/email-otp")}
-            >
-              <Text className="text-primary text-[14px] font-semibold">
-                Đăng nhập bằng mã OTP qua Email
-              </Text>
-            </Pressable>
+            <View className="mt-3">
+              <AppButton
+                title="Đăng nhập bằng mã OTP qua Email"
+                variant="primary"
+                onPress={() => router.push("/(auth)/email-otp")}
+              />
+            </View>
 
             {/* Quên mật khẩu */}
             <Pressable

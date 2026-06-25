@@ -8,7 +8,7 @@ export const Colors = {
 
   // Neutral
   neutral100: "#FFFFFF",  // neutral-100: card bg, tab bar bg
-  neutral50:  "#F3F4F6",  // neutral-50: input bg, subtle bg
+  neutral50: "#F3F4F6",  // neutral-50: input bg, subtle bg
   neutral200: "#E5E7EB",  // border, divider
   neutral700: "#374151",  // text đậm, icon
 
@@ -17,6 +17,5 @@ export const Colors = {
 
   // Gradient nền toàn app – "Gradientsss"
   gradientStart: "#DFE1FF",
-  gradientMid:   "#F0D2C1",
-  gradientEnd:   "#FFE1C4",
+  gradientMid: "#F0D2C1",
 } as const;

@@ -83,6 +83,8 @@ export type UserProfile = {
   dob?: string;
   gender?: Gender;
   role: UserRole | string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type ApiError = {

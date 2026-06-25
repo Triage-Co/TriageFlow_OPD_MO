@@ -19,7 +19,16 @@ export default function BodyMapScreen() {
 
   const handleNext = () => {
     if (selectedRegion) {
-      console.log("Selected body region:", selectedRegion);
+      router.push({
+        pathname: "/(patient)/visit/symptoms",
+        params: {
+          regionId: selectedRegion.id,
+          labelVi: selectedRegion.labelVi,
+          labelEn: selectedRegion.labelEn,
+          searchPhrase: selectedRegion.searchPhrase,
+          fallbackSearchPhrases: JSON.stringify(selectedRegion.fallbackSearchPhrases ?? []),
+        },
+      });
     }
   };
 
@@ -36,11 +45,12 @@ export default function BodyMapScreen() {
           <View className="flex-row items-center gap-3 mb-4">
             <Pressable
               onPress={() => router.back()}
-              className="active:opacity-70 p-1"
+              className="active:opacity-70 p-2"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <SymbolView
                 name={{ ios: "chevron.left", android: "arrow_back" }}
-                size={18}
+                size={28}
                 tintColor="#FFFFFF"
               />
             </Pressable>
