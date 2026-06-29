@@ -7,7 +7,6 @@ export type UserProfileResponse = {
   data: {
     id: string;
     full_name: string;
-    fullName?: string;
     dob: string;
     gender: Gender;
     citizen_id?: string;
@@ -20,10 +19,10 @@ export type UserProfileResponse = {
 };
 
 export type UpdateProfileRequest = {
-  fullName?: string;
   full_name?: string;
   dob: string;
   gender: Gender;
+  phone?: string;
 };
 
 export type UpdateProfileResponse = {

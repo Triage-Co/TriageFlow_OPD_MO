@@ -4,6 +4,9 @@ import type {
   SymptomSearchItem,
   TranslatedSymptomSearchItem,
 } from "../types/triage.types";
+import { ITranslationProvider } from "./translation.provider";
+import { GoogleTranslateProvider } from "./google-translate.provider";
+import { triageCacheService } from "./triage-cache.service";
 
 const STATIC_EN_VI_DICTIONARY: Record<string, string> = {
   Yes: "Có",
@@ -13,46 +16,34 @@ const STATIC_EN_VI_DICTIONARY: Record<string, string> = {
   absent: "Không",
   unknown: "Không biết",
   personal_visit: "Khám trực tiếp",
-
-  // Một số symptom/body phổ biến để test flow trước
-  "head pain": "Đau đầu",
-  "neck pain": "Đau cổ",
-  "chest pain": "Đau ngực",
-  "abdominal pain": "Đau bụng",
-  "left shoulder": "Đau vai trái",
-  "right shoulder": "Đau vai phải",
-  "left arm": "Đau tay trái",
-  "right arm": "Đau tay phải",
-  "left hand": "Đau bàn tay trái",
-  "right hand": "Đau bàn tay phải",
-  "left leg": "Đau chân trái",
-  "right leg": "Đau chân phải",
-  "left knee": "Đau đầu gối trái",
-  "right knee": "Đau đầu gối phải",
-  "left foot": "Đau bàn chân trái",
-  "right foot": "Đau bàn chân phải",
-  "upper back pain": "Đau lưng trên",
-  "lower back pain": "Đau thắt lưng",
-  "back pain": "Đau lưng",
-
-  "hand rash": "Phát ban ở tay",
-  "hand hurt": "Đau tay",
-  "hands shake": "Run tay",
-  "hands hurt": "Đau hai tay",
-  "hand cramps": "Chuột rút bàn tay",
-  "hand feels stiff": "Cứng bàn tay",
-  "cold hands": "Tay lạnh",
-  headache: "Đau đầu",
 };
 
 class TranslationService {
-  async translateEnToVi(text?: string | null): Promise<string> {
+  private provider: ITranslationProvider;
+
+  constructor(provider: ITranslationProvider = new GoogleTranslateProvider()) {
+    this.provider = provider;
+  }
+
+  setProvider(provider: ITranslationProvider) {
+    this.provider = provider;
+  }
+
+  async translateEnToVi(text?: string | null, symptomId?: string): Promise<string> {
     if (!text) return "";
 
     const normalizedText = text.trim();
     if (!normalizedText) return "";
 
-    // Tìm kiếm trong từ điển tĩnh (case-sensitive)
+    // 1. Kiểm tra Translation Cache trước nếu có symptomId
+    if (symptomId) {
+      const cached = triageCacheService.getTranslationCache(symptomId);
+      if (cached && cached.vi) {
+        return cached.vi;
+      }
+    }
+
+    // 2. Tìm kiếm trong từ điển tĩnh (case-sensitive)
     let staticTranslated = STATIC_EN_VI_DICTIONARY[normalizedText];
     if (staticTranslated) return staticTranslated;
 
@@ -64,22 +55,27 @@ class TranslationService {
       }
     }
 
+    // 3. Gọi provider thực tế để dịch
     try {
-      // TODO: Sau này gắn package/API dịch thật ở đây.
-      // Hiện tại fallback để flow không crash.
-      return normalizedText;
+      const translated = await this.provider.translate(normalizedText, "en", "vi");
+      
+      // Cache lại nếu có symptomId
+      if (symptomId && translated) {
+        triageCacheService.setTranslationCache(symptomId, { en: normalizedText, vi: translated });
+      }
+      
+      return translated || normalizedText;
     } catch (error) {
-      console.warn("Translate failed, fallback to original text:", error);
+      console.warn(`[TranslationService] Translate failed for "${text}", fallback to original:`, error);
       return normalizedText;
     }
   }
 
-  async translateManyEnToVi(texts: string[]): Promise<string[]> {
+  async translateManyEnToVi(texts: string[], symptomIds?: string[]): Promise<string[]> {
     try {
       const results = await Promise.all(
-        texts.map((text) => this.translateEnToVi(text))
+        texts.map((text, index) => this.translateEnToVi(text, symptomIds?.[index]))
       );
-
       return results;
     } catch (error) {
       console.warn("Translate many failed, fallback to original texts:", error);
@@ -94,7 +90,8 @@ class TranslationService {
 
     try {
       const labelsEn = items.map((item) => item.label);
-      const labelsVi = await this.translateManyEnToVi(labelsEn);
+      const symptomIds = items.map((item) => item.id);
+      const labelsVi = await this.translateManyEnToVi(labelsEn, symptomIds);
 
       return items.map((item, index) => ({
         id: item.id,
@@ -122,7 +119,7 @@ class TranslationService {
 
       const translatedItems = await Promise.all(
         question.items.map(async (item) => {
-          const nameVi = await this.translateEnToVi(item.name);
+          const nameVi = await this.translateEnToVi(item.name, item.id);
 
           const translatedChoices = await Promise.all(
             item.choices.map(async (choice) => ({
@@ -154,23 +151,50 @@ class TranslationService {
     result: RecommendSpecialistResponse
   ): Promise<RecommendSpecialistResponse> {
     try {
+      const specialist = result?.recommended_specialist || (result as any)?.recommendedSpecialist;
+      const channel = result?.recommended_channel || (result as any)?.recommendedChannel || "";
+
+      if (!specialist) {
+        console.warn("[Translation] recommended_specialist is missing in API response:", result);
+        return {
+          ...result,
+          recommended_specialist: {
+            id: "general_practice",
+            name: "General Practice",
+            nameVi: "Khoa Nội tổng quát"
+          },
+          recommended_channel: channel || "personal_visit",
+          recommended_channel_vi: "Khám trực tiếp"
+        };
+      }
+
       const specialistNameVi = await this.translateEnToVi(
-        result.recommended_specialist.name
+        specialist.name,
+        specialist.id
       );
 
-      const channelVi = await this.translateEnToVi(result.recommended_channel);
+      const channelVi = await this.translateEnToVi(channel);
 
       return {
         ...result,
         recommended_specialist: {
-          ...result.recommended_specialist,
-          nameVi: specialistNameVi,
+          ...specialist,
+          nameVi: specialistNameVi || specialist.name,
         },
-        recommended_channel_vi: channelVi,
+        recommended_channel_vi: channelVi || channel,
       };
     } catch (error) {
-      console.warn("Translate recommendation failed:", error);
-      return result;
+      console.warn("Translate recommendation failed, applying default fallback:", error);
+      const specialist = result?.recommended_specialist || (result as any)?.recommendedSpecialist;
+      return {
+        ...result,
+        recommended_specialist: {
+          id: specialist?.id || "general_practice",
+          name: specialist?.name || "General Practice",
+          nameVi: specialist?.nameVi || "Khoa Nội tổng quát"
+        },
+        recommended_channel_vi: result?.recommended_channel_vi || "Khám trực tiếp"
+      };
     }
   }
 }

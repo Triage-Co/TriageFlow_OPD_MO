@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useAuthContext } from "@/features/auth/context/AuthContext";
+import { UserProfile } from "@/features/auth/types/auth.types";
 import { profileService } from "@/features/profile/services/profile.service";
 import { UpdateProfileRequest } from "@/features/profile/types/profile.types";
-import { UserProfile } from "@/features/auth/types/auth.types";
-import { useAuthContext } from "@/features/auth/context/AuthContext";
+import { useCallback, useState } from "react";
 
 export function useProfile() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +22,7 @@ export function useProfile() {
         const apiData = response.data;
         const mappedData: UserProfile = {
           id: apiData.id,
-          fullName: apiData.full_name || apiData.fullName || "",
+          full_name: apiData.full_name || "",
           // Phản hồi trả về ngày sinh có thể bao gồm giờ, cần lấy YYYY-MM-DD
           dob: apiData.dob ? apiData.dob.split("T")[0] : "",
           gender: apiData.gender,
@@ -34,7 +34,7 @@ export function useProfile() {
           updatedAt: apiData.updatedAt,
         };
         setProfileData(mappedData);
-        
+
         // Đồng bộ thông tin mới nhất vào Auth Context
         updateUser(mappedData);
         return mappedData;
@@ -56,13 +56,22 @@ export function useProfile() {
       const response = await profileService.updateProfile(data);
       if (response.status === "success" || response.code === 200) {
         // Đồng bộ dữ liệu state cục bộ
-        setProfileData((prev) => (prev ? { ...prev, ...data } : null));
-        
+        setProfileData((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            ...data,
+            full_name: data.full_name || prev.full_name,
+            phone: data.phone ?? prev.phone,
+          };
+        });
+
         // Đồng bộ dữ liệu sang Auth Context để hiển thị ở các màn hình khác
         updateUser({
-          fullName: data.fullName,
+          full_name: data.full_name,
           dob: data.dob,
           gender: data.gender,
+          phone: data.phone,
         });
         return true;
       }

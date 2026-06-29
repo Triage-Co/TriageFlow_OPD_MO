@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -30,7 +31,8 @@ export default function SymptomsScreen() {
     isLoading,
     error,
     searchSymptomsByRegion,
-    startDiagnosis,
+    toggleSymptom,
+    startDiagnosisSession,
   } = useTriage();
 
   const [selectedSymptom, setSelectedSymptom] = useState<TranslatedSymptomSearchItem | null>(null);
@@ -64,7 +66,9 @@ export default function SymptomsScreen() {
     if (selectedSymptom) {
       setIsSubmitting(true);
       try {
-        await startDiagnosis(selectedSymptom);
+        // Thêm triệu chứng vào map rồi bắt đầu phiên chẩn đoán
+        toggleSymptom(params.regionId || "default", selectedSymptom);
+        await startDiagnosisSession();
       } finally {
         setIsSubmitting(false);
       }
@@ -97,9 +101,10 @@ export default function SymptomsScreen() {
         {/* ── 1. HEADER (Đồng bộ style với body-map) ── */}
         <View className="bg-primary px-5 pt-12 pb-5 shadow-sm">
           <View className="flex-row items-center gap-3 mb-4">
-            <Pressable
+            <TouchableOpacity
               onPress={() => router.back()}
-              className="active:opacity-70 p-2"
+              activeOpacity={0.7}
+              className="p-2"
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <SymbolView
@@ -107,7 +112,7 @@ export default function SymptomsScreen() {
                 size={28}
                 tintColor="#FFFFFF"
               />
-            </Pressable>
+            </TouchableOpacity>
             <Text className="text-white text-[16px] font-bold">
               Triệu chứng vùng {params.labelVi || "cơ thể"}
             </Text>
@@ -172,11 +177,13 @@ export default function SymptomsScreen() {
                     <Pressable
                       key={symptom.id}
                       onPress={() => handleSymptomSelect(symptom)}
-                      className={`p-4 rounded-[16px] border flex-row items-center justify-between active:opacity-90 ${
+                      className="p-4 rounded-[16px] border flex-row items-center justify-between bg-white"
+                      style={({ pressed }) => [
                         isSelected
-                          ? "bg-white border-[#84AFEB] shadow-sm shadow-[#84AFEB]/20"
-                          : "bg-white border-gray-100"
-                      }`}
+                          ? { borderColor: "#84AFEB", shadowColor: "#84AFEB", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }
+                          : { borderColor: "#F1F5F9" },
+                        pressed && { opacity: 0.8 }
+                      ]}
                     >
                       <View className="flex-1 pr-3">
                         <Text

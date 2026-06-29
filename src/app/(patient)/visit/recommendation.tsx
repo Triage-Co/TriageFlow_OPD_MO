@@ -37,8 +37,9 @@ export default function RecommendationScreen() {
     );
   }
 
-  const { recommended_specialist } = recommendation;
-  const specialistName = recommended_specialist.nameVi || recommended_specialist.name;
+  const specialist = recommendation?.recommended_specialist || (recommendation as any)?.recommendedSpecialist;
+  const specialistName = specialist ? (specialist.nameVi || specialist.name) : "Khoa Nội tổng quát";
+  const channelName = recommendation?.recommended_channel_vi || recommendation?.recommended_channel || (recommendation as any)?.recommendedChannelVi || (recommendation as any)?.recommendedChannel || "Khám trực tiếp";
 
   return (
     <ScreenWrapper edges={["left", "right"]}>
@@ -87,7 +88,7 @@ export default function RecommendationScreen() {
                 tintColor="#6B7280"
               />
               <Text className="text-gray-600 text-[12px] font-semibold">
-                Hình thức: {recommendation.recommended_channel_vi || "Khám trực tiếp"}
+                Hình thức: {channelName}
               </Text>
             </View>
 

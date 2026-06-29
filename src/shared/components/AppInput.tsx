@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 type AppInputProps = TextInputProps & {
   label?: string;
@@ -65,9 +66,11 @@ export function AppInput({
             onPress={() => setIsPasswordVisible((v) => !v)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={{ color: "#9CA3AF", fontSize: 18 }}>
-              {isPasswordVisible ? "🙈" : "👁"}
-            </Text>
+            <Ionicons
+              name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
+              size={22}
+              color="#9CA3AF"
+            />
           </TouchableOpacity>
         ) : null}
 

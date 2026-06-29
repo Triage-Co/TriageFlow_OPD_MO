@@ -71,10 +71,15 @@ export interface RecommendSpecialistResponse {
   recommended_channel_vi?: string;
 }
 
+export type SelectedSymptomsMap = Record<string, TranslatedSymptomSearchItem[]>;
+
 export interface DiagnosisSessionCache {
   sex: PatientSex;
   age: number;
+  citizenId?: string;
+  questionCount?: number;
   selectedSymptom?: TranslatedSymptomSearchItem;
+  selectedSymptoms?: SelectedSymptomsMap;
   evidence: Evidence[];
   currentQuestion?: DiagnosisQuestion | null;
   interviewToken?: string;
@@ -82,3 +87,4 @@ export interface DiagnosisSessionCache {
   recommendation?: RecommendSpecialistResponse;
   updatedAt: string;
 }
+

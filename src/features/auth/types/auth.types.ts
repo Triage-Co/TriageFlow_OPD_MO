@@ -7,7 +7,7 @@ export type Gender = "MALE" | "FEMALE";
 /** POST /api/auth/register */
 export type RegisterRequest = {
   email: string;
-  fullName: string;
+  full_name: string;
   dob: string;
   password: string;
   gender: Gender;
@@ -53,7 +53,7 @@ export type LoginResponse = {
   message: string;
   data: {
     token: string;
-    refreshToken: string;
+    refresh_token: string;
   };
 };
 
@@ -67,7 +67,7 @@ export type RefreshTokenResponse = {
   message: string;
   data: {
     token: string;
-    refreshToken: string;
+    refresh_token: string;
   };
 };
 
@@ -76,7 +76,7 @@ export type UserRole = "USER";
 
 export type UserProfile = {
   id: string;
-  fullName: string;
+  full_name: string;
   email?: string;
   phone?: string;
   citizen_id?: string;

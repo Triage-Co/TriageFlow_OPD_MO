@@ -1,14 +1,14 @@
+import { decodeSupabaseJwt, loginService } from "@/features/auth/services/login.service";
+import { LoginRequest, UserProfile } from "@/features/auth/types/auth.types";
+import { REFRESH_TOKEN_KEY, TOKEN_KEY } from "@/shared/services/api-client";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { loginService, decodeSupabaseJwt } from "@/features/auth/services/login.service";
-import { TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/shared/services/api-client";
-import { UserProfile, LoginRequest } from "@/features/auth/types/auth.types";
 
 type AuthContextValue = {
   user: UserProfile | null;
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         response = await loginService.loginWithCitizen(data);
       }
       if (response && response.data?.token) {
-        await loginWithToken(response.data.token, response.data.refreshToken);
+        await loginWithToken(response.data.token, response.data.refresh_token);
       } else {
         throw new Error("Không nhận được mã truy cập hợp lệ từ máy chủ.");
       }

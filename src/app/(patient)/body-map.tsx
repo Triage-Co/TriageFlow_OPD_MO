@@ -1,62 +1,141 @@
 import { BodyMap } from "@/features/body-map/BodyMap";
 import { BodyRegion } from "@/features/body-map/types";
-import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import {
+  TouchableOpacity,
+  Text,
+  useWindowDimensions,
+  View,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
+import { useTriage } from "@/features/triage/hooks/useTriage";
+import { useBodyMapPreload } from "@/features/triage/hooks/useBodyMapPreload";
+import { SymptomBottomSheet } from "@/features/triage/components/SymptomBottomSheet";
+import { Colors } from "@/config/colors";
+import { TranslatedSymptomSearchItem } from "@/features/triage/types/triage.types";
 
 export default function BodyMapScreen() {
   const router = useRouter();
-  const [selectedRegion, setSelectedRegion] = useState<BodyRegion | null>(null);
   const { height: windowHeight } = useWindowDimensions();
+
+  // Context của Triage
+  const {
+    selectedSymptomsMap,
+    toggleSymptom,
+    getAllSelectedSymptoms,
+    startDiagnosisSession,
+    isLoading,
+    error,
+  } = useTriage();
+
+  // Hook preload
+  const {
+    preloadStates,
+    prioritizeRegion,
+    gender,
+  } = useBodyMapPreload();
+
+  // State cục bộ cho Bottom Sheet
+  const [selectedRegion, setSelectedRegion] = useState<BodyRegion | null>(null);
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const handleSelectRegion = (region: BodyRegion) => {
     setSelectedRegion(region);
+    prioritizeRegion(region.id);
+    setIsBottomSheetOpen(true);
   };
 
-  const handleNext = () => {
-    if (selectedRegion) {
-      router.push({
-        pathname: "/(patient)/visit/symptoms",
-        params: {
-          regionId: selectedRegion.id,
-          labelVi: selectedRegion.labelVi,
-          labelEn: selectedRegion.labelEn,
-          searchPhrase: selectedRegion.searchPhrase,
-          fallbackSearchPhrases: JSON.stringify(selectedRegion.fallbackSearchPhrases ?? []),
-        },
-      });
+  const allSelected = getAllSelectedSymptoms();
+  const hasAnySelected = allSelected.length > 0;
+
+  const handleNext = async () => {
+    if (hasAnySelected && !isLoading) {
+      await startDiagnosisSession();
     }
   };
 
-  const cardHeight = Math.min(windowHeight * 0.62, 520);
+  // Bỏ chọn một triệu chứng từ tag list
+  const handleRemoveSymptom = (symptom: TranslatedSymptomSearchItem) => {
+    // Tìm regionId của triệu chứng này trong map
+    for (const [regionId, symptoms] of Object.entries(selectedSymptomsMap)) {
+      if (symptoms.some((s) => s.id === symptom.id)) {
+        toggleSymptom(regionId, symptom);
+        break;
+      }
+    }
+  };
+
+  // Lấy danh sách triệu chứng của vùng đau đang chọn
+  const activeRegionState = selectedRegion ? preloadStates[selectedRegion.id] : null;
+  const regionSymptoms = activeRegionState?.symptoms || [];
+  const isRegionLoading = activeRegionState
+    ? activeRegionState.status === "loading" || activeRegionState.status === "idle"
+    : false;
+
+  const cardHeight = Math.min(windowHeight * 0.52, 420);
 
   return (
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <View className="flex-1 justify-between">
 
-        {/* ── 1. HEADER PHÂN LOẠI AI (Y CHANG FIGMA) ── */}
+        {/* ── 1. HEADER PHÂN LOẠI AI ── */}
         <View className="bg-primary px-5 pt-12 pb-5 shadow-sm">
-          {/* Hàng nút quay lại + Tiêu đề */}
-          <View className="flex-row items-center gap-3 mb-4">
-            <Pressable
-              onPress={() => router.back()}
-              className="active:opacity-70 p-2"
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          {/* Hàng nút quay lại + Tiêu đề + Nút Tiếp tục */}
+          <View className="flex-row items-center justify-between mb-4">
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => router.back()}
+                activeOpacity={0.7}
+                className="p-2"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <SymbolView
+                  name={{ ios: "chevron.left", android: "arrow_back" }}
+                  size={28}
+                  tintColor="#FFFFFF"
+                />
+              </TouchableOpacity>
+              <Text className="text-white text-[16px] font-bold">
+                Chọn vùng đau
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleNext}
+              disabled={!hasAnySelected || isLoading}
+              activeOpacity={0.9}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: hasAnySelected && !isLoading ? "#FFFFFF" : "rgba(255,255,255,0.4)",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+              }}
             >
-              <SymbolView
-                name={{ ios: "chevron.left", android: "arrow_back" }}
-                size={28}
-                tintColor="#FFFFFF"
-              />
-            </Pressable>
-            <Text className="text-white text-[16px] font-bold">
-              Chọn vùng đau
-            </Text>
+              {isLoading && (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              )}
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "700",
+                  color: hasAnySelected && !isLoading ? Colors.primary : "rgba(255,255,255,0.6)",
+                }}
+              >
+                {isLoading
+                  ? "Đang xử lý..."
+                  : `Tiếp tục${hasAnySelected ? ` (${allSelected.length})` : ""}`}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Thanh Tiến trình (Bước 1/3) */}
@@ -64,52 +143,100 @@ export default function BodyMapScreen() {
             <Text className="text-white/80 text-[11px] font-semibold">
               Bước 1/3
             </Text>
-            {/* Thanh bar */}
             <View className="h-[3px] bg-white/25 w-full rounded-full mt-1.5 relative overflow-hidden">
               <View className="h-full bg-white w-1/3 rounded-full absolute left-0 top-0" />
             </View>
           </View>
         </View>
 
-        {/* ── 2. NỘI DUNG CHÍNH CHỌN VÙNG ĐAU (THÂN DƯỚI) ── */}
-        <View className="flex-1 px-5 justify-between mt-4">
-          <View>
-            {/* Card trắng chứa Body Map SVG */}
-            <View
-              style={{ height: cardHeight }}
-              className="bg-white rounded-[20px] py-5 items-center justify-center shadow shadow-black/5 border border-white/50"
-            >
-              <Text className="text-gray-500 text-[12px] font-medium text-center mt-3 mb-3">
-                Nhấn vào vùng cơ thể bạn đang cảm thấy khó chịu
-              </Text>
-              <BodyMap
-                selectedRegionId={selectedRegion?.id}
-                onSelectRegion={handleSelectRegion}
+        {/* ── 2. NỘI DUNG CHÍNH ── */}
+        <View className="flex-1 px-5 mt-4">
+          {/* Thông báo lỗi nếu có */}
+          {error && (
+            <View className="bg-red-50 border border-red-200 p-3 rounded-[12px] mb-3 flex-row items-center gap-2">
+              <SymbolView
+                name={{ ios: "exclamationmark.triangle.fill", android: "warning" }}
+                size={16}
+                tintColor="#EF4444"
               />
+              <Text className="text-red-600 text-[12px] font-semibold flex-1">
+                {error}
+              </Text>
             </View>
-            {selectedRegion && (
-              <View className="bg-white/70 rounded-[14px] px-4 py-2.5 mt-2 flex-row items-center justify-between border border-white/40 shadow-sm">
-                <Text className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">
-                  Vùng đang chọn:
+          )}
+
+          {/* Card trắng chứa Body Map SVG */}
+          <View
+            style={{ height: cardHeight }}
+            className="bg-white rounded-[20px] py-3 items-center justify-center shadow shadow-black/5 border border-white/50"
+          >
+            <Text className="text-gray-500 text-[12px] font-medium text-center mb-2">
+              Nhấn vào vùng cơ thể bạn đang cảm thấy khó chịu
+            </Text>
+            <BodyMap
+              gender={gender}
+              selectedRegionId={selectedRegion?.id}
+              onSelectRegion={handleSelectRegion}
+            />
+          </View>
+
+          {/* ── 3. DANH SÁCH TRIỆU CHỨNG ĐÃ CHỌN ── */}
+          <View className="mt-4 flex-1">
+            {hasAnySelected ? (
+              <View className="flex-1">
+                <Text className="text-gray-500 text-[11px] font-bold uppercase tracking-wider mb-2.5">
+                  Triệu chứng đã chọn ({allSelected.length})
                 </Text>
-                <Text className="text-primary text-[14px] font-bold">
-                  {selectedRegion.labelVi}
+                <ScrollView 
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 16 }}
+                >
+                  <View className="flex-row flex-wrap gap-2">
+                    {allSelected.map((symptom) => (
+                      <Pressable
+                        key={symptom.id}
+                        onPress={() => handleRemoveSymptom(symptom)}
+                        className="flex-row items-center bg-[#84AFEB]/10 border border-[#84AFEB]/30 rounded-[12px] px-3 py-1.5 gap-1.5 active:opacity-70"
+                      >
+                        <Text className="text-[#3E5C8A] text-[12px] font-semibold">
+                          {symptom.labelVi}
+                        </Text>
+                        <View className="w-3.5 h-3.5 rounded-full bg-[#84AFEB]/20 items-center justify-center">
+                          <SymbolView
+                            name={{ ios: "xmark", android: "close" }}
+                            size={7}
+                            tintColor="#3E5C8A"
+                          />
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            ) : (
+              <View className="bg-[#84AFEB]/5 rounded-[16px] px-4 py-4 border border-[#84AFEB]/10 items-center justify-center">
+                <Text className="text-[#547FB8] text-[12px] font-semibold text-center">
+                  Nhấn vào các vùng cơ thể để bắt đầu chọn triệu chứng
                 </Text>
               </View>
             )}
           </View>
-
-          {/* ── 3. PHẦN HÀNH ĐỘNG DƯỚI CÙNG (NÚT BẤM & TABBAR GIẢ Y CHANG FIGMA) ── */}
-          <View className="gap-3 mb-12">
-            {/* Nút Tiếp theo bo tròn hoàn toàn */}
-            <AppButton
-              title="Tiếp theo"
-              disabled={!selectedRegion}
-              onPress={handleNext}
-            />
-          </View>
         </View>
       </View>
+
+      {/* ── 4. BOTTOM SHEET HIỂN THỊ TRIỆU CHỨNG ── */}
+      {selectedRegion && (
+        <SymptomBottomSheet
+          visible={isBottomSheetOpen}
+          regionId={selectedRegion.id}
+          regionLabelVi={selectedRegion.labelVi || selectedRegion.name || ""}
+          symptoms={regionSymptoms}
+          isLoading={isRegionLoading}
+          selectedSymptoms={selectedSymptomsMap[selectedRegion.id] || []}
+          onToggleSymptom={(symptom) => toggleSymptom(selectedRegion.id, symptom)}
+          onClose={() => setIsBottomSheetOpen(false)}
+        />
+      )}
     </ScreenWrapper>
   );
 }

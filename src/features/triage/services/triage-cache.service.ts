@@ -9,6 +9,40 @@ const SESSION_KEY = "triage:diagnosis-session";
 const RECOMMENDATION_KEY = "triage:recommendation-result";
 
 class TriageCacheService {
+  private translationCache = new Map<string, { en: string; vi: string }>();
+
+  getTranslationCache(symptomId: string): { en: string; vi: string } | null {
+    return this.translationCache.get(symptomId) || null;
+  }
+
+  setTranslationCache(symptomId: string, translation: { en: string; vi: string }): void {
+    this.translationCache.set(symptomId, translation);
+  }
+
+  private getSearchCacheKey(regionId: string): string {
+    return `triage:search:${regionId.toLowerCase().trim()}`;
+  }
+
+  async getSearchCache(regionId: string): Promise<TranslatedSymptomSearchItem[] | null> {
+    try {
+      const key = this.getSearchCacheKey(regionId);
+      const cached = await AsyncStorage.getItem(key);
+      return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+      console.error(`[Cache] Lỗi khi đọc search cache cho region ${regionId}:`, error);
+      return null;
+    }
+  }
+
+  async setSearchCache(regionId: string, symptoms: TranslatedSymptomSearchItem[]): Promise<void> {
+    try {
+      const key = this.getSearchCacheKey(regionId);
+      await AsyncStorage.setItem(key, JSON.stringify(symptoms));
+    } catch (error) {
+      console.error(`[Cache] Lỗi khi lưu search cache cho region ${regionId}:`, error);
+    }
+  }
+
   private getSymptomSearchKey(age: number, phrase: string): string {
     return `triage:symptom-search:${age}:${phrase.toLowerCase().trim()}`;
   }

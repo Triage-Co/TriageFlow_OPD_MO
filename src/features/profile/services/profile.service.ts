@@ -1,9 +1,9 @@
-import apiClient from "@/shared/services/api-client";
 import {
-  UserProfileResponse,
   UpdateProfileRequest,
   UpdateProfileResponse,
+  UserProfileResponse,
 } from "@/features/profile/types/profile.types";
+import apiClient from "@/shared/services/api-client";
 
 export const profileService = {
   /**
@@ -21,10 +21,10 @@ export const profileService = {
    */
   async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
     const payload = {
-      fullName: data.fullName,
-      full_name: data.fullName || data.full_name,
+      full_name: data.full_name,
       dob: data.dob,
       gender: data.gender,
+      phone: data.phone,
     };
     const response = await apiClient.patch<UpdateProfileResponse>("/api/auth/update", payload);
     return response.data;

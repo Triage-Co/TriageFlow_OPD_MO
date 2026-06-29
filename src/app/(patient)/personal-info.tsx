@@ -33,6 +33,7 @@ export default function PersonalInfoScreen() {
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState(""); // YYYY-MM-DD
   const [gender, setGender] = useState<Gender | "">("");
+  const [phone, setPhone] = useState("");
 
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -43,10 +44,11 @@ export default function PersonalInfoScreen() {
     const loadProfile = async () => {
       const profile = await fetchProfile();
       if (profile) {
-        setFullName(profile.fullName);
+        setFullName(profile.full_name);
         setDob(profile.dob || "");
         setGender((profile.gender as Gender) || "");
-        
+        setPhone(profile.phone || "");
+
         if (profile.dob) {
           const parts = profile.dob.split("-");
           if (parts.length === 3) {
@@ -65,9 +67,10 @@ export default function PersonalInfoScreen() {
     // Ưu tiên dữ liệu hiển thị lấy từ user context (nếu API chưa tải xong hoặc fallback)
     const currentProfile = user;
     if (currentProfile) {
-      setFullName(currentProfile.fullName);
+      setFullName(currentProfile.full_name);
       setDob(currentProfile.dob || "");
       setGender((currentProfile.gender as Gender) || "");
+      setPhone(currentProfile.phone || "");
 
       if (currentProfile.dob) {
         const parts = currentProfile.dob.split("-");
@@ -126,11 +129,16 @@ export default function PersonalInfoScreen() {
       Alert.alert("Thông báo", "Vui lòng chọn giới tính.");
       return;
     }
+    if (phone.trim() && !/^[0-9]{10,11}$/.test(phone.trim())) {
+      Alert.alert("Thông báo", "Số điện thoại không hợp lệ (phải gồm 10-11 chữ số).");
+      return;
+    }
 
     const success = await editProfile({
       fullName: fullName.trim(),
       dob,
       gender: gender as Gender,
+      phone: phone.trim() || undefined,
     });
 
     if (success) {
@@ -258,14 +266,14 @@ export default function PersonalInfoScreen() {
                 {/* Avatar */}
                 <View className="bg-white w-[60px] h-[60px] rounded-2xl items-center justify-center">
                   <Text className="text-primary text-[22px] font-bold">
-                    {getInitials(user?.fullName)}
+                    {getInitials(user?.full_name)}
                   </Text>
                 </View>
 
                 {/* Name + badge + ID */}
                 <View className="flex-1">
                   <Text className="text-white text-[18px] font-bold">
-                    {user?.fullName ?? "Bệnh nhân"}
+                    {user?.full_name ?? "Bệnh nhân"}
                   </Text>
                   <View className="flex-row items-center gap-2 mt-1.5">
                     <View className="bg-white/25 rounded-full px-2.5 py-0.5">
@@ -379,7 +387,7 @@ export default function PersonalInfoScreen() {
                 </View>
 
                 {/* Giới tính input */}
-                <View className="mb-4">
+                <View className="mb-3">
                   <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
                     Giới tính
                   </Text>
@@ -417,6 +425,22 @@ export default function PersonalInfoScreen() {
                   </View>
                 </View>
 
+                {/* Số điện thoại input */}
+                <View className="mb-4">
+                  <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
+                    Số điện thoại
+                  </Text>
+                  <AppInput
+                    placeholder="Số điện thoại của bạn"
+                    value={phone}
+                    onChangeText={(text) => {
+                      setPhone(text);
+                      if (error) clearError();
+                    }}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
                 {/* Nút lưu thay đổi */}
                 <AppButton
                   title="Lưu thay đổi"
@@ -432,7 +456,7 @@ export default function PersonalInfoScreen() {
                 <DetailField
                   iconName={{ ios: "person", android: "person" }}
                   label="Họ và tên"
-                  value={user?.fullName ?? "—"}
+                  value={user?.full_name ?? "—"}
                 />
 
                 {/* Ngày sinh + Giới tính (2 cột) */}

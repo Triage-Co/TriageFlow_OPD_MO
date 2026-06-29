@@ -90,7 +90,7 @@ export default function RegisterScreen() {
 
     const success = await register({
       email: email.trim(),
-      fullName: fullName.trim(),
+      full_name: fullName.trim(),
       dob: dob.trim(),
       gender: gender as Gender,
       citizen_id: citizen_id.trim(),
