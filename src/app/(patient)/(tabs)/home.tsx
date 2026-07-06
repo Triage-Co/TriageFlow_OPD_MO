@@ -28,7 +28,7 @@ export default function HomeScreen() {
               <View>
                 <Text className="text-white/80 text-xs font-medium">Xin chào,</Text>
                 <Text className="text-white text-lg font-bold mt-0.5">
-                  {user?.fullName ?? "Nguyễn Thị Lan"}
+                  {user?.full_name ?? "Nguyễn Thị Lan"}
                 </Text>
               </View>
             </View>

@@ -33,11 +33,12 @@ class TriageApiService {
     return response.data?.data || response.data;
   }
 
-  async recommendSpecialist(request: RecommendSpecialistRequest): Promise<RecommendSpecialistResponse> {
-    const response = await apiClient.post<any>(
-      "/api/infermedica/recommend_specialist",
-      request
-    );
+  async recommendSpecialist(params: {
+    request: RecommendSpecialistRequest;
+    interviewToken: string;
+  }): Promise<RecommendSpecialistResponse> {
+    const url = `/api/infermedica/recommend_specialist?interview_token=${params.interviewToken}`;
+    const response = await apiClient.post<any>(url, params.request);
     return response.data?.data || response.data;
   }
 }

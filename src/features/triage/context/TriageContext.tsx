@@ -358,12 +358,20 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const session = await triageCacheService.getDiagnosisSession();
       if (!session) throw new Error("Không tìm thấy phiên làm việc hiện tại.");
 
-      console.log(`[Triage] Gọi recommend_specialist với ${session.evidence.length} evidence`);
+      const tokenToUse = session.interviewToken || interviewToken;
+      if (!tokenToUse) {
+        throw new Error("Không tìm thấy mã phiên hỏi bệnh (interview_token) để lấy đề xuất chuyên khoa.");
+      }
+
+      console.log(`[Triage] Gọi recommend_specialist với ${session.evidence.length} evidence, token=${tokenToUse}`);
 
       const response = await triageApiService.recommendSpecialist({
-        sex: session.sex,
-        age: session.age,
-        evidence: session.evidence,
+        request: {
+          sex: session.sex,
+          age: session.age,
+          evidence: session.evidence,
+        },
+        interviewToken: tokenToUse,
       });
 
       const translatedRec = await translationService.translateRecommendation(response);

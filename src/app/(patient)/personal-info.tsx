@@ -135,7 +135,7 @@ export default function PersonalInfoScreen() {
     }
 
     const success = await editProfile({
-      fullName: fullName.trim(),
+      full_name: fullName.trim(),
       dob,
       gender: gender as Gender,
       phone: phone.trim() || undefined,

@@ -59,13 +59,13 @@ export default function ProfileScreen() {
             {/* Avatar vuông viết tắt chữ cái tên (Nền primary, chữ trắng chuẩn Figma) */}
             <View className="bg-primary w-16 h-16 rounded-2xl items-center justify-center shadow-sm">
               <Text className="text-white text-xl font-bold">
-                {getInitials(user?.fullName)}
+                {getInitials(user?.full_name)}
               </Text>
             </View>
 
             <View className="flex-1">
               <Text className="text-gray-800 text-lg font-bold">
-                {user?.fullName ?? "Bệnh nhân"}
+                {user?.full_name ?? "Bệnh nhân"}
               </Text>
               {/* Số điện thoại */}
               <View className="flex-row items-center gap-2 mt-1.5">
@@ -114,6 +114,11 @@ export default function ProfileScreen() {
             iconName={{ ios: "bell", android: "notifications" }}
             title="Thông báo"
             onPress={() => { }}
+          />
+          <ActionCard
+            iconName={{ ios: "creditcard.viewfinder", android: "badge" }}
+            title="Xác thực danh tính CCCD"
+            onPress={() => router.push("/(patient)/ekyc" as any)}
           />
           <ActionCard
             iconName={{ ios: "key", android: "key" }}
