@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { BodyRegion } from "@/features/body-map/types";
+import { BodyRegion, BodyGender } from "@/features/body-map/types";
+import { getLocalSymptoms } from "../services/symptom-lookup.service";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { triageApiService } from "../services/triage-api.service";
 import { triageCacheService } from "../services/triage-cache.service";
@@ -30,7 +31,13 @@ type TriageContextType = {
   isLoading: boolean;
   error: string | null;
   setSelectedRegion: (region: BodyRegion | null) => void;
-  searchSymptomsByRegion: (params: { age: number; searchPhrase: string; fallbackSearchPhrases?: string[] }) => Promise<void>;
+  searchSymptomsByRegion: (params: {
+    bodyPartId: string;
+    gender: BodyGender;
+    age: number;
+    searchPhrase: string;
+    fallbackSearchPhrases?: string[];
+  }) => Promise<void>;
   startDiagnosisSession: () => Promise<void>;
   answerQuestion: (selectedAnswers: Evidence[]) => Promise<void>;
   triggerRecommendation: () => Promise<void>;
@@ -112,19 +119,41 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Giữ nguyên để tương thích với các màn cũ
   const searchSymptomsByRegion = async (params: {
+    bodyPartId: string;
+    gender: BodyGender;
     age: number;
     searchPhrase: string;
     fallbackSearchPhrases?: string[];
   }) => {
-    setIsLoading(true);
     setError(null);
+
+    // ── BƯỚC 1: Local data (instant, không loading nếu có data) ──
+    const localSymptoms = getLocalSymptoms(params.bodyPartId, params.gender);
+    setSymptoms(localSymptoms);
+
+    if (localSymptoms.length === 0) {
+      setIsLoading(true);
+    } else {
+      setIsLoading(false);
+    }
+
+    const mergeApiResults = (apiSymptoms: TranslatedSymptomSearchItem[]) => {
+      const existingIds = new Set(localSymptoms.map((s) => s.id));
+      const newItems = apiSymptoms.filter((s) => !existingIds.has(s.id));
+      if (newItems.length > 0) {
+        setSymptoms((prev) => [...prev, ...newItems]);
+      }
+    };
+
+    // ── BƯỚC 2: API enrichment (ngầm) ──
     try {
       const phrasesToTry = [params.searchPhrase, ...(params.fallbackSearchPhrases ?? [])];
 
       for (const phrase of phrasesToTry) {
         const cached = await triageCacheService.getCachedSymptoms(params.age, phrase);
         if (cached && cached.length > 0) {
-          setSymptoms(cached);
+          mergeApiResults(cached);
+          setIsLoading(false);
           return;
         }
       }
@@ -144,13 +173,13 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (finalResults.length > 0) {
         const translated = await translationService.translateSymptomItems(finalResults);
         await triageCacheService.setCachedSymptoms(params.age, successfulPhrase, translated);
-        setSymptoms(translated);
-      } else {
-        setSymptoms([]);
+        mergeApiResults(translated);
       }
     } catch (err: any) {
-      console.error("[TriageContext] Lỗi khi tìm triệu chứng:", err);
-      setError(err?.message || "Không thể tìm kiếm triệu chứng. Vui lòng thử lại.");
+      console.warn("[TriageContext] API enrichment thất bại, dùng local data:", err);
+      if (localSymptoms.length === 0) {
+        setError(err?.message || "Không thể tìm kiếm triệu chứng. Vui lòng thử lại.");
+      }
     } finally {
       setIsLoading(false);
     }

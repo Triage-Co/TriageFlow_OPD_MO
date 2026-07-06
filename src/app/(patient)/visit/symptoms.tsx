@@ -15,6 +15,7 @@ import { TranslatedSymptomSearchItem } from "@/features/triage/types/triage.type
 import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
+import { BodyGender } from "@/features/body-map/types";
 
 export default function SymptomsScreen() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function SymptomsScreen() {
     labelEn: string;
     searchPhrase: string;
     fallbackSearchPhrases?: string;
+    gender?: string;
   }>();
 
   const {
@@ -39,7 +41,7 @@ export default function SymptomsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (params.searchPhrase) {
+    if (params.searchPhrase && params.regionId) {
       let fallbackSearchPhrases: string[] = [];
       try {
         if (params.fallbackSearchPhrases) {
@@ -51,12 +53,14 @@ export default function SymptomsScreen() {
 
       // Tuổi hardcode 30 theo đặc tả yêu cầu
       searchSymptomsByRegion({
+        bodyPartId: params.regionId,
+        gender: (params.gender as BodyGender) || "male",
         age: 30,
         searchPhrase: params.searchPhrase,
         fallbackSearchPhrases,
       });
     }
-  }, [params.searchPhrase, params.fallbackSearchPhrases]);
+  }, [params.searchPhrase, params.regionId, params.gender]);
 
   const handleSymptomSelect = (symptom: TranslatedSymptomSearchItem) => {
     setSelectedSymptom(symptom);
@@ -76,7 +80,7 @@ export default function SymptomsScreen() {
   };
 
   const handleRetry = () => {
-    if (params.searchPhrase) {
+    if (params.searchPhrase && params.regionId) {
       let fallbackSearchPhrases: string[] = [];
       try {
         if (params.fallbackSearchPhrases) {
@@ -87,6 +91,8 @@ export default function SymptomsScreen() {
       }
 
       searchSymptomsByRegion({
+        bodyPartId: params.regionId,
+        gender: (params.gender as BodyGender) || "male",
         age: 30,
         searchPhrase: params.searchPhrase,
         fallbackSearchPhrases,

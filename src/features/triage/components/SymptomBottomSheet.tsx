@@ -1,6 +1,6 @@
-import React, { useMemo, useRef, useEffect } from "react";
-import { View, Text, ActivityIndicator, Pressable } from "react-native";
-import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import React, { useMemo, useRef, useEffect, useState } from "react";
+import { View, Text, ActivityIndicator, Pressable, TextInput } from "react-native";
+import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { TranslatedSymptomSearchItem } from "@/features/triage/types/triage.types";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/config/colors";
@@ -27,7 +27,10 @@ export function SymptomBottomSheet({
   onClose,
 }: SymptomBottomSheetProps) {
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["50%"], []);
+  const snapPoints = useMemo(() => ["55%"], []);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(5);
 
   useEffect(() => {
     if (visible) {
@@ -38,9 +41,44 @@ export function SymptomBottomSheet({
     }
   }, [visible, regionId]);
 
+  // Reset tìm kiếm và số lượng hiển thị khi đổi vùng hoặc khi ẩn/hiện Bottom Sheet
+  useEffect(() => {
+    setSearchQuery("");
+    setVisibleCount(5);
+  }, [regionId, visible]);
+
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    setVisibleCount(5); // Reset về 5 khi thay đổi từ khóa
+  };
+
   const handleSheetChange = (index: number) => {
     if (index === -1) {
       onClose();
+    }
+  };
+
+  // 1. Lọc triệu chứng dựa trên từ khóa tìm kiếm
+  const filteredSymptoms = useMemo(() => {
+    if (!searchQuery.trim()) return symptoms;
+    const q = searchQuery.toLowerCase().trim();
+    return symptoms.filter(
+      (s) =>
+        s.labelVi.toLowerCase().includes(q) ||
+        s.labelEn.toLowerCase().includes(q)
+    );
+  }, [symptoms, searchQuery]);
+
+  // 2. Cắt danh sách để hiển thị phân trang (ban đầu 5 cái)
+  const visibleSymptoms = useMemo(() => {
+    return filteredSymptoms.slice(0, visibleCount);
+  }, [filteredSymptoms, visibleCount]);
+
+  // 3. Tải thêm khi lướt xuống cuối
+  const handleLoadMore = () => {
+    if (visibleCount < filteredSymptoms.length) {
+      console.log(`[BottomSheet] Loading more symptoms. Current: ${visibleCount}/${filteredSymptoms.length}`);
+      setVisibleCount((prev) => prev + 5);
     }
   };
 
@@ -53,6 +91,8 @@ export function SymptomBottomSheet({
       enablePanDownToClose
       backgroundStyle={{ backgroundColor: "#FFFFFF", borderRadius: 24 }}
       handleIndicatorStyle={{ backgroundColor: "#CBD5E1", width: 40 }}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
     >
       <View className="flex-1 px-5 pt-2 pb-6">
         {/* Header */}
@@ -73,7 +113,36 @@ export function SymptomBottomSheet({
           </Pressable>
         </View>
 
-        {/* Content */}
+        {/* Thanh tìm kiếm triệu chứng */}
+        {!isLoading && symptoms.length > 0 && (
+          <View className="flex-row items-center bg-slate-100 rounded-xl px-3 py-2.5 mb-3.5">
+            <SymbolView
+              name={{ ios: "magnifyingglass", android: "search" }}
+              size={16}
+              tintColor="#94A3B8"
+            />
+            <TextInput
+              className="flex-1 ml-2 text-[14px] text-slate-800 p-0"
+              placeholder="Tìm kiếm triệu chứng..."
+              placeholderTextColor="#94A3B8"
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => handleSearchChange("")} className="p-1">
+                <SymbolView
+                  name={{ ios: "xmark.circle.fill", android: "cancel" }}
+                  size={16}
+                  tintColor="#94A3B8"
+                />
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {/* Nội dung danh sách triệu chứng */}
         {isLoading ? (
           <View className="flex-1 items-center justify-center py-10">
             <ActivityIndicator size="large" color={Colors.primary} />
@@ -88,51 +157,71 @@ export function SymptomBottomSheet({
             </Text>
           </View>
         ) : (
-          <BottomSheetScrollView
+          <BottomSheetFlatList
+            data={visibleSymptoms}
+            keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
-          >
-            <View className="gap-2">
-              {symptoms.map((symptom) => {
-                const isSelected = selectedSymptoms.some((s) => s.id === symptom.id);
-                
-                const cardClassName = isSelected
-                  ? "p-4 rounded-[16px] border border-[#84AFEB] bg-[#84AFEB]/5 flex-row items-center justify-between shadow-sm active:opacity-80"
-                  : "p-4 rounded-[16px] border border-slate-100 bg-white flex-row items-center justify-between active:opacity-80";
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.15}
+            ListEmptyComponent={
+              <View className="items-center justify-center py-10">
+                <Text className="text-gray-400 text-[14px] font-medium text-center">
+                  Không tìm thấy triệu chứng phù hợp.
+                </Text>
+              </View>
+            }
+            renderItem={({ item: symptom }) => {
+              const isSelected = selectedSymptoms.some((s) => s.id === symptom.id);
 
-                const textClassName = isSelected
-                  ? "text-[14px] font-semibold text-[#547FB8]"
-                  : "text-[14px] font-semibold text-slate-800";
+              const textClassName = isSelected
+                ? "text-[14px] font-semibold text-[#547FB8]"
+                : "text-[14px] font-semibold text-slate-800";
 
-                const checkboxClassName = isSelected
-                  ? "w-[18px] h-[18px] rounded-[4px] border border-[#84AFEB] bg-[#84AFEB] items-center justify-center"
-                  : "w-[18px] h-[18px] rounded-[4px] border border-slate-300 items-center justify-center";
+              const checkboxClassName = isSelected
+                ? "w-[18px] h-[18px] rounded-[4px] border border-[#84AFEB] bg-[#84AFEB] items-center justify-center"
+                : "w-[18px] h-[18px] rounded-[4px] border border-slate-300 items-center justify-center";
 
-                return (
-                  <Pressable
-                    key={symptom.id}
-                    onPress={() => onToggleSymptom(symptom)}
-                    className={cardClassName}
-                  >
-                    <View className="flex-1 pr-3">
-                      <Text className={textClassName}>
-                        {symptom.labelVi}
-                      </Text>
-                    </View>
-                    <View className={checkboxClassName}>
-                      {isSelected && (
-                        <SymbolView
-                          name={{ ios: "checkmark", android: "check" }}
-                          size={12}
-                          tintColor="#FFFFFF"
-                        />
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </BottomSheetScrollView>
+              return (
+                <Pressable
+                  onPress={() => onToggleSymptom(symptom)}
+                  className="p-4 rounded-[16px] border flex-row items-center justify-between mb-2.5"
+                  style={({ pressed }) => [
+                    isSelected
+                      ? {
+                          borderColor: "#84AFEB",
+                          backgroundColor: "rgba(132, 175, 235, 0.05)",
+                          shadowColor: "#84AFEB",
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 2,
+                          elevation: 1,
+                        }
+                      : {
+                          borderColor: "#F1F5F9",
+                          backgroundColor: "#FFFFFF",
+                        },
+                    pressed && { opacity: 0.8 }
+                  ]}
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className={textClassName}>
+                      {symptom.labelVi}
+                    </Text>
+                  </View>
+                  <View className={checkboxClassName}>
+                    {isSelected && (
+                      <SymbolView
+                        name={{ ios: "checkmark", android: "check" }}
+                        size={12}
+                        tintColor="#FFFFFF"
+                      />
+                    )}
+                  </View>
+                </Pressable>
+              );
+            }}
+          />
         )}
       </View>
     </BottomSheet>

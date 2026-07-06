@@ -15,14 +15,17 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useTriage } from "@/features/triage/hooks/useTriage";
-import { useBodyMapPreload } from "@/features/triage/hooks/useBodyMapPreload";
 import { SymptomBottomSheet } from "@/features/triage/components/SymptomBottomSheet";
 import { Colors } from "@/config/colors";
 import { TranslatedSymptomSearchItem } from "@/features/triage/types/triage.types";
+import { useAuthContext } from "@/features/auth/context/AuthContext";
 
 export default function BodyMapScreen() {
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
+  const { user } = useAuthContext();
+
+  const gender = user?.gender?.toLowerCase() === "female" ? "female" : "male";
 
   // Context của Triage
   const {
@@ -32,14 +35,9 @@ export default function BodyMapScreen() {
     startDiagnosisSession,
     isLoading,
     error,
+    symptoms,
+    searchSymptomsByRegion,
   } = useTriage();
-
-  // Hook preload
-  const {
-    preloadStates,
-    prioritizeRegion,
-    gender,
-  } = useBodyMapPreload();
 
   // State cục bộ cho Bottom Sheet
   const [selectedRegion, setSelectedRegion] = useState<BodyRegion | null>(null);
@@ -47,8 +45,16 @@ export default function BodyMapScreen() {
 
   const handleSelectRegion = (region: BodyRegion) => {
     setSelectedRegion(region);
-    prioritizeRegion(region.id);
     setIsBottomSheetOpen(true);
+
+    // Chỉ khi người dùng chọn vùng mới gọi API/local để lấy triệu chứng
+    searchSymptomsByRegion({
+      bodyPartId: region.id,
+      gender,
+      age: 30,
+      searchPhrase: region.name || "",
+      fallbackSearchPhrases: region.fallbackSearchPhrases,
+    });
   };
 
   const allSelected = getAllSelectedSymptoms();
@@ -63,20 +69,13 @@ export default function BodyMapScreen() {
   // Bỏ chọn một triệu chứng từ tag list
   const handleRemoveSymptom = (symptom: TranslatedSymptomSearchItem) => {
     // Tìm regionId của triệu chứng này trong map
-    for (const [regionId, symptoms] of Object.entries(selectedSymptomsMap)) {
-      if (symptoms.some((s) => s.id === symptom.id)) {
+    for (const [regionId, symptomsList] of Object.entries(selectedSymptomsMap)) {
+      if (symptomsList.some((s) => s.id === symptom.id)) {
         toggleSymptom(regionId, symptom);
         break;
       }
     }
   };
-
-  // Lấy danh sách triệu chứng của vùng đau đang chọn
-  const activeRegionState = selectedRegion ? preloadStates[selectedRegion.id] : null;
-  const regionSymptoms = activeRegionState?.symptoms || [];
-  const isRegionLoading = activeRegionState
-    ? activeRegionState.status === "loading" || activeRegionState.status === "idle"
-    : false;
 
   const cardHeight = Math.min(windowHeight * 0.52, 420);
 
@@ -230,8 +229,8 @@ export default function BodyMapScreen() {
           visible={isBottomSheetOpen}
           regionId={selectedRegion.id}
           regionLabelVi={selectedRegion.labelVi || selectedRegion.name || ""}
-          symptoms={regionSymptoms}
-          isLoading={isRegionLoading}
+          symptoms={symptoms}
+          isLoading={isLoading}
           selectedSymptoms={selectedSymptomsMap[selectedRegion.id] || []}
           onToggleSymptom={(symptom) => toggleSymptom(selectedRegion.id, symptom)}
           onClose={() => setIsBottomSheetOpen(false)}

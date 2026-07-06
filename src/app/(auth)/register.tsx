@@ -33,6 +33,7 @@ export default function RegisterScreen() {
     dob: "",        // YYYY-MM-DD – gửi lên API
     gender: "" as Gender | "",
     citizen_id: "",
+    phone: "",
     password: "",
   });
 
@@ -71,9 +72,9 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    const { email, fullName, dob, gender, citizen_id, password } = form;
+    const { email, fullName, dob, gender, citizen_id, phone, password } = form;
 
-    if (!email.trim() || !fullName.trim() || !dob.trim() || !gender || !citizen_id.trim() || !password.trim()) {
+    if (!email.trim() || !fullName.trim() || !dob.trim() || !gender || !citizen_id.trim() || !phone.trim() || !password.trim()) {
       Alert.alert("Thông báo", "Vui lòng điền đầy đủ các trường bắt buộc.");
       return;
     }
@@ -94,6 +95,7 @@ export default function RegisterScreen() {
       dob: dob.trim(),
       gender: gender as Gender,
       citizen_id: citizen_id.trim(),
+      phone: phone.trim(),
       password,
       role: "USER",
     });
@@ -205,6 +207,13 @@ export default function RegisterScreen() {
               value={form.citizen_id}
               onChangeText={update("citizen_id")}
               keyboardType="numeric"
+            />
+
+            <AppInput
+              placeholder="Số điện thoại"
+              value={form.phone}
+              onChangeText={update("phone")}
+              keyboardType="phone-pad"
             />
 
             {/* Giới tính – 2 nút toggle */}

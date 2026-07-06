@@ -12,6 +12,7 @@ export type RegisterRequest = {
   password: string;
   gender: Gender;
   citizen_id: string;
+  phone: string;
   role: "USER";
 };
 
