@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ActivityIndicator, Pressable } from "react-native";
+import { View, Text, ActivityIndicator, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
@@ -40,6 +40,25 @@ export default function RecommendationScreen() {
   const specialist = recommendation?.recommended_specialist || (recommendation as any)?.recommendedSpecialist;
   const specialistName = specialist ? (specialist.nameVi || specialist.name) : "Khoa Nội tổng quát";
   const channelName = recommendation?.recommended_channel_vi || recommendation?.recommended_channel || (recommendation as any)?.recommendedChannelVi || (recommendation as any)?.recommendedChannel || "Khám trực tiếp";
+  const specialtyCode = specialist?.specialty_code || (recommendation as any)?.specialty_code || "SP_4";
+
+  const handleSelectDoctor = () => {
+    router.push({
+      pathname: "/(patient)/visit/doctor-list",
+      params: {
+        specialtyCode,
+        specialtyName: specialistName,
+      },
+    });
+  };
+
+  const handleAutoAssignRoom = () => {
+    Alert.alert(
+      "Thông báo",
+      "Tính năng tự động xếp phòng khám đang được phát triển. Vui lòng chọn bác sĩ và đặt khám.",
+      [{ text: "Đóng", style: "cancel" }]
+    );
+  };
 
   return (
     <ScreenWrapper edges={["left", "right"]}>
@@ -108,15 +127,20 @@ export default function RecommendationScreen() {
         </View>
 
         {/* ── 3. HÀNH ĐỘNG DƯỚI CÙNG ── */}
-        <View className="px-5 pb-12 pt-3 bg-white border-t border-gray-50 gap-2.5">
+        <View className="px-5 pb-12 pt-3 bg-white border-t border-gray-50 gap-2">
           <AppButton
-            title="Khám vùng đau khác (Làm lại)"
-            onPress={handleRestart}
+            title="Chọn bác sĩ và đặt khám"
+            onPress={handleSelectDoctor}
           />
           <AppButton
-            title="Quay về Trang chủ"
+            title="Tự động xếp phòng khám"
             variant="secondary"
-            onPress={handleGoHome}
+            onPress={handleAutoAssignRoom}
+          />
+          <AppButton
+            title="Khám vùng đau khác (Làm lại)"
+            variant="ghost"
+            onPress={handleRestart}
           />
         </View>
       </View>

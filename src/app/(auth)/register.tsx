@@ -3,7 +3,6 @@ import type { Gender } from "@/features/auth/types/auth.types";
 import { AppButton } from "@/shared/components/AppButton";
 import { AppInput } from "@/shared/components/AppInput";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -19,8 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * Register screen
- * UI theo Figma: back arrow, header card primary, form đầy đủ theo API
- * Fields: email, fullName, dob (YYYY-MM-DD), gender, citizen_id, password
+ * UI theo Figma: back arrow, header card primary, form đầy đủ theo API mới nhất
+ * Fields: email, userName, gender, phone, password
  */
 export default function RegisterScreen() {
   const router = useRouter();
@@ -29,52 +28,21 @@ export default function RegisterScreen() {
 
   const [form, setForm] = useState({
     email: "",
-    fullName: "",
-    dob: "",        // YYYY-MM-DD – gửi lên API
+    userName: "",
     gender: "" as Gender | "",
-    citizen_id: "",
     phone: "",
     password: "",
   });
-
-  // Date picker state
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerDate, setPickerDate] = useState(new Date(2000, 0, 1));
 
   const update = (field: keyof typeof form) => (value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (error) clearError();
   };
 
-  /** Format Date → "YYYY-MM-DD" để gửi API */
-  const toApiDate = (date: Date): string => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
-  /** Format Date → "DD/MM/YYYY" để hiển thị cho người dùng */
-  const toDisplayDate = (date: Date): string => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${d}/${m}/${y}`;
-  };
-
-  const onDateChange = (_event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === "android") setShowPicker(false);
-    if (selected) {
-      setPickerDate(selected);
-      setForm((prev) => ({ ...prev, dob: toApiDate(selected) }));
-      if (error) clearError();
-    }
-  };
-
   const handleRegister = async () => {
-    const { email, fullName, dob, gender, citizen_id, phone, password } = form;
+    const { email, userName, gender, phone, password } = form;
 
-    if (!email.trim() || !fullName.trim() || !dob.trim() || !gender || !citizen_id.trim() || !phone.trim() || !password.trim()) {
+    if (!email.trim() || !userName.trim() || !gender || !phone.trim() || !password.trim()) {
       Alert.alert("Thông báo", "Vui lòng điền đầy đủ các trường bắt buộc.");
       return;
     }
@@ -84,17 +52,10 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (!dob) {
-      Alert.alert("Thông báo", "Vui lòng chọn ngày sinh.");
-      return;
-    }
-
     const success = await register({
       email: email.trim(),
-      full_name: fullName.trim(),
-      dob: dob.trim(),
+      user_name: userName.trim(),
       gender: gender as Gender,
-      citizen_id: citizen_id.trim(),
       phone: phone.trim(),
       password,
       role: "USER",
@@ -147,10 +108,10 @@ export default function RegisterScreen() {
             ) : null}
 
             <AppInput
-              placeholder="Họ và tên"
-              value={form.fullName}
-              onChangeText={update("fullName")}
-              autoCapitalize="words"
+              placeholder="Tên người dùng"
+              value={form.userName}
+              onChangeText={update("userName")}
+              autoCapitalize="none"
             />
 
             <AppInput
@@ -160,53 +121,6 @@ export default function RegisterScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
-            />
-
-            {/* Ngày sinh – mở native date picker */}
-            <Pressable
-              className="flex-row items-center bg-white border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 active:opacity-75"
-              onPress={() => setShowPicker(true)}
-            >
-              <Text
-                className={
-                  form.dob
-                    ? "flex-1 text-sm text-neutral-700"
-                    : "flex-1 text-sm text-neutral-400"
-                }
-              >
-                {form.dob ? toDisplayDate(pickerDate) : "Ngày sinh"}
-              </Text>
-              <Text className="text-base text-neutral-400">📅</Text>
-            </Pressable>
-
-            {/* Native date picker */}
-            {showPicker && (
-              <View>
-                <DateTimePicker
-                  value={pickerDate}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  maximumDate={new Date()}
-                  minimumDate={new Date(1900, 0, 1)}
-                  onChange={onDateChange}
-                  locale="vi"
-                />
-                {Platform.OS === "ios" && (
-                  <Pressable
-                    className="self-end px-5 py-2.5 mt-1 mb-2 active:opacity-70"
-                    onPress={() => setShowPicker(false)}
-                  >
-                    <Text className="text-primary font-semibold text-base">Chọn</Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
-
-            <AppInput
-              placeholder="Số CCCD"
-              value={form.citizen_id}
-              onChangeText={update("citizen_id")}
-              keyboardType="numeric"
             />
 
             <AppInput

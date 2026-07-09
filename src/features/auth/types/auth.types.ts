@@ -7,11 +7,9 @@ export type Gender = "MALE" | "FEMALE";
 /** POST /api/auth/register */
 export type RegisterRequest = {
   email: string;
-  full_name: string;
-  dob: string;
+  user_name: string;
   password: string;
   gender: Gender;
-  citizen_id: string;
   phone: string;
   role: "USER";
 };
@@ -77,6 +75,7 @@ export type UserRole = "USER";
 
 export type UserProfile = {
   id: string;
+  account_id?: string;
   full_name: string;
   email?: string;
   phone?: string;

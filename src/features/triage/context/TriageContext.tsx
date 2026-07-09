@@ -8,6 +8,7 @@ import { triageCacheService } from "../services/triage-cache.service";
 import { translationService } from "../services/translation.service";
 import { calculateAgeFromDob } from "@/shared/utils/date.utils";
 import { profileService } from "@/features/profile/services/profile.service";
+import { patientService } from "@/features/patient/services/patient.service";
 import {
   Evidence,
   TranslatedSymptomSearchItem,
@@ -202,21 +203,37 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       let citizenId = user?.citizen_id;
       let genderVal = user?.gender;
-      let dobVal = user?.dob;
+      let dobVal: string | undefined = undefined;
+
+      // Cố gắng lấy thông tin từ danh sách bệnh nhân trước
+      try {
+        const patientsRes = await patientService.getPatients();
+        if (patientsRes?.data && patientsRes.data.length > 0) {
+          const firstPatient = patientsRes.data[0];
+          citizenId = firstPatient.citizen_id;
+          genderVal = firstPatient.gender || genderVal;
+          dobVal = firstPatient.dob;
+          console.log(`[Triage] Lấy thông tin từ bệnh nhân đầu tiên: Tên=${firstPatient.full_name}, Ngày sinh=${dobVal}, Giới tính=${genderVal}`);
+        }
+      } catch (err) {
+        console.log("[Triage] Lỗi khi lấy danh sách bệnh nhân:", err);
+      }
+
+      // Fallback nếu vẫn không có citizenId
+      citizenId = citizenId || user?.account_id || user?.id || "";
 
       // Nếu thiếu thông tin cần thiết trong token metadata, gọi Profile API để lấy đầy đủ
       if (!citizenId || !genderVal || !dobVal) {
         console.log("[Triage] Thiếu thông tin trong JWT, đang tải từ Profile API...");
         const profileRes = await profileService.getProfile();
         if (profileRes?.data) {
-          citizenId = profileRes.data.citizen_id || citizenId;
+          citizenId = citizenId || profileRes.data.account_id || "";
           genderVal = profileRes.data.gender || genderVal;
-          dobVal = profileRes.data.dob || dobVal;
         }
       }
 
       if (!citizenId) {
-        setError("Không tìm thấy thông tin CCCD (Citizen ID). Vui lòng cập nhật hồ sơ hoặc đăng nhập lại.");
+        setError("Không tìm thấy thông tin định danh người dùng. Vui lòng đăng nhập lại.");
         setIsLoading(false);
         return;
       }
@@ -294,8 +311,18 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!session) throw new Error("Không tìm thấy phiên làm việc hiện tại. Vui lòng thử lại.");
 
       // Sử dụng citizenId đã lưu từ bước 1 trong session, fallback về user
-      const citizenId = session.citizenId || user?.citizen_id;
-      if (!citizenId) throw new Error("Không tìm thấy thông tin CCCD. Vui lòng đăng nhập lại.");
+      let citizenId = session.citizenId;
+      if (!citizenId) {
+        citizenId = user?.citizen_id;
+        try {
+          const patientsRes = await patientService.getPatients();
+          if (patientsRes?.data && patientsRes.data.length > 0) {
+            citizenId = patientsRes.data[0].citizen_id;
+          }
+        } catch {}
+        citizenId = citizenId || user?.account_id || user?.id || "";
+      }
+      if (!citizenId) throw new Error("Không tìm thấy thông tin định danh người dùng. Vui lòng đăng nhập lại.");
 
       // Tích lũy evidence: cập nhật nếu đã có id, thêm mới nếu chưa có
       const updatedEvidence = [...session.evidence];

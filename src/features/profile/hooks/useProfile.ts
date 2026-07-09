@@ -21,12 +21,12 @@ export function useProfile() {
       if (response.status === "success" || response.code === 200) {
         const apiData = response.data;
         const mappedData: UserProfile = {
-          id: apiData.id,
-          full_name: apiData.full_name || "",
-          // Phản hồi trả về ngày sinh có thể bao gồm giờ, cần lấy YYYY-MM-DD
-          dob: apiData.dob ? apiData.dob.split("T")[0] : "",
+          id: apiData.account_id || "",
+          account_id: apiData.account_id,
+          full_name: apiData.user_name || "",
+          dob: "",
           gender: apiData.gender,
-          citizen_id: apiData.citizen_id,
+          citizen_id: "",
           phone: apiData.phone || "",
           email: apiData.email,
           role: apiData.role,

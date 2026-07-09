@@ -63,6 +63,7 @@ export interface RecommendedSpecialist {
   id: string;
   name: string;
   nameVi?: string;
+  specialty_code?: string;
 }
 
 export interface RecommendSpecialistResponse {

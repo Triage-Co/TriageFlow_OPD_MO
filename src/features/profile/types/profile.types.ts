@@ -5,16 +5,14 @@ export type UserProfileResponse = {
   status: string;
   message: string;
   data: {
-    id: string;
-    full_name: string;
-    dob: string;
-    gender: Gender;
-    citizen_id?: string;
-    phone?: string;
-    email?: string;
+    account_id: string;
+    user_name: string;
+    email: string;
     role: string;
-    createdAt?: string;
-    updatedAt?: string;
+    gender: Gender;
+    phone: string | null;
+    createdAt: string;
+    updatedAt: string;
   };
 };
 
