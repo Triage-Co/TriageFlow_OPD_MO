@@ -259,6 +259,16 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         request: { sex, age, evidence: initialEvidence },
       });
 
+      console.log("[Triage] Response từ diagnose (Lần 1):", JSON.stringify(response, null, 2));
+
+      if (!response || typeof response !== "object") {
+        throw new Error("Phản hồi từ API chẩn đoán không hợp lệ (Không phải là object).");
+      }
+
+      if ((response as any).success === false || (response as any).message) {
+        throw new Error((response as any).message || "API chẩn đoán trả về lỗi không xác định.");
+      }
+
       const translatedQuestion = await translationService.translateQuestion(response.question);
       setCurrentQuestion(translatedQuestion);
       setInterviewToken(response.interview_token);
@@ -292,6 +302,10 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       router.push("/(patient)/visit/interview");
     } catch (err: any) {
       console.error("[TriageContext] Lỗi khi bắt đầu chẩn đoán:", err);
+      if (err?.response) {
+        console.error("[TriageContext] API Error Response data (Lần 1):", JSON.stringify(err.response.data, null, 2));
+        console.error("[TriageContext] API Error Response status (Lần 1):", err.response.status);
+      }
       setError(err?.message || "Không thể bắt đầu quá trình chẩn đoán.");
     } finally {
       setIsLoading(false);
@@ -347,28 +361,42 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         interviewToken: session.interviewToken,
       });
 
+      console.log(`[Triage] Response từ diagnose (Lần ${nextCount}):`, JSON.stringify(response, null, 2));
+
+      if (!response || typeof response !== "object") {
+        throw new Error("Phản hồi từ API chẩn đoán không hợp lệ (Không phải là object).");
+      }
+
+      if ((response as any).success === false || (response as any).message) {
+        throw new Error((response as any).message || "API chẩn đoán trả về lỗi không xác định.");
+      }
+
       // Nếu đã hỏi đủ 5 câu hoặc API tự động dừng
       const isForcedStop = nextCount >= 5 || response.should_stop;
 
       const translatedQuestion = isForcedStop ? null : await translationService.translateQuestion(response.question);
       setCurrentQuestion(translatedQuestion);
-      setInterviewToken(response.interview_token);
+      // Giữ nguyên token ban đầu từ Lần 1
       setShouldStop(isForcedStop);
 
       const updatedSession: DiagnosisSessionCache = {
         ...session,
         evidence: updatedEvidence,
         currentQuestion: translatedQuestion,
-        interviewToken: response.interview_token,
+        interviewToken: session.interviewToken, // Giữ nguyên token ban đầu từ Lần 1
         shouldStop: isForcedStop,
         questionCount: nextCount,
         updatedAt: new Date().toISOString(),
       };
       await triageCacheService.saveDiagnosisSession(updatedSession);
 
-      console.log(`[Triage] Kết quả lần này: nextCount=${nextCount}, should_stop=${isForcedStop}, token=${response.interview_token}`);
+      console.log(`[Triage] Kết quả lần này: nextCount=${nextCount}, should_stop=${isForcedStop}, token=${session.interviewToken}`);
     } catch (err: any) {
       console.error("[TriageContext] Lỗi khi trả lời câu hỏi:", err);
+      if (err?.response) {
+        console.error("[TriageContext] API Error Response data:", JSON.stringify(err.response.data, null, 2));
+        console.error("[TriageContext] API Error Response status:", err.response.status);
+      }
       setError(err?.message || "Gặp lỗi trong quá trình xử lý câu hỏi.");
     } finally {
       setIsLoading(false);
@@ -401,6 +429,16 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         interviewToken: tokenToUse,
       });
 
+      console.log("[Triage] Response từ recommendSpecialist:", JSON.stringify(response, null, 2));
+
+      if (!response || typeof response !== "object") {
+        throw new Error("Phản hồi đề xuất chuyên khoa từ API không hợp lệ (Không phải là object).");
+      }
+
+      if ((response as any).success === false || (response as any).message) {
+        throw new Error((response as any).message || "API đề xuất chuyên khoa trả về lỗi không xác định.");
+      }
+
       const translatedRec = await translationService.translateRecommendation(response);
       setRecommendation(translatedRec);
 
@@ -416,6 +454,10 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       router.push("/(patient)/visit/recommendation");
     } catch (err: any) {
       console.error("[TriageContext] Lỗi khi lấy đề xuất chuyên khoa:", err);
+      if (err?.response) {
+        console.error("[TriageContext] API Error Response data (recommendSpecialist):", JSON.stringify(err.response.data, null, 2));
+        console.error("[TriageContext] API Error Response status (recommendSpecialist):", err.response.status);
+      }
       setError(err?.message || "Không thể lấy đề xuất chuyên khoa khám.");
     } finally {
       setIsLoading(false);

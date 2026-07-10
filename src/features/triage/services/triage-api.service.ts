@@ -29,6 +29,9 @@ class TriageApiService {
     }
     const url = `/api/infermedica/diagnoise?${queryParams.toString()}`;
 
+    console.log(`[TriageApiService] POST URL: ${url}`);
+    console.log(`[TriageApiService] Payload:`, JSON.stringify(params.request, null, 2));
+
     const response = await apiClient.post<any>(url, params.request);
     return response.data?.data || response.data;
   }

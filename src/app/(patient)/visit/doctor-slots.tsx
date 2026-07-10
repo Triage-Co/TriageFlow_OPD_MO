@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  TouchableOpacity,
   Pressable,
   ActivityIndicator,
   ScrollView,
@@ -17,6 +18,7 @@ import { Slot } from "@/features/booking/types/doctor.types";
 import { AppButton } from "@/shared/components/AppButton";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { useBooking } from "@/features/booking/hooks/useBooking";
+import { patientService } from "@/features/patient/services/patient.service";
 
 export default function DoctorSlotsScreen() {
   const router = useRouter();
@@ -70,8 +72,8 @@ export default function DoctorSlotsScreen() {
   const handleConfirmBooking = async () => {
     if (!selectedSlot) return;
 
-    const patientId = user?.account_id || user?.id;
-    if (!patientId) {
+    const accountId = user?.account_id || user?.id;
+    if (!accountId) {
       Alert.alert(
         "Không tìm thấy tài khoản",
         "Vui lòng đăng nhập lại để thực hiện đặt lịch khám."
@@ -79,31 +81,53 @@ export default function DoctorSlotsScreen() {
       return;
     }
 
-    const bookingResult = await submitBooking(patientId, selectedSlot.slot_id);
-    if (bookingResult) {
-      router.push({
-        pathname: "/(patient)/visit/payment-qr",
-        params: {
-          stepId: bookingResult.step_id,
-          bookingId: bookingResult.data.booking_id,
-          bin: bookingResult.payment.data.bin,
-          accountNumber: bookingResult.payment.data.accountNumber,
-          accountName: bookingResult.payment.data.accountName,
-          amount: bookingResult.payment.data.amount.toString(),
-          description: bookingResult.payment.data.description,
-          checkoutUrl: bookingResult.payment.data.checkoutUrl,
-          qrCode: bookingResult.payment.data.qrCode,
-          doctorName,
-          specialtyName,
-          selectedDate,
-          slotTime: selectedSlot.start_time,
-          licenseNumber,
-        },
-      });
-    } else {
+    try {
+      // Lấy danh sách bệnh nhân để lấy đúng patient_id thay vì accountId
+      const patientsRes = await patientService.getPatients();
+      if (!patientsRes?.data || patientsRes.data.length === 0) {
+        Alert.alert(
+          "Không tìm thấy bệnh nhân",
+          "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch."
+        );
+        return;
+      }
+
+      // Lấy bệnh nhân đầu tiên (đồng bộ với bệnh nhân đã được lấy để chạy triage)
+      const targetPatient = patientsRes.data[0];
+      const patientId = targetPatient.patient_id;
+
+      const bookingResult = await submitBooking(patientId, selectedSlot.slot_id);
+      if (bookingResult) {
+        router.push({
+          pathname: "/(patient)/visit/payment-qr",
+          params: {
+            stepId: bookingResult.step_id,
+            bookingId: bookingResult.data.booking_id,
+            bin: bookingResult.payment.data.bin,
+            accountNumber: bookingResult.payment.data.accountNumber,
+            accountName: bookingResult.payment.data.accountName,
+            amount: bookingResult.payment.data.amount.toString(),
+            description: bookingResult.payment.data.description,
+            checkoutUrl: bookingResult.payment.data.checkoutUrl,
+            qrCode: bookingResult.payment.data.qrCode,
+            doctorName,
+            specialtyName,
+            selectedDate,
+            slotTime: selectedSlot.start_time,
+            licenseNumber,
+          },
+        });
+      } else {
+        Alert.alert(
+          "Đặt lịch khám thất bại",
+          "Có lỗi xảy ra trong quá trình tạo lịch khám. Vui lòng thử lại sau ít phút."
+        );
+      }
+    } catch (err: any) {
+      console.error("[DoctorSlots] Lỗi khi xác nhận lịch khám:", err);
       Alert.alert(
-        "Đặt lịch khám thất bại",
-        "Có lỗi xảy ra trong quá trình tạo lịch khám. Vui lòng thử lại sau ít phút."
+        "Lỗi kết nối",
+        "Không thể lấy thông tin bệnh nhân. Vui lòng thử lại sau."
       );
     }
   };
@@ -117,9 +141,9 @@ export default function DoctorSlotsScreen() {
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
           {/* ── 1. HEADER ── */}
           <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
-            <Pressable
+            <TouchableOpacity
               onPress={() => router.back()}
-              style={({ pressed }) => pressed && { opacity: 0.75 }}
+              activeOpacity={0.7}
               className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm"
             >
               <SymbolView
@@ -127,7 +151,7 @@ export default function DoctorSlotsScreen() {
                 size={18}
                 tintColor={Colors.neutral700}
               />
-            </Pressable>
+            </TouchableOpacity>
             <Text className="text-gray-800 text-[17px] font-bold">Chọn ngày & giờ</Text>
             <View className="w-10" />
           </View>
@@ -251,14 +275,12 @@ export default function DoctorSlotsScreen() {
                   const isSelected = selectedSlot?.slot_id === slot.slot_id;
 
                   return (
-                    <Pressable
-                      key={slot.slot_id}
+                    <TouchableOpacity
+                      key={`${isSelected ? "selected" : "unselected"}-${slot.slot_id}`}
                       disabled={!isAvailable}
                       onPress={() => handleSlotSelect(slot)}
-                      style={({ pressed }) => [
-                        { width: "22.5%" },
-                        pressed && { opacity: 0.75 }
-                      ]}
+                      activeOpacity={0.7}
+                      style={{ width: "22.5%" }}
                       className={`py-3 rounded-[16px] items-center border ${
                         isSelected
                           ? "bg-primary border-primary shadow-sm"
@@ -289,7 +311,7 @@ export default function DoctorSlotsScreen() {
                       >
                         {isAvailable ? `${slot.capacity} chỗ` : "Hết chỗ"}
                       </Text>
-                    </Pressable>
+                    </TouchableOpacity>
                   );
                 })}
               </View>

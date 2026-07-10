@@ -1,30 +1,30 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  ScrollView,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { SymbolView } from "expo-symbols";
-import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
 import { useDoctorList } from "@/features/booking/hooks/useDoctorList";
 import { Doctor } from "@/features/booking/types/doctor.types";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { SymbolView } from "expo-symbols";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 export default function DoctorListScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   // Cưỡng bức sử dụng SP_4 và Ngoại tổng quát để test dữ liệu thực tế như yêu cầu
-  const specialtyCode = "SP_4";
+  const specialtyCode = "SP_1";
   const specialtyName = "Ngoại tổng quát";
 
   // Mặc định ngày 2026-07-09 có dữ liệu
-  const [selectedDate, setSelectedDate] = useState("2026-07-09");
+  const [selectedDate, setSelectedDate] = useState("2026-07-10");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
   const { doctors, isLoading, error } = useDoctorList(specialtyCode, selectedDate);
@@ -41,7 +41,8 @@ export default function DoctorListScreen() {
   ];
 
   // Trích xuất chữ cái viết tắt tên bác sĩ
-  const getInitials = (fullName: string): string => {
+  const getInitials = (fullName?: string): string => {
+    if (!fullName) return "DR";
     const cleanName = fullName.replace(/^(BS\.|BS|PGS\.|PGS|TS\.|TS|ThS\.|ThS)\s+/i, "");
     const parts = cleanName.trim().split(/\s+/);
     if (parts.length === 0) return "DR";
@@ -52,21 +53,23 @@ export default function DoctorListScreen() {
   };
 
   const handleSelectDoctor = (doctor: Doctor) => {
+    const doctorName = doctor.account?.user_name || doctor.account?.full_name || "Bác sĩ";
     router.push({
       pathname: "/(patient)/visit/doctor-slots",
       params: {
         doctorId: doctor.staff_id,
-        doctorName: doctor.account.full_name,
-        specialtyName: doctor.specialty.specialty_name,
+        doctorName: doctorName,
+        specialtyName: doctor.specialty?.specialty_name || "Chuyên khoa",
         selectedDate: selectedDate,
-        licenseNumber: doctor.license_number,
-        experienceYears: doctor.experience_years.toString(),
+        licenseNumber: doctor.license_number || "",
+        experienceYears: (doctor.experience_years ?? 0).toString(),
       },
     });
   };
 
   const renderDoctorItem = ({ item }: { item: Doctor }) => {
-    const initials = getInitials(item.account.full_name);
+    const doctorName = item.account?.user_name || item.account?.full_name || "Bác sĩ";
+    const initials = getInitials(doctorName);
 
     return (
       <Pressable
@@ -82,12 +85,12 @@ export default function DoctorListScreen() {
         <View className="flex-1">
           {/* Tên bác sĩ */}
           <Text className="text-gray-800 text-[15px] font-bold">
-            {item.account.full_name}
+            {doctorName}
           </Text>
 
           {/* Chuyên khoa */}
           <Text className="text-gray-500 text-[12px] font-medium mt-1">
-            {item.specialty.specialty_name}
+            {item.specialty?.specialty_name || "Chuyên khoa"}
           </Text>
 
           {/* Nơi làm việc & Kinh nghiệm */}
@@ -100,7 +103,7 @@ export default function DoctorListScreen() {
                 style={{ marginRight: 4 }}
               />
               <Text className="text-gray-400 text-[11px] font-medium" numberOfLines={1}>
-                Số CCHN: {item.license_number}
+                Số CCHN: {item.license_number || "Chưa cập nhật"}
               </Text>
             </View>
             <View className="flex-row items-center">
@@ -111,7 +114,7 @@ export default function DoctorListScreen() {
                 style={{ marginRight: 4 }}
               />
               <Text className="text-gray-400 text-[11px] font-medium">
-                {item.experience_years} năm KN
+                {item.experience_years ?? 0} năm KN
               </Text>
             </View>
           </View>
@@ -179,30 +182,26 @@ export default function DoctorListScreen() {
                 <Pressable
                   key={date.fullDate}
                   onPress={() => setSelectedDate(date.fullDate)}
-                  className={`w-14 py-3.5 rounded-[20px] items-center border ${
-                    isSelected
-                      ? "bg-primary border-primary shadow-sm"
-                      : "bg-white border-gray-100"
-                  }`}
+                  className={`w-14 py-3.5 rounded-[20px] items-center border ${isSelected
+                    ? "bg-primary border-primary shadow-sm"
+                    : "bg-white border-gray-100"
+                    }`}
                 >
                   <Text
-                    className={`text-[11px] font-semibold mb-1 ${
-                      isSelected ? "text-white" : "text-gray-400"
-                    }`}
+                    className={`text-[11px] font-semibold mb-1 ${isSelected ? "text-white" : "text-gray-400"
+                      }`}
                   >
                     {date.label}
                   </Text>
                   <Text
-                    className={`text-[16px] font-bold ${
-                      isSelected ? "text-white" : "text-gray-800"
-                    }`}
+                    className={`text-[16px] font-bold ${isSelected ? "text-white" : "text-gray-800"
+                      }`}
                   >
                     {date.day}
                   </Text>
                   <Text
-                    className={`text-[8px] font-medium mt-1 ${
-                      isSelected ? "text-white/80" : "text-gray-400"
-                    }`}
+                    className={`text-[8px] font-medium mt-1 ${isSelected ? "text-white/80" : "text-gray-400"
+                      }`}
                   >
                     {date.labelExtra}
                   </Text>
@@ -216,32 +215,28 @@ export default function DoctorListScreen() {
         <View className="flex-row px-5 mt-5 mb-4 gap-2">
           <Pressable
             onPress={() => setSelectedFilter("all")}
-            className={`px-4 py-2 rounded-full border ${
-              selectedFilter === "all"
-                ? "bg-primary border-primary"
-                : "bg-white border-gray-100"
-            }`}
+            className={`px-4 py-2 rounded-full border ${selectedFilter === "all"
+              ? "bg-primary border-primary"
+              : "bg-white border-gray-100"
+              }`}
           >
             <Text
-              className={`text-[12px] font-bold ${
-                selectedFilter === "all" ? "text-white" : "text-gray-500"
-              }`}
+              className={`text-[12px] font-bold ${selectedFilter === "all" ? "text-white" : "text-gray-500"
+                }`}
             >
               Tất cả
             </Text>
           </Pressable>
           <Pressable
             onPress={() => setSelectedFilter("high-rating")}
-            className={`px-4 py-2 rounded-full border ${
-              selectedFilter === "high-rating"
-                ? "bg-primary border-primary"
-                : "bg-white border-gray-100"
-            }`}
+            className={`px-4 py-2 rounded-full border ${selectedFilter === "high-rating"
+              ? "bg-primary border-primary"
+              : "bg-white border-gray-100"
+              }`}
           >
             <Text
-              className={`text-[12px] font-bold ${
-                selectedFilter === "high-rating" ? "text-white" : "text-gray-500"
-              }`}
+              className={`text-[12px] font-bold ${selectedFilter === "high-rating" ? "text-white" : "text-gray-500"
+                }`}
             >
               Đánh giá cao
             </Text>

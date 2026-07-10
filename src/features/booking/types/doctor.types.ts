@@ -1,6 +1,7 @@
 export interface DoctorAccount {
   account_id: string;
-  full_name: string;
+  full_name?: string;
+  user_name?: string;
   citizen_id: string;
   email: string;
   gender: string;
