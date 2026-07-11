@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { patientService } from "../services/patient.service";
 import { Patient, CreatePatientRequest, UpdatePatientRequest } from "../types/patient.types";
+import type { EkycOcrObject } from "@/features/ekyc/types/ekyc.types";
+import { Gender } from "@/features/auth/types/auth.types";
 
 export function usePatient() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -29,24 +31,53 @@ export function usePatient() {
     }
   }, []);
 
-  const createPatient = useCallback(async (data: CreatePatientRequest): Promise<boolean> => {
+  const createPatient = useCallback(async (data: CreatePatientRequest): Promise<{ success: boolean; message?: string }> => {
     setIsCreating(true);
     setError(null);
     try {
       const response = await patientService.createPatient(data);
       if (response.status === "success" || response.code === 200 || response.code === 201) {
         await fetchPatients();
-        return true;
+        return { success: true };
       }
-      setError(response.message || "Không thể tạo bệnh nhân.");
-      return false;
+      const errMsg = response.message || "Không thể tạo bệnh nhân.";
+      setError(errMsg);
+      return { success: false, message: errMsg };
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi tạo bệnh nhân.");
-      return false;
+      const errMsg = err instanceof Error ? err.message : "Đã xảy ra lỗi khi tạo bệnh nhân.";
+      setError(errMsg);
+      return { success: false, message: errMsg };
     } finally {
       setIsCreating(false);
     }
   }, [fetchPatients]);
+
+  /**
+   * Tạo bệnh nhân mới từ dữ liệu OCR của eKYC.
+   * Tự động convert định dạng ngày sinh và giới tính trước khi gọi API.
+   */
+  const createPatientFromEkyc = useCallback(
+    async (ocrData: EkycOcrObject): Promise<{ success: boolean; message?: string }> => {
+      // Convert birth_day: "22/06/2000" → "2000-06-22"
+      const parts = ocrData.birth_day.split("/");
+      const dob =
+        parts.length === 3
+          ? `${parts[2]}-${parts[1]}-${parts[0]}`
+          : ocrData.birth_day;
+
+      // Convert gender: "Nam" → "MALE", mặc định FEMALE cho các trường hợp khác
+      const gender: Gender = ocrData.gender.trim().toLowerCase() === "nam" ? "MALE" : "FEMALE";
+
+      return createPatient({
+        full_name: ocrData.name,
+        dob,
+        gender,
+        citizen_id: ocrData.id,
+        medical_coverage_id: "",
+      });
+    },
+    [createPatient]
+  );
 
   const updatePatient = useCallback(async (patientId: string, data: UpdatePatientRequest): Promise<boolean> => {
     setIsUpdating(true);
@@ -111,6 +142,7 @@ export function usePatient() {
     clearError,
     fetchPatients,
     createPatient,
+    createPatientFromEkyc,
     updatePatient,
     deletePatient,
     getPatientDetail,

@@ -17,3 +17,14 @@ export interface EkycResult {
   pathImageBack: string;
   lastStep: string;          // Trạng thái bước thực hiện cuối cùng
 }
+
+/**
+ * Dữ liệu OCR đã được parse ra từ ocrResult trả về bởi VNPT SDK.
+ * Các field này nằm trong object.object bên trong chuỗi JSON lồng nhau.
+ */
+export interface EkycOcrObject {
+  name: string;       // Họ tên đầy đủ, ví dụ: "NGUYỄN VĂN A"
+  birth_day: string;  // Ngày sinh dạng "dd/MM/yyyy", ví dụ: "22/06/2000"
+  gender: string;     // "Nam" hoặc "Nữ"
+  id: string;         // Số CCCD/CMND, ví dụ: "048203001234"
+}

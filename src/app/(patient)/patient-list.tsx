@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,22 +7,19 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
-import { AppInput } from "@/shared/components/AppInput";
 import { AppButton } from "@/shared/components/AppButton";
 import { usePatient } from "@/features/patient/hooks/usePatient";
+import { useEkyc } from "@/features/ekyc/hooks/useEkyc";
 import { Patient } from "@/features/patient/types/patient.types";
-import { Gender } from "@/features/auth/types/auth.types";
+import type { EkycOcrObject } from "@/features/ekyc/types/ekyc.types";
 
 export default function PatientListScreen() {
   const router = useRouter();
@@ -36,41 +33,43 @@ export default function PatientListScreen() {
     error,
     clearError,
     fetchPatients,
-    createPatient,
+    createPatientFromEkyc,
     updatePatient,
     deletePatient,
     getPatientDetail,
   } = usePatient();
 
-  // Modals state
-  const [isCreateVisible, setIsCreateVisible] = useState(false);
+  // ── Modals state ──
+  const [isEkycVisible, setIsEkycVisible] = useState(false);
   const [isEditVisible, setIsEditVisible] = useState(false);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
 
-  // Form Create state
-  const [form, setForm] = useState({
-    fullName: "",
-    gender: "" as Gender | "",
-    dob: "", // YYYY-MM-DD
-    citizenId: "",
-    medicalCoverageId: "",
-  });
-
-  // Form Edit state
+  // ── Form Edit state ──
   const [editForm, setEditForm] = useState({
     fullName: "",
-    gender: "" as Gender | "",
+    gender: "" as "MALE" | "FEMALE" | "",
     dob: "", // YYYY-MM-DD
   });
-
-  // Date pickers state
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerDate, setPickerDate] = useState(new Date(2000, 0, 1));
-
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
   const [editPickerDate, setEditPickerDate] = useState(new Date());
+
+  // ── eKYC hook: truyền onSuccess để nhận OCR data khi xác thực xong ──
+  const handleEkycSuccess = useCallback(
+    async (ocrData: EkycOcrObject) => {
+      const res = await createPatientFromEkyc(ocrData);
+      if (res.success) {
+        setIsEkycVisible(false);
+        Alert.alert("Thành công", "Hồ sơ bệnh nhân đã được tạo từ CCCD.");
+      } else {
+        Alert.alert("Thất bại", res.message || "Không thể tạo bệnh nhân. Vui lòng thử lại.");
+      }
+    },
+    [createPatientFromEkyc]
+  );
+
+  const { isLoading: isEkycLoading, handleLaunchEkyc } = useEkyc(handleEkycSuccess);
 
   useEffect(() => {
     fetchPatients();
@@ -96,15 +95,7 @@ export default function PatientListScreen() {
   };
 
   const handleOpenCreate = () => {
-    setForm({
-      fullName: "",
-      gender: "",
-      dob: "",
-      citizenId: "",
-      medicalCoverageId: "",
-    });
-    setPickerDate(new Date(2000, 0, 1));
-    setIsCreateVisible(true);
+    setIsEkycVisible(true);
   };
 
   const handleOpenUpdate = (patient: Patient) => {
@@ -118,23 +109,7 @@ export default function PatientListScreen() {
     setIsEditVisible(true);
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false);
-    }
-    if (selectedDate) {
-      setPickerDate(selectedDate);
-      const y = selectedDate.getFullYear();
-      const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
-      const d = String(selectedDate.getDate()).padStart(2, "0");
-      setForm((prev) => ({ ...prev, dob: `${y}-${m}-${d}` }));
-    }
-  };
-
-  const handleEditDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowEditDatePicker(false);
-    }
+  const handleEditDateChange = (event: any, selectedDate?: Date) => {
     if (selectedDate) {
       setEditPickerDate(selectedDate);
       const y = selectedDate.getFullYear();
@@ -157,35 +132,6 @@ export default function PatientListScreen() {
     }
   };
 
-  const validateAndCreate = async () => {
-    const { fullName, gender, dob, citizenId, medicalCoverageId } = form;
-
-    if (!fullName.trim() || !gender || !dob || !citizenId.trim() || !medicalCoverageId.trim()) {
-      Alert.alert("Thông báo", "Vui lòng nhập đầy đủ tất cả các trường.");
-      return;
-    }
-
-    if (citizenId.trim().length < 9) {
-      Alert.alert("Thông báo", "Số CCCD/CMND không hợp lệ.");
-      return;
-    }
-
-    const success = await createPatient({
-      full_name: fullName.trim(),
-      gender: gender as Gender,
-      dob,
-      citizen_id: citizenId.trim(),
-      medical_coverage_id: medicalCoverageId.trim(),
-    });
-
-    if (success) {
-      Alert.alert("Thành công", "Tạo bệnh nhân mới thành công.");
-      setIsCreateVisible(false);
-    } else {
-      Alert.alert("Thất bại", error || "Đã xảy ra lỗi khi tạo bệnh nhân.");
-    }
-  };
-
   const validateAndUpdate = async () => {
     if (!selectedPatient) return;
     const { fullName, gender, dob } = editForm;
@@ -197,7 +143,7 @@ export default function PatientListScreen() {
 
     const success = await updatePatient(selectedPatient.patient_id, {
       full_name: fullName.trim(),
-      gender: gender as Gender,
+      gender: gender as "MALE" | "FEMALE",
       dob,
     });
 
@@ -398,154 +344,117 @@ export default function PatientListScreen() {
         </View>
       )}
 
-      {/* ── Popup: Tạo bệnh nhân mới ── */}
+      {/* ── Popup: Tạo bệnh nhân qua eKYC ── */}
       <Modal
-        visible={isCreateVisible}
+        visible={isEkycVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setIsCreateVisible(false)}
+        onRequestClose={() => {
+          if (!isEkycLoading && !isCreating) setIsEkycVisible(false);
+        }}
       >
         <View className="flex-1 bg-black/50 justify-center items-center px-6">
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="w-full bg-white rounded-[28px] overflow-hidden"
-          >
+          <View className="w-full bg-white rounded-[28px] overflow-hidden">
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ padding: 24 }}
             >
               {/* Header */}
               <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-gray-800 text-xl font-bold">Thêm bệnh nhân mới</Text>
+                <Text className="text-gray-800 text-xl font-bold">Thêm hồ sơ bệnh nhân</Text>
                 <Pressable
-                  onPress={() => setIsCreateVisible(false)}
+                  onPress={() => setIsEkycVisible(false)}
+                  disabled={isEkycLoading || isCreating}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <SymbolView
                     name={{ ios: "xmark.circle.fill", android: "cancel" }}
                     size={24}
-                    tintColor="#9CA3AF"
+                    tintColor={isEkycLoading || isCreating ? "#D1D5DB" : "#9CA3AF"}
                   />
                 </Pressable>
               </View>
 
-              {/* Form Input fields */}
-              <AppInput
-                placeholder="Họ và tên bệnh nhân"
-                value={form.fullName}
-                onChangeText={(text) => setForm((p) => ({ ...p, fullName: text }))}
-                autoCapitalize="words"
-              />
-
-              {/* Ngày sinh picker trigger */}
-              <Pressable
-                onPress={() => setShowDatePicker(true)}
-                className="flex-row items-center bg-white border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 active:opacity-75"
-              >
-                <Text
-                  className={
-                    form.dob
-                      ? "flex-1 text-sm text-neutral-700"
-                      : "flex-1 text-sm text-neutral-400"
-                  }
-                >
-                  {form.dob ? formatDisplayDate(form.dob) : "Ngày sinh bệnh nhân"}
-                </Text>
-                <Text className="text-base text-neutral-400">📅</Text>
-              </Pressable>
-
-              {showDatePicker && (
-                <View>
-                  <DateTimePicker
-                    value={pickerDate}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
-                    maximumDate={new Date()}
-                    minimumDate={new Date(1900, 0, 1)}
-                    onChange={handleDateChange}
-                    locale="vi"
+              {/* Icon & Intro */}
+              <View className="items-center mb-6">
+                <View className="bg-primary/10 w-24 h-24 rounded-3xl items-center justify-center mb-4">
+                  <SymbolView
+                    name={{ ios: "creditcard.viewfinder", android: "badge" }}
+                    size={48}
+                    tintColor="#84AFEB"
                   />
-                  {Platform.OS === "ios" && (
-                    <Pressable
-                      className="self-end px-5 py-2 mt-1 mb-2 active:opacity-70"
-                      onPress={() => setShowDatePicker(false)}
-                    >
-                      <Text className="text-primary font-semibold text-base">Chọn</Text>
-                    </Pressable>
-                  )}
+                </View>
+                <Text className="text-gray-800 text-lg font-bold text-center mb-1">
+                  Xác thực CCCD
+                </Text>
+                <Text className="text-gray-400 text-sm text-center leading-5 px-2">
+                  Quét căn cước công dân để xác thực và tự động điền thông tin bệnh nhân chính xác nhất.
+                </Text>
+              </View>
+
+              {/* Lưu ý */}
+              <View className="bg-blue-50 rounded-2xl p-4 mb-6 gap-y-2">
+                <Text className="text-blue-700 font-bold text-xs mb-1">Lưu ý trước khi quét:</Text>
+                <View className="flex-row items-start gap-2">
+                  <Text className="text-blue-500 text-xs">•</Text>
+                  <Text className="text-blue-600 text-xs flex-1">Cần cấp quyền Camera và ghi âm</Text>
+                </View>
+                <View className="flex-row items-start gap-2">
+                  <Text className="text-blue-500 text-xs">•</Text>
+                  <Text className="text-blue-600 text-xs flex-1">
+                    Thông tin sẽ được lấy trực tiếp từ CCCD của bạn
+                  </Text>
+                </View>
+                <View className="flex-row items-start gap-2">
+                  <Text className="text-blue-500 text-xs">•</Text>
+                  <Text className="text-blue-600 text-xs flex-1">
+                    Bảo hiểm y tế có thể cập nhật sau trong phần chỉnh sửa hồ sơ
+                  </Text>
+                </View>
+              </View>
+
+              {/* Trạng thái đang tạo bệnh nhân */}
+              {isCreating && (
+                <View className="bg-green-50 rounded-2xl p-4 flex-row items-center gap-3 mb-4">
+                  <ActivityIndicator size="small" color="#10B981" />
+                  <Text className="text-green-700 text-sm font-medium flex-1">
+                    Đang tạo hồ sơ bệnh nhân...
+                  </Text>
                 </View>
               )}
 
-              {/* Giới tính toggle buttons */}
-              <View className="flex-row gap-3 mb-3.5">
-                <Pressable
-                  className={
-                    form.gender === "MALE"
-                      ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
-                      : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center active:opacity-90"
-                  }
-                  onPress={() => setForm((p) => ({ ...p, gender: "MALE" }))}
-                >
-                  <Text
-                    className={
-                      form.gender === "MALE"
-                        ? "text-primary font-bold text-sm"
-                        : "text-neutral-400 font-medium text-sm"
-                    }
-                  >
-                    Nam
-                  </Text>
-                </Pressable>
-                <Pressable
-                  className={
-                    form.gender === "FEMALE"
-                      ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
-                      : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center active:opacity-90"
-                  }
-                  onPress={() => setForm((p) => ({ ...p, gender: "FEMALE" }))}
-                >
-                  <Text
-                    className={
-                      form.gender === "FEMALE"
-                        ? "text-primary font-bold text-sm"
-                        : "text-neutral-400 font-medium text-sm"
-                    }
-                  >
-                    Nữ
-                  </Text>
-                </Pressable>
-              </View>
-
-              <AppInput
-                placeholder="Số CMND / CCCD"
-                value={form.citizenId}
-                onChangeText={(text) => setForm((p) => ({ ...p, citizenId: text }))}
-                keyboardType="numeric"
-              />
-
-              <AppInput
-                placeholder="Mã thẻ Bảo hiểm Y tế"
-                value={form.medicalCoverageId}
-                onChangeText={(text) => setForm((p) => ({ ...p, medicalCoverageId: text }))}
-                autoCapitalize="characters"
-              />
-
               {/* Actions */}
-              <View className="mt-4 gap-2">
-                <AppButton
-                  title="Tạo bệnh nhân"
-                  variant="primary"
-                  isLoading={isCreating}
-                  onPress={validateAndCreate}
-                />
+              <View className="gap-2">
+                <Pressable
+                  onPress={handleLaunchEkyc}
+                  disabled={isEkycLoading || isCreating}
+                  className={`h-[52px] rounded-xl items-center justify-center flex-row gap-2 ${
+                    isEkycLoading || isCreating ? "bg-gray-300" : "bg-primary active:opacity-90"
+                  }`}
+                >
+                  {isEkycLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <SymbolView
+                        name={{ ios: "camera.viewfinder", android: "camera_alt" }}
+                        size={18}
+                        tintColor="#FFFFFF"
+                      />
+                      <Text className="text-white font-bold text-[15px]">
+                        Bắt đầu quét eKYC
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
                 <AppButton
                   title="Hủy"
                   variant="secondary"
-                  onPress={() => setIsCreateVisible(false)}
+                  onPress={() => setIsEkycVisible(false)}
                 />
               </View>
             </ScrollView>
-          </KeyboardAvoidingView>
+          </View>
         </View>
       </Modal>
 
@@ -557,10 +466,7 @@ export default function PatientListScreen() {
         onRequestClose={() => setIsEditVisible(false)}
       >
         <View className="flex-1 bg-black/50 justify-center items-center px-6">
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="w-full bg-white rounded-[28px] overflow-hidden"
-          >
+          <View className="w-full bg-white rounded-[28px] overflow-hidden">
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ padding: 24 }}
@@ -580,15 +486,17 @@ export default function PatientListScreen() {
                 </Pressable>
               </View>
 
-              {/* Form Input fields */}
-              <AppInput
-                placeholder="Họ và tên bệnh nhân"
-                value={editForm.fullName}
-                onChangeText={(text) => setEditForm((p) => ({ ...p, fullName: text }))}
-                autoCapitalize="words"
-              />
+              {/* Họ và tên */}
+              <View className="border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 justify-center">
+                <Text
+                  className={editForm.fullName ? "text-sm text-neutral-700" : "text-sm text-neutral-400"}
+                  onPress={() => {}}
+                >
+                  {editForm.fullName || "Họ và tên bệnh nhân"}
+                </Text>
+              </View>
 
-              {/* Ngày sinh picker trigger */}
+              {/* Ngày sinh trigger */}
               <Pressable
                 onPress={() => setShowEditDatePicker(true)}
                 className="flex-row items-center bg-white border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 active:opacity-75"
@@ -605,35 +513,13 @@ export default function PatientListScreen() {
                 <Text className="text-base text-neutral-400">📅</Text>
               </Pressable>
 
-              {showEditDatePicker && (
-                <View>
-                  <DateTimePicker
-                    value={editPickerDate}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
-                    maximumDate={new Date()}
-                    minimumDate={new Date(1900, 0, 1)}
-                    onChange={handleEditDateChange}
-                    locale="vi"
-                  />
-                  {Platform.OS === "ios" && (
-                    <Pressable
-                      className="self-end px-5 py-2 mt-1 mb-2 active:opacity-70"
-                      onPress={() => setShowEditDatePicker(false)}
-                    >
-                      <Text className="text-primary font-semibold text-base">Chọn</Text>
-                    </Pressable>
-                  )}
-                </View>
-              )}
-
-              {/* Giới tính toggle buttons */}
+              {/* Giới tính toggle */}
               <View className="flex-row gap-3 mb-6">
                 <Pressable
                   className={
                     editForm.gender === "MALE"
-                      ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
-                      : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center active:opacity-90"
+                      ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center"
+                      : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center"
                   }
                   onPress={() => setEditForm((p) => ({ ...p, gender: "MALE" }))}
                 >
@@ -650,8 +536,8 @@ export default function PatientListScreen() {
                 <Pressable
                   className={
                     editForm.gender === "FEMALE"
-                      ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
-                      : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center active:opacity-90"
+                      ? "flex-1 h-[52px] rounded-xl border border-primary bg-primary/10 items-center justify-center"
+                      : "flex-1 h-[52px] rounded-xl border border-neutral-200 bg-white items-center justify-center"
                   }
                   onPress={() => setEditForm((p) => ({ ...p, gender: "FEMALE" }))}
                 >
@@ -682,7 +568,7 @@ export default function PatientListScreen() {
                 />
               </View>
             </ScrollView>
-          </KeyboardAvoidingView>
+          </View>
         </View>
       </Modal>
 
@@ -729,7 +615,7 @@ export default function PatientListScreen() {
               <View className="flex-row justify-between">
                 <Text className="text-gray-400 text-xs">Mã Bảo hiểm Y tế</Text>
                 <Text className="text-gray-700 text-xs font-bold">
-                  {selectedPatient?.medical_coverage_id}
+                  {selectedPatient?.medical_coverage_id || "Chưa cập nhật"}
                 </Text>
               </View>
             </View>

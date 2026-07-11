@@ -116,11 +116,6 @@ export default function ProfileScreen() {
             onPress={() => router.push("/(patient)/patient-list" as any)}
           />
           <ActionCard
-            iconName={{ ios: "creditcard.viewfinder", android: "badge" }}
-            title="Xác thực danh tính CCCD"
-            onPress={() => router.push("/(patient)/ekyc" as any)}
-          />
-          <ActionCard
             iconName={{ ios: "key", android: "key" }}
             title="Quên mật khẩu"
             onPress={() => router.push("/(auth)/forgot")}
