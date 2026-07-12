@@ -12,6 +12,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -179,9 +180,10 @@ export default function DoctorListScreen() {
             {dateOptions.map((date) => {
               const isSelected = selectedDate === date.fullDate;
               return (
-                <Pressable
-                  key={date.fullDate}
+                <TouchableOpacity
+                  key={`${isSelected ? "active" : "inactive"}-${date.fullDate}`}
                   onPress={() => setSelectedDate(date.fullDate)}
+                  activeOpacity={0.8}
                   className={`w-14 py-3.5 rounded-[20px] items-center border ${isSelected
                     ? "bg-primary border-primary shadow-sm"
                     : "bg-white border-gray-100"
@@ -200,12 +202,12 @@ export default function DoctorListScreen() {
                     {date.day}
                   </Text>
                   <Text
-                    className={`text-[8px] font-medium mt-1 ${isSelected ? "text-white/80" : "text-gray-400"
-                      }`}
+                    className="text-[8px] font-medium mt-1"
+                    style={{ color: isSelected ? "rgba(255, 255, 255, 0.8)" : "#9CA3AF" }}
                   >
                     {date.labelExtra}
                   </Text>
-                </Pressable>
+                </TouchableOpacity>
               );
             })}
           </ScrollView>
