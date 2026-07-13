@@ -119,3 +119,60 @@ export interface BookingGenerateResponse {
   data: BookingGenerateData;
 }
 
+export interface StepDetailSpecialty {
+  specialty_id: string;
+  specialty_code: string;
+  specialty_name: string;
+}
+
+export interface StepDetailRoom {
+  room_id: string;
+  room_name: string;
+  specialty: StepDetailSpecialty;
+}
+
+export interface StepDetailSlot {
+  start_time: string;
+  end_time: string;
+  shift: {
+    date: string;
+    room: StepDetailRoom;
+  };
+}
+
+export interface StepDetailQueue {
+  queue_id: string;
+  step_id: string;
+  queue_number: string;
+  status: string;
+}
+
+export interface StepDetailStaff {
+  staff_id: string;
+  full_name: string;
+  license_number: string;
+  experience_years: number;
+}
+
+export interface StepDetailData {
+  step_id: string;
+  step_status: string;
+  docNo: number;
+  payment_status: string;
+  queues: StepDetailQueue[];
+  staff: StepDetailStaff;
+  flow: {
+    booking: {
+      slot: StepDetailSlot;
+    };
+  };
+}
+
+export interface StepDetailResponse {
+  code: number;
+  status: string;
+  message: string;
+  data: StepDetailData;
+}
+
+

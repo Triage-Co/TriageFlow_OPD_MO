@@ -10,7 +10,7 @@ import { Colors } from "@/config/colors";
 
 export default function RecommendationScreen() {
   const router = useRouter();
-  const { recommendation, isLoading, clearSession } = useTriage();
+  const { recommendation, isLoading, clearSession, interviewToken } = useTriage();
 
   const handleRestart = async () => {
     await clearSession();
@@ -53,11 +53,14 @@ export default function RecommendationScreen() {
   };
 
   const handleAutoAssignRoom = () => {
-    Alert.alert(
-      "Thông báo",
-      "Tính năng tự động xếp phòng khám đang được phát triển. Vui lòng chọn bác sĩ và đặt khám.",
-      [{ text: "Đóng", style: "cancel" }]
-    );
+    if (!interviewToken) {
+      Alert.alert(
+        "Lỗi",
+        "Không tìm thấy phiên chẩn đoán. Vui lòng thực hiện khảo sát triệu chứng lại."
+      );
+      return;
+    }
+    router.push("/(patient)/visit/auto-booking");
   };
 
   return (

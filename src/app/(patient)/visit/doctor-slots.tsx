@@ -95,6 +95,7 @@ export default function DoctorSlotsScreen() {
       // Lấy bệnh nhân đầu tiên (đồng bộ với bệnh nhân đã được lấy để chạy triage)
       const targetPatient = patientsRes.data[0];
       const patientId = targetPatient.patient_id;
+      const patientName = targetPatient.full_name;
 
       const bookingResult = await submitBooking(patientId, selectedSlot.slot_id);
       if (bookingResult) {
@@ -115,6 +116,7 @@ export default function DoctorSlotsScreen() {
             selectedDate,
             slotTime: selectedSlot.start_time,
             licenseNumber,
+            patientName,
           },
         });
       } else {

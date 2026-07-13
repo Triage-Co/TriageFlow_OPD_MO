@@ -4,6 +4,7 @@ import {
   DoctorDetail,
   BookingResponse,
   BookingGenerateResponse,
+  StepDetailResponse,
 } from "../types/doctor.types";
 
 class DoctorService {
@@ -33,6 +34,19 @@ class DoctorService {
     const response = await apiClient.get<BookingGenerateResponse>(`/api/booking/generate`, {
       params: { "step-id": stepId },
     });
+    return response.data;
+  }
+
+  async createAutoBooking(patientId: string, interviewToken: string): Promise<BookingResponse> {
+    const response = await apiClient.post<BookingResponse>(`/api/booking/recommend`, {
+      patient_id: patientId,
+      interview_token: interviewToken,
+    });
+    return response.data;
+  }
+
+  async getStepDetail(stepId: string): Promise<StepDetailResponse> {
+    const response = await apiClient.get<StepDetailResponse>(`/api/step/account/${stepId}`);
     return response.data;
   }
 }

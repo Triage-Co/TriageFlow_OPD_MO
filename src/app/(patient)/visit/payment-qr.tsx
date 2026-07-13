@@ -17,11 +17,12 @@ import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
 import { AppButton } from "@/shared/components/AppButton";
 import { useBooking } from "@/features/booking/hooks/useBooking";
+import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
 
 export default function PaymentQrScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { fetchBookingResult, isFetchingResult } = useBooking();
+  const { fetchStepDetail, isFetchingStepDetail, fetchBookingResult, isFetchingResult } = useBooking();
 
   // Params from booking creation
   const stepId = params.stepId as string;
@@ -33,6 +34,7 @@ export default function PaymentQrScreen() {
   const description = params.description as string;
   const checkoutUrl = params.checkoutUrl as string;
   const qrCode = params.qrCode as string;
+  const patientName = params.patientName as string;
 
   // Params for displaying doctor details
   const doctorName = params.doctorName as string;
@@ -77,30 +79,43 @@ export default function PaymentQrScreen() {
   const handleConfirmPayment = async () => {
     if (!stepId) return;
 
-    const result = await fetchBookingResult(stepId);
-    if (result) {
-      // Navigate to booking-success
-      router.push({
-        pathname: "/(patient)/visit/booking-success",
-        params: {
-          queueId: result.queue_id,
-          stepId: result.step_id,
-          queueNumber: result.queue_number,
-          status: result.status,
-          doctorName,
-          specialtyName,
-          selectedDate,
-          slotTime,
-          bookingId,
-        },
-      });
-    } else {
+    // 1. Gọi API /api/booking/generate để sinh/lấy số thứ tự và xác nhận thanh toán
+    const bookingResult = await fetchBookingResult(stepId);
+    if (!bookingResult) {
       Alert.alert(
         "Chưa nhận được thanh toán",
         "Hệ thống chưa ghi nhận giao dịch thanh toán cho lịch hẹn này. Nếu bạn đã chuyển khoản, vui lòng đợi 1-2 phút rồi bấm lại nút xác nhận.",
         [{ text: "Đồng ý" }]
       );
+      return;
     }
+
+    // 2. Lấy thông tin chi tiết phòng khám, chuyên khoa từ /api/step/account/{step_id}
+    const stepDetail = await fetchStepDetail(stepId);
+    if (!stepDetail) {
+      Alert.alert(
+        "Lỗi tải thông tin",
+        "Đã xác nhận thanh toán thành công nhưng không thể lấy thông tin chi tiết phòng khám. Vui lòng thử lại.",
+        [{ text: "Đồng ý" }]
+      );
+      return;
+    }
+
+    // 3. Lưu thông tin stepId vào bộ nhớ tạm trong ngày
+    await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
+
+    // 4. Chuyển sang màn hình Phiếu khám
+    router.push({
+      pathname: "/(patient)/visit/ticket-screen",
+      params: {
+        queueNumber: bookingResult.queue_number || "--",
+        specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || specialtyName || "",
+        roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || "",
+        startTime: stepDetail.flow?.booking?.slot?.start_time || slotTime || "",
+        patientName: patientName || "",
+        bookingId: bookingId || "",
+      },
+    });
   };
 
   return (
@@ -233,8 +248,8 @@ export default function PaymentQrScreen() {
         <View className="px-5 pb-12 pt-4 bg-white border-t border-gray-50">
           <AppButton
             title="Tôi đã thanh toán xong"
-            isLoading={isFetchingResult}
-            disabled={isFetchingResult}
+            isLoading={isFetchingStepDetail || isFetchingResult}
+            disabled={isFetchingStepDetail || isFetchingResult}
             onPress={handleConfirmPayment}
           />
         </View>
