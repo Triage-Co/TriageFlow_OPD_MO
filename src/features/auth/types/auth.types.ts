@@ -76,6 +76,7 @@ export type UserRole = "USER";
 export type UserProfile = {
   id: string;
   account_id?: string;
+  avatar?: string;
   full_name: string;
   email?: string;
   phone?: string;

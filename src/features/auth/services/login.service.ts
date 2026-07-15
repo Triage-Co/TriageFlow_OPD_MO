@@ -59,6 +59,7 @@ export function decodeSupabaseJwt(token: string): UserProfile | null {
 
     return {
       id: payload.sub || "",
+      avatar: metadata.avatar || "",
       full_name: metadata.full_name || metadata.user_name || metadata.username || payload.email?.split("@")[0] || "Bệnh nhân",
       email: payload.email || metadata.email,
       phone: metadata.phone || metadata.phone_number || "",

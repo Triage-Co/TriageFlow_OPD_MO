@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View, Image } from "react-native";
 
 /**
  * Profile screen – Hồ sơ bệnh nhân
@@ -57,10 +57,18 @@ export default function ProfileScreen() {
           {/* ── Card thông tin bệnh nhân ── */}
           <View className="mx-1 bg-white rounded-[24px] p-5 flex-row items-center gap-4 shadow shadow-black/5">
             {/* Avatar vuông viết tắt chữ cái tên (Nền primary, chữ trắng chuẩn Figma) */}
-            <View className="bg-primary w-16 h-16 rounded-2xl items-center justify-center shadow-sm">
-              <Text className="text-white text-xl font-bold">
-                {getInitials(user?.full_name)}
-              </Text>
+            <View className="bg-primary w-16 h-16 rounded-2xl items-center justify-center shadow-sm overflow-hidden">
+              {user?.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text className="text-white text-xl font-bold">
+                  {getInitials(user?.full_name)}
+                </Text>
+              )}
             </View>
 
             <View className="flex-1">
