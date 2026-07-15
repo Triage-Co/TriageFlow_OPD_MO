@@ -112,7 +112,7 @@ export default function ProfileScreen() {
           />
           <ActionCard
             iconName={{ ios: "person.3", android: "people" }}
-            title="Quản lý Bệnh Nhân"
+            title="Hồ Sơ Khám Bệnh"
             onPress={() => router.push("/(patient)/patient-list" as any)}
           />
           <ActionCard

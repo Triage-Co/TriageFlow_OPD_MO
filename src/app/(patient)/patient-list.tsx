@@ -1,25 +1,25 @@
-import React, { useEffect, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  FlatList,
-  Modal,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  RefreshControl,
-} from "react-native";
+import { useEkyc } from "@/features/ekyc/hooks/useEkyc";
+import type { EkycOcrObject } from "@/features/ekyc/types/ekyc.types";
+import { usePatient } from "@/features/patient/hooks/usePatient";
+import { Patient } from "@/features/patient/types/patient.types";
+import { AppButton } from "@/shared/components/AppButton";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import Swipeable from "react-native-gesture-handler/Swipeable";
-import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
-import { AppButton } from "@/shared/components/AppButton";
-import { usePatient } from "@/features/patient/hooks/usePatient";
-import { useEkyc } from "@/features/ekyc/hooks/useEkyc";
-import { Patient } from "@/features/patient/types/patient.types";
-import type { EkycOcrObject } from "@/features/ekyc/types/ekyc.types";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function PatientListScreen() {
   const router = useRouter();
@@ -244,7 +244,7 @@ export default function PatientListScreen() {
               tintColor="#FFFFFF"
             />
           </Pressable>
-          <Text className="text-white text-xl font-bold tracking-tight">Quản lý Bệnh Nhân</Text>
+          <Text className="text-white text-xl font-bold tracking-tight">Hồ Sơ Khám Bệnh</Text>
         </View>
 
         <Pressable
@@ -387,9 +387,6 @@ export default function PatientListScreen() {
                 <Text className="text-gray-800 text-lg font-bold text-center mb-1">
                   Xác thực CCCD
                 </Text>
-                <Text className="text-gray-400 text-sm text-center leading-5 px-2">
-                  Quét căn cước công dân để xác thực và tự động điền thông tin bệnh nhân chính xác nhất.
-                </Text>
               </View>
 
               {/* Lưu ý */}
@@ -428,9 +425,8 @@ export default function PatientListScreen() {
                 <Pressable
                   onPress={handleLaunchEkyc}
                   disabled={isEkycLoading || isCreating}
-                  className={`h-[52px] rounded-xl items-center justify-center flex-row gap-2 ${
-                    isEkycLoading || isCreating ? "bg-gray-300" : "bg-primary active:opacity-90"
-                  }`}
+                  className={`h-[52px] rounded-xl items-center justify-center flex-row gap-2 ${isEkycLoading || isCreating ? "bg-gray-300" : "bg-primary active:opacity-90"
+                    }`}
                 >
                   {isEkycLoading ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
@@ -490,7 +486,7 @@ export default function PatientListScreen() {
               <View className="border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 justify-center">
                 <Text
                   className={editForm.fullName ? "text-sm text-neutral-700" : "text-sm text-neutral-400"}
-                  onPress={() => {}}
+                  onPress={() => { }}
                 >
                   {editForm.fullName || "Họ và tên bệnh nhân"}
                 </Text>

@@ -47,7 +47,7 @@ export default function HomeScreen() {
         <View className="flex-row justify-around items-center px-5 py-6 gap-4">
           {/* Nút 1: Đặt lịch khám */}
           <Pressable 
-            onPress={() => router.push("/(patient)/body-map")}
+            onPress={() => router.push("/(patient)/appointment/specialty-select")}
             className="items-center gap-2 flex-1 active:opacity-75"
           >
             <View className="bg-purple-100/70 w-14 h-14 rounded-2xl items-center justify-center">

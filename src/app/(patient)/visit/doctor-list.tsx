@@ -4,8 +4,8 @@ import { Doctor } from "@/features/booking/types/doctor.types";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useState, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -20,26 +20,44 @@ export default function DoctorListScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  // Cưỡng bức sử dụng SP_4 và Ngoại tổng quát để test dữ liệu thực tế như yêu cầu
-  const specialtyCode = "SP_1";
-  const specialtyName = "Ngoại tổng quát";
+  // Đọc từ route params – đến từ specialty-select hoặc recommendation
+  const specialtyCode = (params.specialtyCode as string) || "SP_1";
+  const specialtyName = (params.specialtyName as string) || "Chuyên khoa";
 
-  // Mặc định ngày 2026-07-09 có dữ liệu
-  const [selectedDate, setSelectedDate] = useState("2026-07-10");
+  // Tự động tạo danh sách 7 ngày kể từ hôm nay
+  const dateOptions = useMemo(() => {
+    const options = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() + i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const dateNum = String(d.getDate()).padStart(2, "0");
+      
+      const fullDate = `${year}-${month}-${dateNum}`;
+      const day = String(d.getDate());
+      
+      const dayOfWeek = d.getDay();
+      const labels = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+      const label = labels[dayOfWeek];
+      
+      const labelExtra = i === 0 ? "Hôm nay" : `${dateNum}/${month}`;
+      
+      options.push({
+        label,
+        day,
+        fullDate,
+        labelExtra,
+      });
+    }
+    return options;
+  }, []);
+
+  const [selectedDate, setSelectedDate] = useState(dateOptions[0].fullDate);
   const [selectedFilter, setSelectedFilter] = useState("all");
 
   const { doctors, isLoading, error } = useDoctorList(specialtyCode, selectedDate);
-
-  // Danh sách các ngày chọn
-  const dateOptions = [
-    { label: "T2", day: "6", fullDate: "2026-07-06", labelExtra: "06/07" },
-    { label: "T3", day: "7", fullDate: "2026-07-07", labelExtra: "07/07" },
-    { label: "T4", day: "8", fullDate: "2026-07-08", labelExtra: "Hôm nay" },
-    { label: "T5", day: "9", fullDate: "2026-07-09", labelExtra: "09/07" },
-    { label: "T6", day: "10", fullDate: "2026-07-10", labelExtra: "10/07" },
-    { label: "T7", day: "11", fullDate: "2026-07-11", labelExtra: "11/07" },
-    { label: "CN", day: "12", fullDate: "2026-07-12", labelExtra: "12/07" },
-  ];
 
   // Trích xuất chữ cái viết tắt tên bác sĩ
   const getInitials = (fullName?: string): string => {
@@ -94,30 +112,17 @@ export default function DoctorListScreen() {
             {item.specialty?.specialty_name || "Chuyên khoa"}
           </Text>
 
-          {/* Nơi làm việc & Kinh nghiệm */}
+          {/* Kinh nghiệm */}
           <View className="flex-row items-center mt-2.5 pt-2.5 border-t border-gray-50">
-            <View className="flex-row items-center mr-4 flex-1">
-              <SymbolView
-                name="doc.text.fill"
-                size={11}
-                tintColor="#9CA3AF"
-                style={{ marginRight: 4 }}
-              />
-              <Text className="text-gray-400 text-[11px] font-medium" numberOfLines={1}>
-                Số CCHN: {item.license_number || "Chưa cập nhật"}
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <SymbolView
-                name="clock.fill"
-                size={11}
-                tintColor="#9CA3AF"
-                style={{ marginRight: 4 }}
-              />
-              <Text className="text-gray-400 text-[11px] font-medium">
-                {item.experience_years ?? 0} năm KN
-              </Text>
-            </View>
+            <Ionicons
+              name="time-outline"
+              size={12}
+              color="#9CA3AF"
+              style={{ marginRight: 4 }}
+            />
+            <Text className="text-gray-400 text-[11px] font-medium">
+              Kinh nghiệm: {item.experience_years ?? 0} năm
+            </Text>
           </View>
         </View>
       </Pressable>
@@ -134,10 +139,10 @@ export default function DoctorListScreen() {
             onPress={() => router.back()}
             className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm active:opacity-75"
           >
-            <SymbolView
-              name="chevron.left"
-              size={18}
-              tintColor={Colors.neutral700}
+            <Ionicons
+              name="chevron-back"
+              size={20}
+              color={Colors.neutral700}
             />
           </Pressable>
           <Text className="text-gray-800 text-[17px] font-bold">Chọn bác sĩ</Text>
@@ -148,10 +153,10 @@ export default function DoctorListScreen() {
         <View className="bg-primary/10 mx-5 my-2 p-3 rounded-[16px] border border-primary/20 flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
             <View className="w-8 h-8 rounded-full bg-primary/20 items-center justify-center">
-              <SymbolView
-                name="heart.text.square.fill"
-                size={14}
-                tintColor={Colors.neutral700}
+              <Ionicons
+                name="heart-outline"
+                size={16}
+                color={Colors.neutral700}
               />
             </View>
             <View>
@@ -255,10 +260,10 @@ export default function DoctorListScreen() {
           </View>
         ) : error ? (
           <View className="flex-1 items-center justify-center px-10">
-            <SymbolView
-              name="exclamationmark.circle.fill"
-              size={36}
-              tintColor="#EF4444"
+            <Ionicons
+              name="alert-circle"
+              size={40}
+              color="#EF4444"
             />
             <Text className="text-gray-800 text-[14px] font-bold mt-3 text-center">
               Lỗi tải dữ liệu
@@ -269,10 +274,10 @@ export default function DoctorListScreen() {
           </View>
         ) : doctors.length === 0 ? (
           <View className="flex-1 items-center justify-center px-10">
-            <SymbolView
-              name="person.crop.circle.badge.exclamationmark"
-              size={36}
-              tintColor="#9CA3AF"
+            <Ionicons
+              name="alert-circle"
+              size={40}
+              color="#9CA3AF"
             />
             <Text className="text-gray-800 text-[14px] font-bold mt-3 text-center">
               Không có bác sĩ trực

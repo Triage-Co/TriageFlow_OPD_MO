@@ -12,19 +12,19 @@ import {
 export const patientService = {
   /**
    * Lấy danh sách bệnh nhân của tài khoản hiện tại
-   * GET /api/patient
+   * GET /api/patient/me
    */
   async getPatients(): Promise<PatientListResponse> {
-    const response = await apiClient.get<PatientListResponse>("/api/patient");
+    const response = await apiClient.get<PatientListResponse>("/api/patient/me");
     return response.data;
   },
 
   /**
    * Lấy thông tin chi tiết một bệnh nhân
-   * GET /api/patient/{patient_id}
+   * GET /api/patient/me/{patient_id}
    */
   async getPatientById(patientId: string): Promise<PatientDetailResponse> {
-    const response = await apiClient.get<PatientDetailResponse>(`/api/patient/${patientId}`);
+    const response = await apiClient.get<PatientDetailResponse>(`/api/patient/me/${patientId}`);
     return response.data;
   },
 
