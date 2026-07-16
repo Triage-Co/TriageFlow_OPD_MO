@@ -31,6 +31,8 @@ type TriageContextType = {
   shouldStop: boolean;
   isLoading: boolean;
   error: string | null;
+  patientId: string | undefined;
+  patientName: string | undefined;
   setSelectedRegion: (region: BodyRegion | null) => void;
   searchSymptomsByRegion: (params: {
     bodyPartId: string;
@@ -39,7 +41,7 @@ type TriageContextType = {
     searchPhrase: string;
     fallbackSearchPhrases?: string[];
   }) => Promise<void>;
-  startDiagnosisSession: () => Promise<void>;
+  startDiagnosisSession: (patientId?: string) => Promise<void>;
   answerQuestion: (selectedAnswers: Evidence[]) => Promise<void>;
   triggerRecommendation: () => Promise<void>;
   clearSession: (clearSelectedSymptomsMap?: boolean) => Promise<void>;
@@ -64,6 +66,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [shouldStop, setShouldStop] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [patientId, setPatientId] = useState<string | undefined>(undefined);
+  const [patientName, setPatientName] = useState<string | undefined>(undefined);
 
   // Khôi phục session khi mount
   useEffect(() => {
@@ -76,6 +80,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setCurrentQuestion(session.currentQuestion || null);
           setShouldStop(session.shouldStop || false);
           setRecommendation(session.recommendation || null);
+          setPatientId(session.patientId);
+          setPatientName(session.patientName);
           if (session.selectedSymptoms) {
             setSelectedSymptomsMap(session.selectedSymptoms);
             const allSelected = Object.values(session.selectedSymptoms).flat();
@@ -190,7 +196,7 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    * Bắt đầu phiên chẩn đoán mới từ các triệu chứng đã chọn trên Body Map.
    * Gọi diagnose API lần đầu (không có interview_token), lưu session và navigate sang interview.
    */
-  const startDiagnosisSession = async () => {
+  const startDiagnosisSession = async (selectedPatientId?: string) => {
     const allSelected = getAllSelectedSymptoms();
     if (allSelected.length === 0) {
       setError("Vui lòng chọn ít nhất một triệu chứng.");
@@ -204,19 +210,39 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let citizenId = user?.citizen_id;
       let genderVal = user?.gender;
       let dobVal: string | undefined = undefined;
+      let targetPatientId = selectedPatientId;
+      let targetPatientName = "";
 
-      // Cố gắng lấy thông tin từ danh sách bệnh nhân trước
-      try {
-        const patientsRes = await patientService.getPatients();
-        if (patientsRes?.data && patientsRes.data.length > 0) {
-          const firstPatient = patientsRes.data[0];
-          citizenId = firstPatient.citizen_id;
-          genderVal = firstPatient.gender || genderVal;
-          dobVal = firstPatient.dob;
-          console.log(`[Triage] Lấy thông tin từ bệnh nhân đầu tiên: Tên=${firstPatient.full_name}, Ngày sinh=${dobVal}, Giới tính=${genderVal}`);
+      if (selectedPatientId) {
+        try {
+          const patientRes = await patientService.getPatientById(selectedPatientId);
+          if (patientRes?.data) {
+            const patient = patientRes.data;
+            citizenId = patient.citizen_id;
+            genderVal = patient.gender || genderVal;
+            dobVal = patient.dob;
+            targetPatientName = patient.full_name;
+            console.log(`[Triage] Lấy thông tin từ bệnh nhân được chọn: Tên=${patient.full_name}, Ngày sinh=${dobVal}, Giới tính=${genderVal}`);
+          }
+        } catch (err) {
+          console.log("[Triage] Lỗi khi lấy thông tin bệnh nhân đã chọn:", err);
         }
-      } catch (err) {
-        console.log("[Triage] Lỗi khi lấy danh sách bệnh nhân:", err);
+      } else {
+        // Fallback: Cố gắng lấy thông tin từ danh sách bệnh nhân trước
+        try {
+          const patientsRes = await patientService.getPatients();
+          if (patientsRes?.data && patientsRes.data.length > 0) {
+            const firstPatient = patientsRes.data[0];
+            citizenId = firstPatient.citizen_id;
+            genderVal = firstPatient.gender || genderVal;
+            dobVal = firstPatient.dob;
+            targetPatientId = firstPatient.patient_id;
+            targetPatientName = firstPatient.full_name;
+            console.log(`[Triage] Lấy thông tin từ bệnh nhân đầu tiên: Tên=${firstPatient.full_name}, Ngày sinh=${dobVal}, Giới tính=${genderVal}`);
+          }
+        } catch (err) {
+          console.log("[Triage] Lỗi khi lấy danh sách bệnh nhân:", err);
+        }
       }
 
       // Fallback nếu vẫn không có citizenId
@@ -274,6 +300,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setInterviewToken(response.interview_token);
       setEvidence(initialEvidence);
       setShouldStop(response.should_stop);
+      setPatientId(targetPatientId);
+      setPatientName(targetPatientName);
       if (allSelected.length > 0) setSelectedSymptom(allSelected[0]);
 
       // Phục hồi lại selectedSymptomsMap cho UI body-map
@@ -283,6 +311,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sex,
         age,
         citizenId,
+        patientId: targetPatientId,
+        patientName: targetPatientName,
         questionCount: 1,
         selectedSymptoms: currentMap,
         evidence: initialEvidence,
@@ -439,7 +469,14 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error((response as any).message || "API đề xuất chuyên khoa trả về lỗi không xác định.");
       }
 
-      const translatedRec = await translationService.translateRecommendation(response);
+      const translatedRec: RecommendSpecialistResponse = {
+        ...response,
+        recommended_specialist: {
+          ...response.recommended_specialist,
+          nameVi: response.recommended_specialist?.name || "Khoa Nội tổng quát",
+        },
+        recommended_channel_vi: response.recommended_channel === "personal_visit" ? "Khám trực tiếp" : response.recommended_channel,
+      };
       setRecommendation(translatedRec);
 
       await triageCacheService.saveDiagnosisSession({
@@ -476,6 +513,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setRecommendation(null);
     setShouldStop(false);
     setError(null);
+    setPatientId(undefined);
+    setPatientName(undefined);
     await triageCacheService.clearDiagnosisSession();
     await triageCacheService.clearRecommendationResult();
   };
@@ -494,6 +533,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         shouldStop,
         isLoading,
         error,
+        patientId,
+        patientName,
         setSelectedRegion,
         searchSymptomsByRegion,
         startDiagnosisSession,

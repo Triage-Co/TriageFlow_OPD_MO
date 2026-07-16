@@ -1,23 +1,24 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  ScrollView,
-  Alert,
-  Image,
-  Clipboard,
-  Linking,
-} from "react-native";
+import { Colors } from "@/config/colors";
+import { useBooking } from "@/features/booking/hooks/useBooking";
+import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
+import { AppButton } from "@/shared/components/AppButton";
+import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
-import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
-import { Colors } from "@/config/colors";
-import { AppButton } from "@/shared/components/AppButton";
-import { useBooking } from "@/features/booking/hooks/useBooking";
-import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import {
+  Alert,
+  Clipboard,
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  Modal
+} from "react-native";
 
 export default function PaymentQrScreen() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function PaymentQrScreen() {
   const checkoutUrl = params.checkoutUrl as string;
   const qrCode = params.qrCode as string;
   const patientName = params.patientName as string;
+  const orderCode = (params.orderCode || params.ordercode) as string;
 
   // Params for displaying doctor details
   const doctorName = params.doctorName as string;
@@ -44,6 +46,26 @@ export default function PaymentQrScreen() {
   const licenseNumber = params.licenseNumber as string;
 
   const [paymentChecked, setPaymentChecked] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [confirmedData, setConfirmedData] = useState<{
+    queueNumber: string;
+    specialtyName: string;
+    roomName: string;
+    startTime: string;
+    patientName: string;
+    bookingId: string;
+    stepId: string;
+  } | null>(null);
+
+  const handleViewTicket = () => {
+    setShowSuccessModal(false);
+    if (confirmedData) {
+      router.push({
+        pathname: "/(patient)/visit/ticket-screen",
+        params: confirmedData,
+      });
+    }
+  };
 
   const amount = parseInt(amountStr || "0", 10);
   const formattedAmount = amount.toLocaleString("vi-VN") + " VND";
@@ -104,18 +126,17 @@ export default function PaymentQrScreen() {
     // 3. Lưu thông tin stepId vào bộ nhớ tạm trong ngày
     await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
 
-    // 4. Chuyển sang màn hình Phiếu khám
-    router.push({
-      pathname: "/(patient)/visit/ticket-screen",
-      params: {
-        queueNumber: bookingResult.queue_number || "--",
-        specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || specialtyName || "",
-        roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || "",
-        startTime: stepDetail.flow?.booking?.slot?.start_time || slotTime || "",
-        patientName: patientName || "",
-        bookingId: bookingId || "",
-      },
+    // 4. Lưu dữ liệu đã xác nhận và hiển thị Success Modal
+    setConfirmedData({
+      queueNumber: bookingResult.queue_number || "--",
+      specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || specialtyName || "",
+      roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || "",
+      startTime: stepDetail.flow?.booking?.slot?.start_time || slotTime || "",
+      patientName: patientName || "",
+      bookingId: bookingId || "",
+      stepId: stepId || "",
     });
+    setShowSuccessModal(true);
   };
 
   return (
@@ -144,7 +165,7 @@ export default function PaymentQrScreen() {
             <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-3">
               Thông tin dịch vụ
             </Text>
-            
+
             <View className="flex-row items-center pb-4 border-b border-gray-50 mb-4">
               <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center mr-3">
                 <SymbolView name="person.fill" size={18} tintColor={Colors.primary} />
@@ -161,26 +182,18 @@ export default function PaymentQrScreen() {
                 {slotTime} - {selectedDate}
               </Text>
             </View>
-            {licenseNumber ? (
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-400 text-[12px] font-medium">Số CCHN</Text>
-                <Text className="text-gray-700 text-[12px] font-bold">{licenseNumber}</Text>
-              </View>
-            ) : null}
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-gray-400 text-[12px] font-medium">Mã đơn hàng</Text>
+              <Text className="text-gray-700 text-[12px] font-bold">{orderCode || "--"}</Text>
+            </View>
             <View className="flex-row justify-between">
-              <Text className="text-gray-400 text-[12px] font-medium">Mã đặt lịch</Text>
-              <Text className="text-gray-700 text-[12px] font-bold">{bookingId}</Text>
+              <Text className="text-gray-400 text-[12px] font-medium">Giá tiền</Text>
+              <Text className="text-primary text-[12px] font-bold">{formattedAmount}</Text>
             </View>
           </View>
 
           {/* ── 3. KHU VỰC QUÉT MÃ QR ── */}
           <View className="mx-5 bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm items-center mb-6">
-            <Text className="text-gray-800 text-[16px] font-bold text-center mb-1">
-              Quét mã VietQR qua App Ngân hàng
-            </Text>
-            <Text className="text-gray-400 text-[11px] font-medium text-center mb-5">
-              Hệ thống tự động kiểm tra trạng thái sau khi bạn thanh toán
-            </Text>
 
             {/* QR Frame */}
             <View className="bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm mb-5">
@@ -253,6 +266,61 @@ export default function PaymentQrScreen() {
             onPress={handleConfirmPayment}
           />
         </View>
+
+        {/* ── 5. SUCCESS PAYMENT POPUP MODAL ── */}
+        <Modal
+          visible={showSuccessModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSuccessModal(false)}
+        >
+          <View className="flex-1 justify-center items-center bg-black/50 px-6">
+            <View className="bg-white w-full rounded-[28px] overflow-hidden shadow-2xl max-w-sm relative">
+              {/* Top Blue Header Portion matching mockup design */}
+              <View style={{ backgroundColor: "#82A9F5" }} className="h-24 w-full justify-center items-end px-5">
+                <View className="bg-white px-3 py-1 rounded-full shadow-sm">
+                  <Text className="text-gray-900 text-xs font-bold">Đã thanh toán</Text>
+                </View>
+              </View>
+
+              {/* Modal Body */}
+              <View className="items-center px-6 pt-12 pb-8 bg-white">
+                {/* Title Text */}
+                <Text style={{ color: "#6C94EC" }} className="text-[20px] font-bold text-center mb-8 mt-4">
+                  Thanh toán thành công!
+                </Text>
+
+                {/* View Ticket button */}
+                <Pressable
+                  onPress={handleViewTicket}
+                  style={{ backgroundColor: "#82A9F5" }}
+                  className="w-full py-4 rounded-[20px] items-center justify-center shadow-lg active:opacity-90"
+                >
+                  <Text className="text-white text-base font-bold">Xem phiếu khám</Text>
+                </Pressable>
+              </View>
+
+              {/* Overlapping Checkmark Circle with white border sitting on the boundary */}
+              <View
+                style={{
+                  backgroundColor: "#82A9F5",
+                  width: 76,
+                  height: 76,
+                  borderRadius: 38,
+                  borderWidth: 5,
+                  borderColor: "#FFFFFF",
+                  position: "absolute",
+                  top: 96 - 38,
+                  left: "50%",
+                  marginLeft: -38,
+                }}
+                className="items-center justify-center shadow-md z-20"
+              >
+                <Ionicons name="checkmark" size={36} color="#FFFFFF" />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </ScreenWrapper>
   );

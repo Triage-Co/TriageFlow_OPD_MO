@@ -78,6 +78,8 @@ export interface DiagnosisSessionCache {
   sex: PatientSex;
   age: number;
   citizenId?: string;
+  patientId?: string;
+  patientName?: string;
   questionCount?: number;
   selectedSymptom?: TranslatedSymptomSearchItem;
   selectedSymptoms?: SelectedSymptomsMap;

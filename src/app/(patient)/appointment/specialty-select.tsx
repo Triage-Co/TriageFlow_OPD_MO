@@ -8,7 +8,7 @@ import {
   TextInput,
   Dimensions,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
@@ -25,6 +25,7 @@ const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding/margins
 
 export default function SpecialtySelectScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { specialties, isLoading, error, refetch } = useSpecialties();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -40,6 +41,7 @@ export default function SpecialtySelectScreen() {
       params: {
         specialtyCode: specialty.specialty_code,
         specialtyName: specialty.specialty_name,
+        patientId: params.patientId as string || "",
       },
     });
   };

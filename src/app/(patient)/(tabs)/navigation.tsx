@@ -1,15 +1,15 @@
-import { View, Text } from "react-native";
+import React from "react";
+import { View } from "react-native";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { MapHeader } from "@/features/navigation/components/MapHeader";
+import { MapViewer } from "@/features/navigation/components/map/MapViewer";
 
 export default function NavigationScreen() {
   return (
-    <ScreenWrapper>
-      <View className="flex-1 items-center justify-center px-8">
-        <Text style={{ fontSize: 56 }} className="mb-4">🗺️</Text>
-        <Text className="text-xl font-bold text-gray-800 mb-2">Dẫn đường</Text>
-        <Text className="text-gray-500 text-sm text-center leading-6">
-          Bản đồ bệnh viện và chỉ đường đến phòng khám sẽ hiển thị ở đây. Tính năng đang được phát triển.
-        </Text>
+    <ScreenWrapper edges={["left", "right"]}>
+      <View className="flex-1 bg-[#F8FAFC]">
+        <MapHeader />
+        <MapViewer />
       </View>
     </ScreenWrapper>
   );

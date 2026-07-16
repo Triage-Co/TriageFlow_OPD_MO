@@ -43,6 +43,7 @@ export interface Doctor {
   license_number: string;
   experience_years: number;
   specialty_id: string;
+  full_name?: string;
   createdAt?: string;
   updatedAt?: string;
   account: DoctorAccount;

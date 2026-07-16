@@ -35,6 +35,14 @@ export default function DoctorSlotsScreen() {
 
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const todayStr = `${year}-${month}-${day}`;
+  const isToday = initialDate === todayStr;
+  const currentHours = today.getHours();
+
   // Gọi API lấy slots trực tiếp theo ngày đã chọn ở màn hình trước
   const { slots, isLoading, error } = useDoctorSlots(doctorId, initialDate);
 
@@ -76,8 +84,10 @@ export default function DoctorSlotsScreen() {
         return;
       }
 
-      // Lấy bệnh nhân đầu tiên
-      const targetPatient = patientsRes.data[0];
+      // Tìm bệnh nhân được truyền qua param hoặc lấy bệnh nhân đầu tiên làm fallback
+      const targetPatient = params.patientId
+        ? patientsRes.data.find((p) => p.patient_id === params.patientId) || patientsRes.data[0]
+        : patientsRes.data[0];
       const patientId = targetPatient.patient_id;
       const patientName = targetPatient.full_name;
 
@@ -95,11 +105,12 @@ export default function DoctorSlotsScreen() {
             description: bookingResult.payment.data.description,
             checkoutUrl: bookingResult.payment.data.checkoutUrl,
             qrCode: bookingResult.payment.data.qrCode,
+            orderCode: bookingResult.payment.data.orderCode.toString(),
+            ordercode: bookingResult.payment.data.orderCode.toString(),
             doctorName,
             specialtyName,
             selectedDate: initialDate,
             slotTime: selectedSlot.start_time,
-            licenseNumber,
             patientName,
           },
         });
@@ -206,7 +217,18 @@ export default function DoctorSlotsScreen() {
             ) : (
               <View className="flex-row flex-wrap gap-2.5">
                 {slots.map((slot) => {
-                  const isAvailable = slot.status === "AVAILABLE" && slot.capacity > 0;
+                  let isPastSlot = false;
+                  if (isToday) {
+                    const parts = slot.start_time.split(":");
+                    if (parts.length >= 2) {
+                      const slotHours = parseInt(parts[0], 10);
+                      if (slotHours < currentHours) {
+                        isPastSlot = true;
+                      }
+                    }
+                  }
+
+                  const isAvailable = slot.status === "AVAILABLE" && slot.capacity > 0 && !isPastSlot;
                   const isSelected = selectedSlot?.slot_id === slot.slot_id;
 
                   return (

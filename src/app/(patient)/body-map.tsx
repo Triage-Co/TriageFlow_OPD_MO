@@ -1,10 +1,10 @@
 import { BodyMap } from "@/features/body-map/BodyMap";
 import { BodyRegion } from "@/features/body-map/types";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -19,13 +19,37 @@ import { SymptomBottomSheet } from "@/features/triage/components/SymptomBottomSh
 import { Colors } from "@/config/colors";
 import { TranslatedSymptomSearchItem } from "@/features/triage/types/triage.types";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
+import { patientService } from "@/features/patient/services/patient.service";
+import { calculateAgeFromDob } from "@/shared/utils/date.utils";
+import { Patient } from "@/features/patient/types/patient.types";
 
 export default function BodyMapScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const patientId = params.patientId as string | undefined;
+  
   const { height: windowHeight } = useWindowDimensions();
   const { user } = useAuthContext();
 
-  const gender = user?.gender?.toLowerCase() === "female" ? "female" : "male";
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  useEffect(() => {
+    if (patientId) {
+      patientService.getPatientById(patientId).then(res => {
+        if (res?.data) {
+          setSelectedPatient(res.data);
+        }
+      }).catch(err => {
+        console.log("[BodyMap] Lỗi khi lấy chi tiết bệnh nhân:", err);
+      });
+    }
+  }, [patientId]);
+
+  const gender = selectedPatient
+    ? (selectedPatient.gender?.toLowerCase() === "female" ? "female" : "male")
+    : (user?.gender?.toLowerCase() === "female" ? "female" : "male");
+
+  const age = selectedPatient?.dob ? calculateAgeFromDob(selectedPatient.dob) : 30;
 
   // Context của Triage
   const {
@@ -51,7 +75,7 @@ export default function BodyMapScreen() {
     searchSymptomsByRegion({
       bodyPartId: region.id,
       gender,
-      age: 30,
+      age,
       searchPhrase: region.name || "",
       fallbackSearchPhrases: region.fallbackSearchPhrases,
     });
@@ -62,7 +86,7 @@ export default function BodyMapScreen() {
 
   const handleNext = async () => {
     if (hasAnySelected && !isLoading) {
-      await startDiagnosisSession();
+      await startDiagnosisSession(patientId);
     }
   };
 

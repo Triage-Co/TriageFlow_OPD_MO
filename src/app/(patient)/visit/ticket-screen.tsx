@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -14,18 +15,97 @@ import { SymbolView } from "expo-symbols";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
 import { AppButton } from "@/shared/components/AppButton";
+import { useBooking } from "@/features/booking/hooks/useBooking";
+
+interface TicketData {
+  queueNumber: string;
+  specialtyName: string;
+  roomName: string;
+  startTime: string;
+  patientName: string;
+}
 
 export default function TicketScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { fetchStepDetail, fetchBookingResult } = useBooking();
 
-  // Nhận tham số truyền sang từ payment-qr
-  const queueNumber = params.queueNumber as string;
-  const specialtyName = params.specialtyName as string;
-  const roomName = params.roomName as string;
-  const startTime = params.startTime as string;
-  const patientName = params.patientName as string;
-  const bookingId = params.bookingId as string;
+  const stepId = params.stepId as string | undefined;
+
+  const [ticketData, setTicketData] = useState<TicketData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadTicketDetails = async () => {
+      if (!stepId) {
+        // Fallback to static params
+        setTicketData({
+          queueNumber: (params.queueNumber as string) || "--",
+          specialtyName: (params.specialtyName as string) || "Tổng quát",
+          roomName: (params.roomName as string) || "Đang xếp phòng",
+          startTime: (params.startTime as string) || "Đang xếp ca",
+          patientName: (params.patientName as string) || "Bệnh nhân",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const stepDetail = await fetchStepDetail(stepId);
+        if (!active) return;
+
+        if (stepDetail) {
+          let qNum = stepDetail.queues?.[0]?.queue_number;
+          if (!qNum) {
+            const bookingResult = await fetchBookingResult(stepId);
+            if (bookingResult && active) {
+              qNum = bookingResult.queue_number;
+            }
+          }
+
+          if (active) {
+            setTicketData({
+              queueNumber: qNum || "--",
+              specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || (params.specialtyName as string) || "Tổng quát",
+              roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || (params.roomName as string) || "Đang xếp phòng",
+              startTime: stepDetail.flow?.booking?.slot?.start_time || (params.startTime as string) || "Đang xếp ca",
+              patientName: (params.patientName as string) || "Bệnh nhân",
+            });
+          }
+        } else if (active) {
+          // Fallback if stepDetail fails
+          setTicketData({
+            queueNumber: (params.queueNumber as string) || "--",
+            specialtyName: (params.specialtyName as string) || "Tổng quát",
+            roomName: (params.roomName as string) || "Đang xếp phòng",
+            startTime: (params.startTime as string) || "Đang xếp ca",
+            patientName: (params.patientName as string) || "Bệnh nhân",
+          });
+        }
+      } catch (err) {
+        console.error("[TicketScreen] Lỗi khi tải chi tiết phiếu khám:", err);
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadTicketDetails();
+
+    return () => {
+      active = false;
+    };
+  }, [stepId]);
+
+  const queueNumber = ticketData?.queueNumber || (params.queueNumber as string) || "--";
+  const specialtyName = ticketData?.specialtyName || (params.specialtyName as string) || "Tổng quát";
+  const roomName = ticketData?.roomName || (params.roomName as string) || "Đang xếp phòng";
+  const startTime = ticketData?.startTime || (params.startTime as string) || "Đang xếp ca";
+  const patientName = ticketData?.patientName || (params.patientName as string) || "Bệnh nhân";
 
   // Ngăn nút Back cứng trên Android quay lại màn thanh toán
   useEffect(() => {
@@ -40,6 +120,20 @@ export default function TicketScreen() {
     );
     return () => backHandler.remove();
   }, []);
+
+  if (isLoading) {
+    return (
+      <ScreenWrapper>
+        <StatusBar style="light" />
+        <View className="flex-1 items-center justify-center bg-[#F8FAFC]">
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text className="text-gray-400 text-[12px] font-medium mt-3">
+            Đang tải thông tin phiếu khám...
+          </Text>
+        </View>
+      </ScreenWrapper>
+    );
+  }
 
   const handleGoHome = () => {
     router.replace("/(patient)/(tabs)/home");

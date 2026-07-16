@@ -9,7 +9,7 @@ import { patientService } from "@/features/patient/services/patient.service";
 
 export default function AutoBookingScreen() {
   const router = useRouter();
-  const { interviewToken } = useTriage();
+  const { interviewToken, patientId } = useTriage();
   const { submitAutoBooking, isSubmittingAuto } = useBooking();
 
   useEffect(() => {
@@ -36,12 +36,14 @@ export default function AutoBookingScreen() {
           return;
         }
 
-        const targetPatient = patientsRes.data[0];
-        const patientId = targetPatient.patient_id;
+        const targetPatient = patientId
+          ? patientsRes.data.find((p) => p.patient_id === patientId) || patientsRes.data[0]
+          : patientsRes.data[0];
+        const finalPatientId = targetPatient.patient_id;
         const patientName = targetPatient.full_name;
 
         // 2. Tạo đặt phòng tự động
-        const bookingResult = await submitAutoBooking(patientId, interviewToken);
+        const bookingResult = await submitAutoBooking(finalPatientId, interviewToken);
         if (!active) return;
 
         if (bookingResult) {
@@ -57,6 +59,8 @@ export default function AutoBookingScreen() {
               description: bookingResult.payment.data.description,
               checkoutUrl: bookingResult.payment.data.checkoutUrl,
               qrCode: bookingResult.payment.data.qrCode,
+              orderCode: bookingResult.payment.data.orderCode.toString(),
+              ordercode: bookingResult.payment.data.orderCode.toString(),
               patientName,
               flowType: "auto",
             },

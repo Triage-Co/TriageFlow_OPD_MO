@@ -34,16 +34,16 @@ export default function DoctorListScreen() {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, "0");
       const dateNum = String(d.getDate()).padStart(2, "0");
-      
+
       const fullDate = `${year}-${month}-${dateNum}`;
       const day = String(d.getDate());
-      
+
       const dayOfWeek = d.getDay();
       const labels = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
       const label = labels[dayOfWeek];
-      
+
       const labelExtra = i === 0 ? "Hôm nay" : `${dateNum}/${month}`;
-      
+
       options.push({
         label,
         day,
@@ -72,7 +72,7 @@ export default function DoctorListScreen() {
   };
 
   const handleSelectDoctor = (doctor: Doctor) => {
-    const doctorName = doctor.account?.user_name || doctor.account?.full_name || "Bác sĩ";
+    const doctorName = doctor.full_name || doctor.account?.user_name || "Bác sĩ";
     router.push({
       pathname: "/(patient)/visit/doctor-slots",
       params: {
@@ -82,12 +82,13 @@ export default function DoctorListScreen() {
         selectedDate: selectedDate,
         licenseNumber: doctor.license_number || "",
         experienceYears: (doctor.experience_years ?? 0).toString(),
+        patientId: params.patientId as string || "",
       },
     });
   };
 
   const renderDoctorItem = ({ item }: { item: Doctor }) => {
-    const doctorName = item.account?.user_name || item.account?.full_name || "Bác sĩ";
+    const doctorName = item.full_name || item.account?.user_name || "Bác sĩ";
     const initials = getInitials(doctorName);
 
     return (
