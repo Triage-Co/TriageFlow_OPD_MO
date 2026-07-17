@@ -5,7 +5,7 @@ import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SymbolView } from "expo-symbols";
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -146,10 +146,10 @@ export default function TicketTabScreen() {
                 {/* Header của thẻ */}
                 <View className="bg-[#84AFEB]/10 flex-row items-center justify-center py-4 border-b border-[#84AFEB]/15">
                   <View className="bg-primary/20 w-7 h-7 rounded-lg items-center justify-center mr-2">
-                    <SymbolView
-                      name="plus.app.fill"
+                    <Ionicons
+                      name="medical"
                       size={14}
-                      tintColor={Colors.primary}
+                      color={Colors.primary}
                     />
                   </View>
                   <Text className="text-primary font-bold text-[14px]">
@@ -172,7 +172,7 @@ export default function TicketTabScreen() {
                       {/* Cột trái: Chuyên khoa */}
                       <View className="flex-1 pr-2">
                         <View className="flex-row items-center gap-1.5 mb-1">
-                          <SymbolView name="plus.square.fill" size={12} tintColor="#6B7280" />
+                          <Ionicons name="medical" size={12} color="#6B7280" />
                           <Text className="text-gray-500 text-[11px] font-medium">Chuyên khoa</Text>
                         </View>
                         <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
@@ -183,7 +183,7 @@ export default function TicketTabScreen() {
                       {/* Cột phải: Phòng khám */}
                       <View className="flex-1 pl-2">
                         <View className="flex-row items-center gap-1.5 mb-1">
-                          <SymbolView name="mappin.circle.fill" size={12} tintColor="#6B7280" />
+                          <Ionicons name="location" size={12} color="#6B7280" />
                           <Text className="text-gray-500 text-[11px] font-medium">Phòng khám</Text>
                         </View>
                         <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
@@ -196,7 +196,7 @@ export default function TicketTabScreen() {
                       {/* Cột trái: Thời gian bắt đầu */}
                       <View className="flex-1 pr-2">
                         <View className="flex-row items-center gap-1.5 mb-1">
-                          <SymbolView name="clock.fill" size={12} tintColor="#6B7280" />
+                          <Ionicons name="time" size={12} color="#6B7280" />
                           <Text className="text-gray-500 text-[11px] font-medium">Thời gian bắt đầu</Text>
                         </View>
                         <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
@@ -207,7 +207,7 @@ export default function TicketTabScreen() {
                       {/* Cột phải: Bệnh nhân */}
                       <View className="flex-1 pl-2">
                         <View className="flex-row items-center gap-1.5 mb-1">
-                          <SymbolView name="person.fill" size={12} tintColor="#6B7280" />
+                          <Ionicons name="person" size={12} color="#6B7280" />
                           <Text className="text-gray-500 text-[11px] font-medium">Bệnh nhân</Text>
                         </View>
                         <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
@@ -252,10 +252,10 @@ export default function TicketTabScreen() {
           <View className="flex-1 justify-between px-6 py-12 items-center">
             <View className="flex-1 items-center justify-center">
               <View className="w-24 h-24 rounded-full bg-[#84AFEB]/10 items-center justify-center mb-6">
-                <SymbolView
-                  name="calendar.badge.exclamationmark"
+                <Ionicons
+                  name="calendar-outline"
                   size={36}
-                  tintColor={Colors.primary}
+                  color={Colors.primary}
                 />
               </View>
               <Text className="text-gray-800 text-[18px] font-extrabold mb-2 text-center">

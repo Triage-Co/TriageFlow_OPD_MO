@@ -15,7 +15,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useTriage } from "@/features/triage/hooks/useTriage";
-import { SymptomBottomSheet } from "@/features/triage/components/SymptomBottomSheet";
 import { Colors } from "@/config/colors";
 import { TranslatedSymptomSearchItem } from "@/features/triage/types/triage.types";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
@@ -65,19 +64,26 @@ export default function BodyMapScreen() {
 
   // State cục bộ cho Bottom Sheet
   const [selectedRegion, setSelectedRegion] = useState<BodyRegion | null>(null);
-  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const handleSelectRegion = (region: BodyRegion) => {
     setSelectedRegion(region);
-    setIsBottomSheetOpen(true);
 
-    // Chỉ khi người dùng chọn vùng mới gọi API/local để lấy triệu chứng
+    // Kích hoạt tìm kiếm triệu chứng của vùng đó trong context
     searchSymptomsByRegion({
       bodyPartId: region.id,
       gender,
       age,
       searchPhrase: region.name || "",
       fallbackSearchPhrases: region.fallbackSearchPhrases,
+    });
+
+    // Chuyển hướng sang màn chọn triệu chứng toàn màn hình
+    router.push({
+      pathname: "/(patient)/symptom-select",
+      params: {
+        regionId: region.id,
+        regionLabelVi: region.labelVi || region.name || "",
+      },
     });
   };
 
@@ -247,19 +253,7 @@ export default function BodyMapScreen() {
         </View>
       </View>
 
-      {/* ── 4. BOTTOM SHEET HIỂN THỊ TRIỆU CHỨNG ── */}
-      {selectedRegion && (
-        <SymptomBottomSheet
-          visible={isBottomSheetOpen}
-          regionId={selectedRegion.id}
-          regionLabelVi={selectedRegion.labelVi || selectedRegion.name || ""}
-          symptoms={symptoms}
-          isLoading={isLoading}
-          selectedSymptoms={selectedSymptomsMap[selectedRegion.id] || []}
-          onToggleSymptom={(symptom) => toggleSymptom(selectedRegion.id, symptom)}
-          onClose={() => setIsBottomSheetOpen(false)}
-        />
-      )}
+      {/* ── 4. ĐÃ CHUYỂN SANG MÀN HÌNH CHỌN TRIỆU CHỨNG TOÀN MÀN HÌNH ── */}
     </ScreenWrapper>
   );
 }

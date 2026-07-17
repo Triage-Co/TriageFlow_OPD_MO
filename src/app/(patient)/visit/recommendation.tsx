@@ -12,11 +12,7 @@ export default function RecommendationScreen() {
   const router = useRouter();
   const { recommendation, isLoading, clearSession, interviewToken } = useTriage();
 
-  const handleRestart = async () => {
-    await clearSession();
-    // Quay về màn hình chọn vùng đau trên Body Map
-    router.replace("/(patient)/body-map");
-  };
+
 
   const handleGoHome = async () => {
     await clearSession();
@@ -130,7 +126,7 @@ export default function RecommendationScreen() {
         </View>
 
         {/* ── 3. HÀNH ĐỘNG DƯỚI CÙNG ── */}
-        <View className="px-5 pb-12 pt-3 bg-white border-t border-gray-50 gap-2">
+        <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50 gap-2">
           <AppButton
             title="Chọn bác sĩ và đặt khám"
             onPress={handleSelectDoctor}
@@ -139,11 +135,6 @@ export default function RecommendationScreen() {
             title="Tự động xếp phòng khám"
             variant="secondary"
             onPress={handleAutoAssignRoom}
-          />
-          <AppButton
-            title="Khám vùng đau khác (Làm lại)"
-            variant="ghost"
-            onPress={handleRestart}
           />
         </View>
       </View>

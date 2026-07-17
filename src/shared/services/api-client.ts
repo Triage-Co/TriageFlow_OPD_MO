@@ -1,6 +1,10 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE_URL, API_TIMEOUT_MS } from "@/config/env";
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+const API_TIMEOUT_MS = process.env.EXPO_PUBLIC_API_TIMEOUT_MS
+  ? parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT_MS, 10)
+  : 15000;
 
 export const TOKEN_KEY = "auth_access_token";
 export const REFRESH_TOKEN_KEY = "auth_refresh_token";

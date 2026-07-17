@@ -247,7 +247,7 @@ export default function InterviewScreen() {
         </View>
 
         {/* ── 3. HÀNH ĐỘNG DƯỚI CÙNG ── */}
-        <View className="px-5 pb-12 pt-3 bg-white border-t border-gray-50">
+        <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50">
           {shouldStop ? (
             // Khi hết hỏi → nút "Xem đề xuất chuyên khoa"
             <AppButton

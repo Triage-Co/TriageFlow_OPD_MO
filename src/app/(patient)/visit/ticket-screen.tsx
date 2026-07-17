@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SymbolView } from "expo-symbols";
+import { Ionicons } from "@expo/vector-icons";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
 import { AppButton } from "@/shared/components/AppButton";
@@ -178,10 +178,10 @@ export default function TicketScreen() {
             {/* Header của thẻ */}
             <View className="bg-[#84AFEB]/10 flex-row items-center justify-center py-4 border-b border-[#84AFEB]/15">
               <View className="bg-primary/20 w-7 h-7 rounded-lg items-center justify-center mr-2">
-                <SymbolView
-                  name="plus.app.fill"
+                <Ionicons
+                  name="medical"
                   size={14}
-                  tintColor={Colors.primary}
+                  color={Colors.primary}
                 />
               </View>
               <Text className="text-primary font-bold text-[14px]">
@@ -204,7 +204,7 @@ export default function TicketScreen() {
                   {/* Cột trái: Chuyên khoa */}
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
-                      <SymbolView name="plus.square.fill" size={12} tintColor="#6B7280" />
+                      <Ionicons name="medical" size={12} color="#6B7280" />
                       <Text className="text-gray-500 text-[11px] font-medium">Chuyên khoa</Text>
                     </View>
                     <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
@@ -215,7 +215,7 @@ export default function TicketScreen() {
                   {/* Cột phải: Phòng khám */}
                   <View className="flex-1 pl-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
-                      <SymbolView name="mappin.circle.fill" size={12} tintColor="#6B7280" />
+                      <Ionicons name="location" size={12} color="#6B7280" />
                       <Text className="text-gray-500 text-[11px] font-medium">Phòng khám</Text>
                     </View>
                     <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
@@ -228,7 +228,7 @@ export default function TicketScreen() {
                   {/* Cột trái: Thời gian bắt đầu */}
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
-                      <SymbolView name="clock.fill" size={12} tintColor="#6B7280" />
+                      <Ionicons name="time" size={12} color="#6B7280" />
                       <Text className="text-gray-500 text-[11px] font-medium">Thời gian bắt đầu</Text>
                     </View>
                     <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
@@ -239,7 +239,7 @@ export default function TicketScreen() {
                   {/* Cột phải: Bệnh nhân */}
                   <View className="flex-1 pl-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
-                      <SymbolView name="person.fill" size={12} tintColor="#6B7280" />
+                      <Ionicons name="person" size={12} color="#6B7280" />
                       <Text className="text-gray-500 text-[11px] font-medium">Bệnh nhân</Text>
                     </View>
                     <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>

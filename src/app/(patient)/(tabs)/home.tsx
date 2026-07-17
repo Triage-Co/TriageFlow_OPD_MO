@@ -1,5 +1,6 @@
-import { ScrollView, View, Text, Pressable, Modal, ActivityIndicator, Alert, FlatList } from "react-native";
+import { ScrollView, View, Text, Pressable, Modal, ActivityIndicator, Alert, FlatList, Image as RNImage } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
@@ -116,12 +117,9 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Phải: Chuông thông báo kèm số badge */}
+            {/* Phải: Chuông thông báo */}
             <Pressable className="w-10 h-10 rounded-full bg-white/20 items-center justify-center relative active:opacity-80">
-              <Text className="text-lg text-white">🔔</Text>
-              <View className="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-[18px] h-[18px] items-center justify-center border-2 border-primary">
-                <Text className="text-[9px] text-white font-extrabold">2</Text>
-              </View>
+              <Ionicons name="notifications" size={22} color="white" />
             </Pressable>
           </View>
         </View>
@@ -149,7 +147,7 @@ export default function HomeScreen() {
             className="items-center gap-2 flex-1 active:opacity-75"
           >
             <View className="bg-blue-100/70 w-14 h-14 rounded-2xl items-center justify-center">
-              <Image 
+              <RNImage 
                 source={require("../../../../assets/images/Phieukham.png")}
                 className="w-6 h-6"
                 style={{ tintColor: "#2563EB" }}
@@ -165,7 +163,7 @@ export default function HomeScreen() {
             className="items-center gap-2 flex-1 active:opacity-75"
           >
             <View className="bg-orange-100/70 w-14 h-14 rounded-2xl items-center justify-center">
-              <Image 
+              <RNImage 
                 source={require("../../../../assets/images/DanDuong.png")}
                 className="w-6 h-6"
                 style={{ tintColor: "#EA580C" }}
