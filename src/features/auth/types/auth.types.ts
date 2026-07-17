@@ -84,6 +84,7 @@ export type UserProfile = {
   dob?: string;
   gender?: Gender;
   role: UserRole | string;
+  is_banned?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };

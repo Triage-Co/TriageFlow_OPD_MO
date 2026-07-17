@@ -4,7 +4,7 @@ import { useProfile } from "@/features/profile/hooks/useProfile";
 import { AppButton } from "@/shared/components/AppButton";
 import { AppInput } from "@/shared/components/AppInput";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
@@ -19,44 +19,42 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 
 /**
  * Personal Info screen – Thông tin cá nhân chi tiết
- * Hiển thị toàn bộ thông tin hồ sơ bệnh nhân từ API, cho phép chỉnh sửa họ tên, ngày sinh, giới tính
+ * Hiển thị toàn bộ thông tin hồ sơ bệnh nhân từ API, cho phép chỉnh sửa tên người dùng, giới tính, số điện thoại, avatar
  */
 export default function PersonalInfoScreen() {
   const router = useRouter();
   const { user } = useAuthContext();
-  const { fetchProfile, editProfile, isLoading, isUpdating, error, clearError } = useProfile();
+  const {
+    fetchProfile,
+    editProfile,
+    isLoading,
+    isUpdating,
+    isUploadingAvatar,
+    error,
+    clearError,
+    uploadAvatar,
+  } = useProfile();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [dob, setDob] = useState(""); // YYYY-MM-DD
+  const [userName, setUserName] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
   const [phone, setPhone] = useState("");
-
-  // Date picker state
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerDate, setPickerDate] = useState(new Date(2000, 0, 1));
+  const [avatar, setAvatar] = useState("");
+  const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
 
   // Tải dữ liệu hồ sơ từ API khi mở màn hình
   useEffect(() => {
     const loadProfile = async () => {
       const profile = await fetchProfile();
       if (profile) {
-        setFullName(profile.full_name);
-        setDob(profile.dob || "");
+        setUserName(profile.full_name);
         setGender((profile.gender as Gender) || "");
         setPhone(profile.phone || "");
-
-        if (profile.dob) {
-          const parts = profile.dob.split("-");
-          if (parts.length === 3) {
-            setPickerDate(
-              new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
-            );
-          }
-        }
+        setAvatar(profile.avatar || "");
       }
     };
     loadProfile();
@@ -64,22 +62,13 @@ export default function PersonalInfoScreen() {
 
   /** Khởi động dữ liệu chỉnh sửa khi bật chế độ edit */
   const handleStartEditing = () => {
-    // Ưu tiên dữ liệu hiển thị lấy từ user context (nếu API chưa tải xong hoặc fallback)
     const currentProfile = user;
     if (currentProfile) {
-      setFullName(currentProfile.full_name);
-      setDob(currentProfile.dob || "");
+      setUserName(currentProfile.full_name);
       setGender((currentProfile.gender as Gender) || "");
       setPhone(currentProfile.phone || "");
-
-      if (currentProfile.dob) {
-        const parts = currentProfile.dob.split("-");
-        if (parts.length === 3) {
-          setPickerDate(
-            new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
-          );
-        }
-      }
+      setAvatar(currentProfile.avatar || "");
+      setLocalAvatarUri(null); // Reset preview cục bộ
     }
     clearError();
     setIsEditing(true);
@@ -88,41 +77,44 @@ export default function PersonalInfoScreen() {
   /** Hủy bỏ quá trình chỉnh sửa */
   const handleCancelEditing = () => {
     setIsEditing(false);
+    setLocalAvatarUri(null);
     clearError();
   };
 
-  /** Format Date → "YYYY-MM-DD" */
-  const toApiDate = (date: Date): string => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
+  /** Xử lý mở thư viện ảnh chọn Avatar */
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Cần quyền truy cập", "Vui lòng cho phép truy cập thư viện ảnh trong Cài đặt.");
+      return;
+    }
 
-  /** Format Date → "DD/MM/YYYY" */
-  const toDisplayDate = (date: Date): string => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${d}/${m}/${y}`;
-  };
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1], // Crop tỉ lệ 1:1
+      quality: 0.8,
+    });
 
-  const onDateChange = (_event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === "android") setShowDatePicker(false);
-    if (selected) {
-      setPickerDate(selected);
-      setDob(toApiDate(selected));
+    if (result.canceled) return;
+
+    const localUri = result.assets[0].uri;
+    setLocalAvatarUri(localUri); // Hiện preview cục bộ ngay lập tức
+
+    // Tiến hành upload lên Cloudinary
+    const uploadedUrl = await uploadAvatar(localUri);
+    if (uploadedUrl) {
+      setAvatar(uploadedUrl); // Lưu URL Cloudinary đã upload thành công
+    } else {
+      setLocalAvatarUri(null); // Reset preview nếu lỗi
+      Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
     }
   };
 
   /** Xử lý cập nhật thông tin qua API */
   const handleSaveProfile = async () => {
-    if (!fullName.trim()) {
-      Alert.alert("Thông báo", "Vui lòng nhập họ và tên.");
-      return;
-    }
-    if (!dob) {
-      Alert.alert("Thông báo", "Vui lòng chọn ngày sinh.");
+    if (!userName.trim()) {
+      Alert.alert("Thông báo", "Vui lòng nhập tên người dùng.");
       return;
     }
     if (!gender) {
@@ -135,15 +127,16 @@ export default function PersonalInfoScreen() {
     }
 
     const success = await editProfile({
-      full_name: fullName.trim(),
-      dob,
+      user_name: userName.trim(),
       gender: gender as Gender,
       phone: phone.trim() || undefined,
+      avatar: avatar.trim() || undefined,
     });
 
     if (success) {
       Alert.alert("Thành công", "Cập nhật thông tin hồ sơ thành công.");
       setIsEditing(false);
+      setLocalAvatarUri(null);
     } else {
       Alert.alert("Thất bại", error || "Cập nhật thông tin hồ sơ thất bại.");
     }
@@ -159,37 +152,12 @@ export default function PersonalInfoScreen() {
     return (first + last).toUpperCase();
   };
 
-  /** Format ngày sinh từ YYYY-MM-DD sang dd/MM/yyyy */
-  const formatDob = (dobString?: string) => {
-    if (!dobString) return "—";
-    try {
-      const parts = dobString.split("-");
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      const date = new Date(dobString);
-      const dd = String(date.getDate()).padStart(2, "0");
-      const mm = String(date.getMonth() + 1).padStart(2, "0");
-      const yyyy = date.getFullYear();
-      return `${dd}/${mm}/${yyyy}`;
-    } catch {
-      return dobString;
-    }
-  };
-
   /** Map gender sang tiếng Việt */
   const formatGender = (genderVal?: string) => {
     if (!genderVal) return "—";
     if (genderVal === "MALE") return "Nam";
     if (genderVal === "FEMALE") return "Nữ";
     return genderVal;
-  };
-
-  /** Tạo mã BN từ user id (lấy 6 số cuối hoặc fallback) */
-  const getPatientCode = (id?: string) => {
-    if (!id) return "—";
-    const numericPart = id.replace(/\D/g, "").slice(-7);
-    return numericPart ? `BN${numericPart.padStart(6, "0")}` : `BN${id.slice(0, 6)}`;
   };
 
   // Trạng thái đang tải lần đầu và chưa có dữ liệu hiển thị
@@ -256,64 +224,67 @@ export default function PersonalInfoScreen() {
             </View>
 
             {/* Title */}
-            <Text className="text-white text-[22px] font-extrabold tracking-tight mb-5">
+            <Text className="text-white text-[22px] font-extrabold tracking-tight mb-5 text-center">
               {isEditing ? "Chỉnh sửa thông tin" : "Thông tin cá nhân"}
             </Text>
 
             {/* ── Profile summary card ── */}
-            <View className="bg-white/15 rounded-[20px] px-5 py-4">
-              <View className="flex-row items-center gap-4">
-                {/* Avatar */}
-                <View className="bg-white w-[60px] h-[60px] rounded-2xl items-center justify-center">
-                  <Text className="text-primary text-[22px] font-bold">
-                    {getInitials(user?.full_name)}
-                  </Text>
-                </View>
-
-                {/* Name + badge + ID */}
-                <View className="flex-1">
-                  <Text className="text-white text-[18px] font-bold">
-                    {user?.full_name ?? "Bệnh nhân"}
-                  </Text>
-                  <View className="flex-row items-center gap-2 mt-1.5">
-                    <View className="bg-white/25 rounded-full px-2.5 py-0.5">
-                      <Text className="text-white text-[10px] font-semibold">
-                        Bệnh nhân
+            <View className="items-center py-2">
+              {isEditing ? (
+                <Pressable
+                  onPress={handlePickAvatar}
+                  disabled={isUploadingAvatar}
+                  className="items-center"
+                >
+                  <View className="bg-white w-[90px] h-[90px] rounded-full items-center justify-center overflow-hidden shadow-sm relative">
+                    {/* Render local preview if exists, otherwise current avatar URL, otherwise initials */}
+                    {localAvatarUri ? (
+                      <Image
+                        source={{ uri: localAvatarUri }}
+                        style={{ width: 90, height: 90 }}
+                        contentFit="cover"
+                        onError={(e) => console.error("[PersonalInfoScreen] Edit mode preview local localAvatarUri load error:", e.error)}
+                      />
+                    ) : avatar ? (
+                      <Image
+                        source={{ uri: avatar }}
+                        style={{ width: 90, height: 90 }}
+                        contentFit="cover"
+                        onError={(e) => console.error("[PersonalInfoScreen] Edit mode preview avatar load error:", e.error)}
+                      />
+                    ) : (
+                      <Text className="text-primary text-[28px] font-bold">
+                        {getInitials(userName)}
                       </Text>
-                    </View>
-                    <Text className="text-white/70 text-[11px] font-medium">
-                      ID: {getPatientCode(user?.id)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+                    )}
 
-              {/* Phone + Email row */}
-              <View className="flex-row items-center mt-4 pt-3 border-t border-white/15">
-                <View className="flex-1 flex-row items-center gap-1.5">
-                  <SymbolView
-                    name={{ ios: "phone", android: "phone" }}
-                    size={13}
-                    tintColor="rgba(255,255,255,0.7)"
-                  />
-                  <Text className="text-white/80 text-[12px] font-medium">
-                    {user?.phone ?? "—"}
+                    {/* Loading overlay khi đang upload */}
+                    {isUploadingAvatar && (
+                      <View className="absolute inset-0 bg-black/40 items-center justify-center">
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      </View>
+                    )}
+                  </View>
+                  <Text className="text-white/80 text-[11px] font-semibold mt-2.5 flex-row items-center gap-1 active:opacity-75">
+                    📷 Chạm để thay ảnh đại diện
                   </Text>
+                </Pressable>
+              ) : (
+                <View className="bg-white w-[90px] h-[90px] rounded-full items-center justify-center overflow-hidden shadow-sm">
+                  {user?.avatar ? (
+                    <Image
+                      source={{ uri: user.avatar }}
+                      style={{ width: 90, height: 90 }}
+                      contentFit="cover"
+                      onError={(e) => console.error("[PersonalInfoScreen] View mode user.avatar load error:", e.error)}
+                    />
+                  ) : (
+                    <Text className="text-primary text-[28px] font-bold">
+                      {getInitials(user?.full_name)}
+                    </Text>
+                  )}
                 </View>
-                <View className="flex-1 flex-row items-center gap-1.5 justify-end">
-                  <SymbolView
-                    name={{ ios: "envelope", android: "mail" }}
-                    size={13}
-                    tintColor="rgba(255,255,255,0.7)"
-                  />
-                  <Text
-                    className="text-white/80 text-[12px] font-medium"
-                    numberOfLines={1}
-                  >
-                    {user?.email ?? "—"}
-                  </Text>
-                </View>
-              </View>
+              )}
             </View>
           </View>
 
@@ -332,62 +303,24 @@ export default function PersonalInfoScreen() {
                   </View>
                 ) : null}
 
-                {/* Họ và tên input */}
+                {/* Tên người dùng input */}
                 <View>
                   <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
-                    Họ và tên
+                    Tên người dùng
                   </Text>
                   <AppInput
-                    placeholder="Họ và tên của bạn"
-                    value={fullName}
+                    placeholder="Tên người dùng của bạn"
+                    value={userName}
                     onChangeText={(text) => {
-                      setFullName(text);
+                      setUserName(text);
                       if (error) clearError();
                     }}
                     autoCapitalize="words"
                   />
                 </View>
 
-                {/* Ngày sinh input */}
-                <View className="mb-2">
-                  <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
-                    Ngày sinh
-                  </Text>
-                  <Pressable
-                    className="flex-row items-center bg-white border border-neutral-200 rounded-xl px-4 h-[52px] active:opacity-75"
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Text className={dob ? "flex-1 text-sm text-gray-800" : "flex-1 text-sm text-neutral-400"}>
-                      {dob ? toDisplayDate(pickerDate) : "Chọn ngày sinh"}
-                    </Text>
-                    <Text className="text-base text-neutral-400">📅</Text>
-                  </Pressable>
-
-                  {showDatePicker && (
-                    <View>
-                      <DateTimePicker
-                        value={pickerDate}
-                        mode="date"
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
-                        maximumDate={new Date()}
-                        minimumDate={new Date(1900, 0, 1)}
-                        onChange={onDateChange}
-                        locale="vi"
-                      />
-                      {Platform.OS === "ios" && (
-                        <Pressable
-                          className="self-end px-5 py-2 mt-1 mb-2 active:opacity-70"
-                          onPress={() => setShowDatePicker(false)}
-                        >
-                          <Text className="text-primary font-semibold text-base">Chọn</Text>
-                        </Pressable>
-                      )}
-                    </View>
-                  )}
-                </View>
-
                 {/* Giới tính input */}
-                <View className="mb-3">
+                <View className="mb-1">
                   <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
                     Giới tính
                   </Text>
@@ -445,44 +378,27 @@ export default function PersonalInfoScreen() {
                 <AppButton
                   title="Lưu thay đổi"
                   variant="primary"
-                  isLoading={isUpdating}
+                  isLoading={isUpdating || isUploadingAvatar}
+                  disabled={isUploadingAvatar}
                   onPress={handleSaveProfile}
                 />
               </View>
             ) : (
               // ── Giao diện Xem thông tin (Nguyên bản Figma) ──
               <View>
-                {/* Họ và tên */}
+                {/* Tên người dùng */}
                 <DetailField
                   iconName={{ ios: "person", android: "person" }}
-                  label="Họ và tên"
+                  label="Tên người dùng"
                   value={user?.full_name ?? "—"}
                 />
 
-                {/* Ngày sinh + Giới tính (2 cột) */}
-                <View className="flex-row gap-3 mt-3">
-                  <View className="flex-1">
-                    <DetailField
-                      iconName={{ ios: "calendar", android: "calendar_today" }}
-                      label="Ngày sinh"
-                      value={formatDob(user?.dob)}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <DetailField
-                      iconName={{ ios: "person.2", android: "group" }}
-                      label="Giới tính"
-                      value={formatGender(user?.gender)}
-                    />
-                  </View>
-                </View>
-
-                {/* CCCD/CMND */}
+                {/* Giới tính */}
                 <View className="mt-3">
                   <DetailField
-                    iconName={{ ios: "creditcard", android: "badge" }}
-                    label="CCCD/CMND"
-                    value={user?.citizen_id ?? "—"}
+                    iconName={{ ios: "person.2", android: "group" }}
+                    label="Giới tính"
+                    value={formatGender(user?.gender)}
                   />
                 </View>
 
@@ -491,7 +407,7 @@ export default function PersonalInfoScreen() {
                   <DetailField
                     iconName={{ ios: "phone", android: "phone" }}
                     label="Số điện thoại"
-                    value={user?.phone ?? "—"}
+                    value={user?.phone || "—"}
                   />
                 </View>
 
@@ -500,7 +416,7 @@ export default function PersonalInfoScreen() {
                   <DetailField
                     iconName={{ ios: "envelope", android: "mail" }}
                     label="Email"
-                    value={user?.email ?? "—"}
+                    value={user?.email || "—"}
                   />
                 </View>
               </View>

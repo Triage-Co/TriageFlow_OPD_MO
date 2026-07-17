@@ -4,7 +4,8 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View, Image } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Image } from "expo-image";
 
 /**
  * Profile screen – Hồ sơ bệnh nhân
@@ -61,8 +62,8 @@ export default function ProfileScreen() {
               {user?.avatar ? (
                 <Image
                   source={{ uri: user.avatar }}
-                  style={{ width: "100%", height: "100%" }}
-                  resizeMode="cover"
+                  style={{ width: 64, height: 64 }}
+                  contentFit="cover"
                 />
               ) : (
                 <Text className="text-white text-xl font-bold">
@@ -83,7 +84,7 @@ export default function ProfileScreen() {
                   tintColor="#9CA3AF"
                 />
                 <Text className="text-gray-500 text-xs font-medium">
-                  {user?.phone ?? "0912 345 678"}
+                  {user?.phone || "—"}
                 </Text>
               </View>
               {/* Email */}
@@ -94,7 +95,7 @@ export default function ProfileScreen() {
                   tintColor="#9CA3AF"
                 />
                 <Text className="text-gray-500 text-xs font-medium">
-                  {user?.email ?? "nguyenvanan@email.com"}
+                  {user?.email || "—"}
                 </Text>
               </View>
             </View>

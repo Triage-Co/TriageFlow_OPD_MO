@@ -1,4 +1,5 @@
-import { ScrollView, View, Text, Pressable, Image, Modal, ActivityIndicator, Alert, FlatList } from "react-native";
+import { ScrollView, View, Text, Pressable, Modal, ActivityIndicator, Alert, FlatList } from "react-native";
+import { Image } from "expo-image";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
@@ -16,6 +17,15 @@ import { AppButton } from "@/shared/components/AppButton";
 export default function HomeScreen() {
   const { user } = useAuthContext();
   const router = useRouter();
+
+  const getInitials = (name?: string) => {
+    if (!name) return "BN";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    const first = parts[0].charAt(0);
+    const last = parts[parts.length - 1].charAt(0);
+    return (first + last).toUpperCase();
+  };
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
@@ -91,13 +101,17 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between">
             {/* Trái: Avatar và lời chào */}
             <View className="flex-row items-center gap-3">
-              <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center">
-                <Text className="text-2xl">👤</Text>
+              <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center overflow-hidden">
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={{ width: 48, height: 48 }} contentFit="cover" />
+                ) : (
+                  <Text className="text-white text-base font-bold">{getInitials(user?.full_name)}</Text>
+                )}
               </View>
               <View>
                 <Text className="text-white/80 text-xs font-medium">Xin chào,</Text>
                 <Text className="text-white text-lg font-bold mt-0.5">
-                  {user?.full_name ?? "Nguyễn Thị Lan"}
+                  {user?.full_name ?? "Bệnh nhân"}
                 </Text>
               </View>
             </View>

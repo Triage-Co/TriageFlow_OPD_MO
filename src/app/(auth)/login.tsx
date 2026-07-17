@@ -20,32 +20,18 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { login, isLoading, error, clearError } = useLogin();
 
-  const [activeTab, setActiveTab] = useState<"email" | "citizen">("email");
   const [email, setEmail] = useState("");
-  const [citizenId, setCitizenId] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    if (activeTab === "email") {
-      if (!email.trim() || !password.trim()) {
-        Alert.alert("Thông báo", "Vui lòng nhập đầy đủ thông tin.");
-        return;
-      }
-      clearError();
-      const success = await login({ email: email.trim(), password });
-      if (success) {
-        router.replace("/(patient)/(tabs)/home");
-      }
-    } else {
-      if (!citizenId.trim() || !password.trim()) {
-        Alert.alert("Thông báo", "Vui lòng nhập đầy đủ thông tin.");
-        return;
-      }
-      clearError();
-      const success = await login({ citizen_id: citizenId.trim(), password });
-      if (success) {
-        router.replace("/(patient)/(tabs)/home");
-      }
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Thông báo", "Vui lòng nhập đầy đủ thông tin.");
+      return;
+    }
+    clearError();
+    const success = await login({ email: email.trim(), password });
+    if (success) {
+      router.replace("/(patient)/(tabs)/home");
     }
   };
 
@@ -87,76 +73,17 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            {/* Tab Selector */}
-            <View className="flex-row gap-3 mb-[18px]">
-              <Pressable
-                className={
-                  activeTab === "email"
-                    ? "flex-1 h-12 rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
-                    : "flex-1 h-12 rounded-xl border border-neutral-200 bg-neutral-100 items-center justify-center active:opacity-90"
-                }
-                onPress={() => {
-                  setActiveTab("email");
-                  if (error) clearError();
-                }}
-              >
-                <Text
-                  className={
-                    activeTab === "email"
-                      ? "text-primary text-[14px] font-bold"
-                      : "text-neutral-700 text-[14px] font-medium opacity-60"
-                  }
-                >
-                  Email
-                </Text>
-              </Pressable>
-              <Pressable
-                className={
-                  activeTab === "citizen"
-                    ? "flex-1 h-12 rounded-xl border border-primary bg-primary/10 items-center justify-center active:opacity-90"
-                    : "flex-1 h-12 rounded-xl border border-neutral-200 bg-neutral-100 items-center justify-center active:opacity-90"
-                }
-                onPress={() => {
-                  setActiveTab("citizen");
-                  if (error) clearError();
-                }}
-              >
-                <Text
-                  className={
-                    activeTab === "citizen"
-                      ? "text-primary text-[14px] font-bold"
-                      : "text-neutral-700 text-[14px] font-medium opacity-60"
-                  }
-                >
-                  Số CCCD
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Inputs dựa trên activeTab */}
-            {activeTab === "email" ? (
-              <AppInput
-                placeholder="Email của bạn"
-                value={email}
-                onChangeText={(v) => {
-                  setEmail(v);
-                  if (error) clearError();
-                }}
-                keyboardType="email-address"
-                autoComplete="email"
-                autoCapitalize="none"
-              />
-            ) : (
-              <AppInput
-                placeholder="Số CMND/CCCD"
-                value={citizenId}
-                onChangeText={(v) => {
-                  setCitizenId(v);
-                  if (error) clearError();
-                }}
-                keyboardType="numeric"
-              />
-            )}
+            <AppInput
+              placeholder="Email của bạn"
+              value={email}
+              onChangeText={(v) => {
+                setEmail(v);
+                if (error) clearError();
+              }}
+              keyboardType="email-address"
+              autoComplete="email"
+              autoCapitalize="none"
+            />
 
             <AppInput
               placeholder="Mật khẩu"

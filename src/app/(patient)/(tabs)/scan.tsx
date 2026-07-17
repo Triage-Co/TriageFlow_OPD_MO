@@ -5,11 +5,11 @@ import {
   Pressable,
   ActivityIndicator,
   Dimensions,
-  Image,
   Alert,
   StyleSheet,
   ScrollView,
 } from "react-native";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -352,8 +352,8 @@ export default function ScanScreen() {
                         {user?.avatar ? (
                           <Image
                             source={{ uri: user.avatar }}
-                            style={{ width: "100%", height: "100%" }}
-                            resizeMode="cover"
+                            style={{ width: 56, height: 56 }}
+                            contentFit="cover"
                           />
                         ) : (
                           <Text className="text-primary text-[18px] font-bold">

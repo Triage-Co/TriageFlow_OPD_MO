@@ -6,21 +6,23 @@ export type UserProfileResponse = {
   message: string;
   data: {
     account_id: string;
+    avatar: string | null;
     user_name: string;
     email: string;
     role: string;
     gender: Gender;
     phone: string | null;
+    is_banned: boolean;
     createdAt: string;
     updatedAt: string;
   };
 };
 
 export type UpdateProfileRequest = {
-  full_name?: string;
-  dob: string;
-  gender: Gender;
+  user_name?: string;
+  gender?: Gender;
   phone?: string;
+  avatar?: string;
 };
 
 export type UpdateProfileResponse = {
