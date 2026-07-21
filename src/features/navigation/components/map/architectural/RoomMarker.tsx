@@ -1,7 +1,6 @@
 import React, { useRef } from "react";
 import { useFrame } from "@react-three/fiber/native";
 import { useSpring, animated } from "@react-spring/three";
-import { useNavigationStore } from "../../../store/useNavigationStore";
 import { useTexture } from "@react-three/drei/native";
 import * as THREE from "three";
 
@@ -12,9 +11,6 @@ interface RoomMarkerProps {
   isActive: boolean;
 }
 
-/**
- * Unicode map matching emojis to Twemoji asset CDN names.
- */
 const EMOJI_UNICODE_MAP: Record<string, string> = {
   "👃": "1f443",
   "👂": "1f442",
@@ -58,15 +54,12 @@ export function RoomMarker({
   pinIcon,
   isActive
 }: RoomMarkerProps) {
-  const viewMode = useNavigationStore((state) => state.viewMode);
   const meshRef = useRef<THREE.Group>(null);
 
-  // Dynamic Twemoji resolution
   const unicode = getEmojiUnicode(pinIcon);
   const textureUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${unicode}.png`;
   const texture = useTexture(textureUrl) as THREE.Texture;
 
-  // Float animation & rotation
   useFrame((state) => {
     if (meshRef.current) {
       const t = state.clock.getElapsedTime();
@@ -75,11 +68,8 @@ export function RoomMarker({
     }
   });
 
-  const is2D = viewMode === "2D";
-  const targetScale = is2D ? 0.001 : 0.65;
-
   const { scale } = useSpring({
-    scale: targetScale,
+    scale: 0.65,
     config: { mass: 1, tension: 210, friction: 20 }
   });
 

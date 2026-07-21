@@ -8,7 +8,6 @@ import { FloorRenderer } from "./FloorRenderer";
 import { useBuildingMap } from "../../hooks/useBuildingMap";
 
 function CameraController() {
-  const { viewMode } = useNavigationStore();
   const { camera, controls } = useThree();
 
   const lastValidPosition = useRef(new THREE.Vector3());
@@ -22,17 +21,10 @@ function CameraController() {
       ctrl.reset();
     }
 
-    if (viewMode === "2D") {
-      // 2D orthographic-like top down perspective
-      camera.position.set(0, 85, 0.1);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(0, 0, 0);
-    } else {
-      // 3D angled perspective
-      camera.position.set(0, 45, 65);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(0, 0, 0);
-    }
+    // 3D angled perspective
+    camera.position.set(0, 45, 65);
+    camera.up.set(0, 1, 0);
+    camera.lookAt(0, 0, 0);
 
     if (ctrl) {
       ctrl.update();
@@ -40,7 +32,7 @@ function CameraController() {
     }
     lastValidPosition.current.copy(camera.position);
     isInitialized.current = true;
-  }, [viewMode, camera, controls]);
+  }, [camera, controls]);
 
   useFrame(() => {
     if (!isInitialized.current) return;
@@ -48,7 +40,6 @@ function CameraController() {
     const ctrl = controls as any;
     const p = camera.position;
 
-    // Safety guard to avoid NaN/Infinity coordinates crash
     const isPosValid =
       !isNaN(p.x) && !isNaN(p.y) && !isNaN(p.z) && isFinite(p.x) && isFinite(p.y) && isFinite(p.z);
 
@@ -77,7 +68,7 @@ function CameraController() {
 }
 
 export function MapViewer() {
-  const { activeFloor, viewMode } = useNavigationStore();
+  const { activeFloor } = useNavigationStore();
   const { data, loading, error } = useBuildingMap(activeFloor);
 
   if (loading && !data) {
@@ -111,9 +102,8 @@ export function MapViewer() {
             castShadow
           />
 
-          <group position={[0, -activeFloor * 8, 0]}>
-            {/* Renders the dynamic floor levels */}
-            <FloorRenderer floorLevel={1} activeFloor={activeFloor} />
+          <group position={[0, 0, 0]}>
+            <FloorRenderer floorLevel={activeFloor} activeFloor={activeFloor} />
           </group>
 
           <CameraController />
@@ -122,8 +112,8 @@ export function MapViewer() {
         <OrbitControls
           makeDefault
           minPolarAngle={0}
-          maxPolarAngle={viewMode === "2D" ? 0.01 : Math.PI / 2.1}
-          enableRotate={viewMode === "3D"}
+          maxPolarAngle={Math.PI / 2.1}
+          enableRotate={true}
           enableZoom={true}
           enablePan={true}
           maxDistance={120}
@@ -135,12 +125,6 @@ export function MapViewer() {
           dampingFactor={0.15}
         />
       </Canvas>
-
-      {/* Floor Indicator Overlay */}
-      <View style={styles.floorIndicator}>
-        <View style={styles.pulseDot} />
-        <Text style={styles.floorText}>Tầng {activeFloor}</Text>
-      </View>
     </View>
   );
 }
@@ -171,34 +155,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
-  },
-  floorIndicator: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    zIndex: 10,
-  },
-  pulseDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#3B82F6",
-    marginRight: 8,
-  },
-  floorText: {
-    fontWeight: "700",
-    color: "#1E293B",
-    fontSize: 13,
   },
 });

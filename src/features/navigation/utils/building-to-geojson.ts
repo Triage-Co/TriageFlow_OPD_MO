@@ -1,67 +1,128 @@
-import { ApiFloor, ApiRoom, GeoJSONFeature, GeoJSONFeatureCollection } from "../types/map.types";
+import {
+  ApiFloor,
+  ApiRoom,
+  ApiBoundary,
+  FloorData3D,
+  RoomData3D,
+  WallSegment,
+  ClinicPartitionSegment,
+  StandaloneDoorData,
+  GeoJSONFeatureCollection,
+} from "../types/map.types";
 
-const DEG_TO_METER_X = 111000; // Longitude to meters at target latitude
-const DEG_TO_METER_Z = 111111; // Latitude to meters
+const DEG_TO_METER_X = 111320;
+const DEG_TO_METER_Z = 110540;
 
-/**
- * Maps specialty names or keywords to specific emojis
- */
+export const CLINIC_COLORS: Record<string, string> = {
+  OPH: "#ef476f",
+  SUR: "#1c6ef3",
+  ORTH: "#e85d04",
+  Default: "#64748b",
+};
+
 function getRoomIcon(label: string): string {
-  const lowercaseLabel = label.toLowerCase();
-  if (lowercaseLabel.includes("tim mạch")) return "❤️";
-  if (lowercaseLabel.includes("tiêu hóa")) return "🤢";
-  if (lowercaseLabel.includes("thần kinh")) return "🧠";
-  if (lowercaseLabel.includes("nhi")) return "👶";
-  if (lowercaseLabel.includes("mắt")) return "👁️";
-  if (lowercaseLabel.includes("tai mũi họng") || lowercaseLabel.includes("họng")) return "👂";
-  if (lowercaseLabel.includes("chấn thương") || lowercaseLabel.includes("ngoại")) return "🩹";
-  if (lowercaseLabel.includes("phế quản") || lowercaseLabel.includes("hô hấp")) return "🫁";
+  const l = label.toLowerCase();
+  if (l.includes("tim mạch")) return "❤️";
+  if (l.includes("tiêu hóa")) return "🤢";
+  if (l.includes("thần kinh")) return "🧠";
+  if (l.includes("nhi")) return "👶";
+  if (l.includes("mắt")) return "👁️";
+  if (l.includes("tai mũi họng") || l.includes("họng")) return "👂";
+  if (l.includes("chấn thương") || l.includes("ngoại")) return "🩹";
+  if (l.includes("phế quản") || l.includes("hô hấp")) return "🫁";
+  if (l.includes("da liễu")) return "🩺";
+  if (l.includes("răng") || l.includes("hàm")) return "🦷";
+  if (l.includes("phụ khoa") || l.includes("thai")) return "🤰";
+  if (l.includes("tiêm chủng")) return "💉";
+  if (l.includes("tiếp nhận")) return "🏥";
   return "🏥";
 }
 
-/**
- * Maps room properties to specific colors
- */
 function getRoomColor(type: string): string {
   switch (type) {
     case "CONSULTATION":
-      return "#ffffff";
+      return "#e0f2fe";
     case "WAITING":
-      return "#f0fdf4"; // soft green
+      return "#f0fdf4";
     case "RESTROOM":
-      return "#fef2f2"; // soft red
+      return "#fef2f2";
     default:
-      return "#ffffff";
+      return "#f1f5f9";
   }
 }
 
-/**
- * Maps room properties to specific pin colors
- */
-function getRoomPinColor(label: string): string {
-  const lowercaseLabel = label.toLowerCase();
-  if (lowercaseLabel.includes("tim mạch")) return "#ef4444"; // red
-  if (lowercaseLabel.includes("nhi")) return "#eab308"; // yellow
-  if (lowercaseLabel.includes("thần kinh")) return "#a855f7"; // purple
-  return "#3b82f6"; // primary blue
+function boundaryToWallSegment(
+  boundary: ApiBoundary,
+  centerShiftX: number,
+  centerShiftZ: number
+): WallSegment | null {
+  if (
+    !boundary.lineGeom ||
+    !boundary.lineGeom.coordinates ||
+    boundary.lineGeom.coordinates.length < 2
+  ) {
+    return null;
+  }
+
+  const coords = boundary.lineGeom.coordinates;
+  const startX = coords[0][0] * DEG_TO_METER_X - centerShiftX;
+  const startZ = -(coords[0][1] * DEG_TO_METER_Z) - centerShiftZ;
+  const endX = coords[1][0] * DEG_TO_METER_X - centerShiftX;
+  const endZ = -(coords[1][1] * DEG_TO_METER_Z) - centerShiftZ;
+
+  const dx = endX - startX;
+  const dz = endZ - startZ;
+  const length = Math.sqrt(dx * dx + dz * dz);
+  const angle = Math.atan2(dz, dx);
+
+  return {
+    startX,
+    startZ,
+    endX,
+    endZ,
+    boundaryType: boundary.boundaryType,
+    length,
+    angle,
+    centerX: (startX + endX) / 2,
+    centerZ: (startZ + endZ) / 2,
+  };
 }
 
-/**
- * Transforms backend API floor data into the custom GeoJSON representation for the 3D renderer.
- */
-export function buildingMapToGeoJSON(floor: ApiFloor): GeoJSONFeatureCollection {
-  const features: GeoJSONFeature[] = [];
+function distToSegment(
+  px: number,
+  pz: number,
+  x1: number,
+  z1: number,
+  x2: number,
+  z2: number
+): number {
+  const dx = x2 - x1;
+  const dz = z2 - z1;
+  const lenSq = dx * dx + dz * dz;
+  if (lenSq === 0) return Math.sqrt((px - x1) ** 2 + (pz - z1) ** 2);
+  let t = ((px - x1) * dx + (pz - z1) * dz) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projX = x1 + t * dx;
+  const projZ = z1 + t * dz;
+  return Math.sqrt((px - projX) ** 2 + (pz - projZ) ** 2);
+}
 
-  // Width and height in meters of the floor
-  const floorWidth = floor.widthMeters || 120;
-  const floorHeight = floor.heightMeters || 80;
+export function floorToRoomData(floor: ApiFloor): FloorData3D {
+  const rawRooms: {
+    room: ApiRoom;
+    points: { x: number; z: number }[];
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+  }[] = [];
 
-  // The center offsets to align coordinate origin at [0, 0] in Three.js
-  const offsetX = floorWidth / 2;
-  const offsetZ = floorHeight / 2;
+  let globalMinX = Infinity;
+  let globalMaxX = -Infinity;
+  let globalMinZ = Infinity;
+  let globalMaxZ = -Infinity;
 
-  floor.rooms.forEach((room: ApiRoom) => {
-    // 1. Extract outline polygon coordinates
+  floor.rooms.forEach((room) => {
     if (
       !room.outlineGeom ||
       !room.outlineGeom.coordinates ||
@@ -71,83 +132,187 @@ export function buildingMapToGeoJSON(floor: ApiFloor): GeoJSONFeatureCollection 
     }
 
     const polygon = room.outlineGeom.coordinates[0];
-    const xValues = polygon.map(coord => coord[0] * DEG_TO_METER_X);
-    const zValues = polygon.map(coord => coord[1] * DEG_TO_METER_Z);
+    const points = polygon.map(([lng, lat]) => ({
+      x: lng * DEG_TO_METER_X,
+      z: -(lat * DEG_TO_METER_Z),
+    }));
+
+    const xValues = points.map((p) => p.x);
+    const zValues = points.map((p) => p.z);
 
     const minX = Math.min(...xValues);
     const maxX = Math.max(...xValues);
     const minZ = Math.min(...zValues);
     const maxZ = Math.max(...zValues);
 
-    const width = maxX - minX;
-    const depth = maxZ - minZ;
+    if (minX < globalMinX) globalMinX = minX;
+    if (maxX > globalMaxX) globalMaxX = maxX;
+    if (minZ < globalMinZ) globalMinZ = minZ;
+    if (maxZ > globalMaxZ) globalMaxZ = maxZ;
 
-    // Center coordinates in degree-based meters
-    const centerX = (minX + maxX) / 2;
-    const centerZ = (minZ + maxZ) / 2;
-
-    // Center relative to floor slab center
-    const sceneX = centerX - offsetX;
-    const sceneZ = centerZ - offsetZ;
-
-    // 2. Determine door position & offset
-    let doorPosition: 'top' | 'bottom' | 'left' | 'right' = 'bottom';
-    let doorOffset = 0;
-
-    const doorBoundary = room.boundaries.find(b => b.boundaryType === "DOOR");
-    if (
-      doorBoundary &&
-      doorBoundary.lineGeom &&
-      doorBoundary.lineGeom.coordinates &&
-      doorBoundary.lineGeom.coordinates.length >= 2
-    ) {
-      const doorCoords = doorBoundary.lineGeom.coordinates;
-      const doorX = ((doorCoords[0][0] + doorCoords[1][0]) / 2) * DEG_TO_METER_X;
-      const doorZ = ((doorCoords[0][1] + doorCoords[1][1]) / 2) * DEG_TO_METER_Z;
-
-      const distTop = Math.abs(doorZ - minZ);
-      const distBottom = Math.abs(doorZ - maxZ);
-      const distLeft = Math.abs(doorX - minX);
-      const distRight = Math.abs(doorX - maxX);
-
-      const minDist = Math.min(distTop, distBottom, distLeft, distRight);
-      if (minDist === distTop) {
-        doorPosition = 'top';
-        doorOffset = doorX - centerX;
-      } else if (minDist === distBottom) {
-        doorPosition = 'bottom';
-        doorOffset = doorX - centerX;
-      } else if (minDist === distLeft) {
-        doorPosition = 'left';
-        doorOffset = doorZ - centerZ;
-      } else {
-        doorPosition = 'right';
-        doorOffset = doorZ - centerZ;
-      }
-    }
-
-    // 3. Create the GeoJSON Feature
-    features.push({
-      type: 'Feature',
-      id: room.id,
-      properties: {
-        id: room.id,
-        label: room.roomLabel,
-        type: 'room',
-        position: [sceneX, 0, sceneZ],
-        size: [width, depth],
-        doorPosition,
-        doorOffset,
-        color: getRoomColor(room.type),
-        pinColor: getRoomPinColor(room.roomLabel),
-        pinIcon: getRoomIcon(room.roomLabel),
-        floor: floor.floorNumber
-      }
-    });
+    rawRooms.push({ room, points, minX, maxX, minZ, maxZ });
   });
 
+  if (globalMinX === Infinity) {
+    globalMinX = 0;
+    globalMaxX = floor.widthMeters || 120;
+    globalMinZ = 0;
+    globalMaxZ = floor.heightMeters || 80;
+  }
+
+  const centerShiftX = (globalMinX + globalMaxX) / 2;
+  const centerShiftZ = (globalMinZ + globalMaxZ) / 2;
+
+  // 1. Convert Floor Outline Polygon
+  const floorOutlinePoints: { x: number; z: number }[] = [];
+  if (floor.outlineGeom && floor.outlineGeom.coordinates && floor.outlineGeom.coordinates.length > 0) {
+    floor.outlineGeom.coordinates[0].forEach(([lng, lat]) => {
+      floorOutlinePoints.push({
+        x: lng * DEG_TO_METER_X - centerShiftX,
+        z: -(lat * DEG_TO_METER_Z) - centerShiftZ,
+      });
+    });
+  }
+
+  // 2. Convert Rooms
+  const rooms: RoomData3D[] = rawRooms.map(({ room, points, minX, maxX, minZ, maxZ }) => {
+    const centeredPoints = points.map((p) => ({
+      x: p.x - centerShiftX,
+      z: p.z - centerShiftZ,
+    }));
+
+    const width = maxX - minX;
+    const depth = maxZ - minZ;
+    const centerX = (minX + maxX) / 2 - centerShiftX;
+    const centerZ = (minZ + maxZ) / 2 - centerShiftZ;
+
+    const walls: WallSegment[] = [];
+    if (room.boundaries && room.boundaries.length > 0) {
+      room.boundaries.forEach((b) => {
+        const seg = boundaryToWallSegment(b, centerShiftX, centerShiftZ);
+        if (seg) walls.push(seg);
+      });
+    }
+
+    return {
+      id: room.id,
+      roomCode: room.roomCode,
+      roomLabel: room.roomLabel,
+      type: room.type,
+      clinicId: room.clinicId ?? null,
+      points: centeredPoints,
+      walls,
+      centerX,
+      centerZ,
+      width,
+      depth,
+      height: 2.5,
+      color: getRoomColor(room.type),
+      pinColor: "#155DFC",
+      pinIcon: getRoomIcon(room.roomLabel),
+    };
+  });
+
+  // 3. Convert Clinic Partitions
+  const clinicPartitions: ClinicPartitionSegment[] = [];
+  if (floor.clinics) {
+    floor.clinics.forEach((clinic) => {
+      const color = CLINIC_COLORS[clinic.clinicCode] || CLINIC_COLORS.Default;
+      if (clinic.boundaries) {
+        clinic.boundaries.forEach((b) => {
+          if (b.lineGeom && b.lineGeom.coordinates && b.lineGeom.coordinates.length >= 2) {
+            const coords = b.lineGeom.coordinates;
+            const startX = coords[0][0] * DEG_TO_METER_X - centerShiftX;
+            const startZ = -(coords[0][1] * DEG_TO_METER_Z) - centerShiftZ;
+            const endX = coords[1][0] * DEG_TO_METER_X - centerShiftX;
+            const endZ = -(coords[1][1] * DEG_TO_METER_Z) - centerShiftZ;
+
+            const dx = endX - startX;
+            const dz = endZ - startZ;
+            const length = Math.sqrt(dx * dx + dz * dz);
+            const angle = Math.atan2(dz, dx);
+
+            clinicPartitions.push({
+              clinicId: clinic.id,
+              clinicCode: clinic.clinicCode,
+              clinicLabel: clinic.clinicLabel,
+              color,
+              startX,
+              startZ,
+              endX,
+              endZ,
+              length,
+              angle,
+              centerX: (startX + endX) / 2,
+              centerZ: (startZ + endZ) / 2,
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // 4. Convert Standalone Doors (roomAId === null or in floor.doors)
+  const standaloneDoors: StandaloneDoorData[] = [];
+  if (floor.doors) {
+    floor.doors.forEach((door) => {
+      if (door.roomAId === null && door.positionGeom && door.positionGeom.coordinates) {
+        const ptX = door.positionGeom.coordinates[0] * DEG_TO_METER_X - centerShiftX;
+        const ptZ = -(door.positionGeom.coordinates[1] * DEG_TO_METER_Z) - centerShiftZ;
+
+        let angle = Math.PI / 2;
+        let minDist = Infinity;
+
+        rooms.forEach((r) => {
+          r.walls.forEach((w) => {
+            const d = distToSegment(ptX, ptZ, w.startX, w.startZ, w.endX, w.endZ);
+            if (d < minDist) {
+              minDist = d;
+              angle = w.angle;
+            }
+          });
+        });
+
+        clinicPartitions.forEach((cp) => {
+          const d = distToSegment(ptX, ptZ, cp.startX, cp.startZ, cp.endX, cp.endZ);
+          if (d < minDist) {
+            minDist = d;
+            angle = cp.angle;
+          }
+        });
+
+        standaloneDoors.push({
+          id: door.id,
+          centerX: ptX,
+          centerZ: ptZ,
+          width: 1.5,
+          angle,
+        });
+      }
+    });
+  }
+
   return {
-    type: 'FeatureCollection',
-    features
+    rooms,
+    clinicPartitions,
+    standaloneDoors,
+    floorOutlinePoints,
+    floorWidth: globalMaxX - globalMinX,
+    floorHeight: globalMaxZ - globalMinZ,
+    bounds: {
+      minX: globalMinX - centerShiftX,
+      maxX: globalMaxX - centerShiftX,
+      minZ: globalMinZ - centerShiftZ,
+      maxZ: globalMaxZ - centerShiftZ,
+    },
+  };
+}
+
+export function buildingMapToGeoJSON(floor: ApiFloor): GeoJSONFeatureCollection {
+  const floorData3D = floorToRoomData(floor);
+  return {
+    type: "FeatureCollection",
+    features: [],
+    floorData3D,
   };
 }

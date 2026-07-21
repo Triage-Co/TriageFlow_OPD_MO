@@ -1,7 +1,7 @@
 import apiClient from "@/shared/services/api-client";
 import { BuildingMapResponse, BuildingMapData } from "../types/map.types";
 
-export const HARDCODED_BUILDING_ID = "17854b86-79d1-4c60-b776-784742c2597e";
+export const HARDCODED_BUILDING_ID = "00b03ef8-7702-4b08-a07e-ec887432453c";
 
 // Global cache variables to ensure only a single API call is ever made for this building
 let cachedBuildingData: BuildingMapData | null = null;

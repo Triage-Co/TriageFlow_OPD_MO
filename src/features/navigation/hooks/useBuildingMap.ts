@@ -38,9 +38,13 @@ export function useBuildingMap(floorNumber: number) {
 
     fetchBuildingMap()
       .then((buildingData) => {
-        const floorData = buildingData?.floors?.find(f => f.floorNumber === floorNumber);
+        // Fallback to first available floor if requested floor is not in dataset
+        const floorData =
+          buildingData?.floors?.find((f) => f.floorNumber === floorNumber) ||
+          buildingData?.floors?.[0];
+
         if (!floorData) {
-          throw new Error(`Tầng ${floorNumber} không tồn tại trong dữ liệu tòa nhà.`);
+          throw new Error(`Không thể tìm thấy dữ liệu sơ đồ tầng.`);
         }
 
         const geojson = buildingMapToGeoJSON(floorData);
