@@ -50,14 +50,14 @@ class SymptomPreloadService {
     this.isPreloadingAll = true;
     console.log(`[Preload] Queue started`);
 
-    // Khởi tạo trạng thái ban đầu cho các region
+    
     for (const id of regionIds) {
       if (!this.states.has(id)) {
         this.states.set(id, { regionId: id, status: "idle", symptoms: [] });
       }
     }
 
-    // Thử load từ cache trước
+    
     for (const id of regionIds) {
       const cached = await triageCacheService.getSearchCache(id);
       if (cached) {
@@ -70,7 +70,7 @@ class SymptomPreloadService {
       }
     }
 
-    // In log những vùng đang lưu trong cache
+    
     const cachedRegions = Array.from(this.states.entries())
       .filter(([_, v]) => v.status === "completed")
       .map(([k]) => k);
@@ -80,7 +80,7 @@ class SymptomPreloadService {
   }
 
   private async processQueue() {
-    // Tối đa 2 request song song
+    
     while (this.running.size < 2 && this.queue.length > 0) {
       const nextRegion = this.queue.shift();
       if (nextRegion) {
@@ -101,25 +101,25 @@ class SymptomPreloadService {
 
     console.log(`[Preload] Current preload region: ${regionId}`);
     try {
-      // 1. Gọi API Search (truyền phrase = bodyRegion.id, age = 30)
+      
       const searchItems = await triageApiService.searchSymptoms({
         age: 30,
         phrase: regionId,
       });
 
-      // 2. Chuyển đổi sang TranslatedSymptomSearchItem tạm thời (labelVi = labelEn)
+      
       const initialSymptoms: TranslatedSymptomSearchItem[] = searchItems.map((item) => ({
         id: item.id,
         labelEn: item.label,
         labelVi: item.label,
       }));
 
-      // Cache English trước
+      
       await triageCacheService.setSearchCache(regionId, initialSymptoms);
       this.states.set(regionId, { regionId, status: "translating", symptoms: initialSymptoms });
       this.notify(regionId);
 
-      // 3. Chạy Translation Queue nền (không block Search Queue)
+      
       this.translateSymptomsAsync(regionId, initialSymptoms);
 
     } catch (error: any) {
@@ -142,14 +142,14 @@ class SymptomPreloadService {
         symptoms.map((s) => ({ id: s.id, label: s.labelEn }))
       );
 
-      // Lưu Cache Vietnamese
+      
       await triageCacheService.setSearchCache(regionId, translated);
       this.states.set(regionId, { regionId, status: "completed", symptoms: translated });
       this.notify(regionId);
       console.log(`[Translation] Translation completed for region ${regionId}`);
     } catch (error) {
       console.warn(`[Translation] Lỗi khi dịch symptoms cho region ${regionId}:`, error);
-      // Giữ nguyên status completed với label gốc để không block UI
+      
       this.states.set(regionId, { regionId, status: "completed", symptoms });
       this.notify(regionId);
     }
@@ -170,13 +170,13 @@ class SymptomPreloadService {
     console.log(`[Preload] Cache miss`);
     console.log(`[Preload] Urgent request inserted: ${regionId}`);
     
-    // Xóa khỏi queue nếu có
+    
     const index = this.queue.indexOf(regionId);
     if (index > -1) {
       this.queue.splice(index, 1);
     }
 
-    // Chạy preload ngay lập tức không chờ queue
+    
     this.preloadRegion(regionId);
   }
 }

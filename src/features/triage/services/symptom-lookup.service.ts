@@ -60,7 +60,7 @@ function deduplicateById(items: TranslatedSymptomSearchItem[]): TranslatedSympto
 export function getLocalSymptoms(bodyPartId: string, gender: BodyGender): TranslatedSymptomSearchItem[] {
   const result: TranslatedSymptomSearchItem[] = [];
 
-  // 1. Xử lý genitals riêng biệt theo giới tính
+  
   if (bodyPartId === 'genitals') {
     if (gender === 'female') {
       result.push(...(femaleSymptomDataset.femaleGenitals?.symptoms ?? []).map(toTranslated));
@@ -70,13 +70,13 @@ export function getLocalSymptoms(bodyPartId: string, gender: BodyGender): Transl
     return deduplicateById(result);
   }
 
-  // 2. Lấy dữ liệu từ common dataset
+  
   const datasetKey = BODY_PART_MAPPING[bodyPartId];
   if (datasetKey && commonSymptomDataset[datasetKey]) {
     result.push(...commonSymptomDataset[datasetKey].symptoms.map(toTranslated));
   }
 
-  // 3. Merge thêm breast nếu gender là female và bodyPartId là chest
+  
   if (bodyPartId === 'chest' && gender === 'female') {
     result.push(...(femaleSymptomDataset.breast?.symptoms ?? []).map(toTranslated));
   }

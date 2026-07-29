@@ -43,7 +43,7 @@ export default function DoctorSlotsScreen() {
   const isToday = initialDate === todayStr;
   const currentHours = today.getHours();
 
-  // Gọi API lấy slots trực tiếp theo ngày đã chọn ở màn hình trước
+  
   const { slots, isLoading, error } = useDoctorSlots(doctorId, initialDate);
 
   const getInitials = (name: string): string => {
@@ -74,7 +74,7 @@ export default function DoctorSlotsScreen() {
     }
 
     try {
-      // Lấy danh sách bệnh nhân để lấy đúng patient_id thay vì accountId
+      
       const patientsRes = await patientService.getPatients();
       if (!patientsRes?.data || patientsRes.data.length === 0) {
         Alert.alert(
@@ -84,7 +84,7 @@ export default function DoctorSlotsScreen() {
         return;
       }
 
-      // Tìm bệnh nhân được truyền qua param hoặc lấy bệnh nhân đầu tiên làm fallback
+      
       const targetPatient = params.patientId
         ? patientsRes.data.find((p) => p.patient_id === params.patientId) || patientsRes.data[0]
         : patientsRes.data[0];

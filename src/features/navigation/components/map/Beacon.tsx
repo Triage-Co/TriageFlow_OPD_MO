@@ -12,7 +12,7 @@ export function Beacon({ position }: BeaconProps) {
   useFrame((state) => {
     if (groupRef.current) {
       const t = state.clock.getElapsedTime();
-      // Pulsate the ring scale over time
+      
       const ring = groupRef.current.children[0];
       if (ring) {
         const scale = 1 + Math.sin(t * 3.5) * 0.15;

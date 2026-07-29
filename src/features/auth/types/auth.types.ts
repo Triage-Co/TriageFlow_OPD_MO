@@ -1,5 +1,5 @@
-// Auth feature types
-// Based on TriageFlow Backend API – /api/auth endpoints
+
+
 
 /** Giới tính theo API */
 export type Gender = "MALE" | "FEMALE";

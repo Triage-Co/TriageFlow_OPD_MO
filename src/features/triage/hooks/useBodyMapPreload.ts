@@ -13,7 +13,7 @@ export function useBodyMapPreload() {
 
   const gender: PatientSex = user?.gender?.toLowerCase() === "female" ? "female" : "male";
 
-  // Lấy danh sách all region IDs của gender hiện tại
+  
   const getRegionIdsForGender = (sex: PatientSex): string[] => {
     const frontParts = sex === "female" ? femaleFrontData.bodyParts : maleFrontData.bodyParts;
     const backParts = sex === "female" ? femaleBackData.bodyParts : maleBackData.bodyParts;
@@ -25,7 +25,7 @@ export function useBodyMapPreload() {
   };
 
   useEffect(() => {
-    // Đăng ký lắng nghe sự thay đổi preload state
+    
     const unsubscribe = symptomPreloadService.addListener((regionId, state) => {
       setPreloadStates((prev) => ({
         ...prev,
@@ -36,7 +36,7 @@ export function useBodyMapPreload() {
     const regionIds = getRegionIdsForGender(gender);
     symptomPreloadService.startPreload(regionIds);
 
-    // Load trạng thái ban đầu
+    
     const initialStates: Record<string, RegionPreloadState> = {};
     regionIds.forEach((id) => {
       const state = symptomPreloadService.getState(id);

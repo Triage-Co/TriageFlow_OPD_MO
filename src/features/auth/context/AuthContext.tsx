@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Khởi động app – kiểm tra token đã lưu
+  
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch {
-        // Token hết hạn hoặc không hợp lệ – xóa session
+        
         await AsyncStorage.removeItem(TOKEN_KEY);
         await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
         setToken(null);
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setToken(newToken);
           setUser(profile);
         } else {
-          // null có thể do token không hợp lệ HOẶC do role không phải USER
+          
           throw new Error(
             "Tài khoản này không có quyền truy cập ứng dụng bệnh nhân."
           );
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await loginService.logout();
     } catch {
-      // Bỏ qua lỗi logout từ server
+      
     } finally {
       await AsyncStorage.removeItem(TOKEN_KEY);
       await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);

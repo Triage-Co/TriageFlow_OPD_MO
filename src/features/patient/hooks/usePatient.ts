@@ -58,14 +58,14 @@ export function usePatient() {
    */
   const createPatientFromEkyc = useCallback(
     async (ocrData: EkycOcrObject): Promise<{ success: boolean; message?: string }> => {
-      // Convert birth_day: "22/06/2000" → "2000-06-22"
+      
       const parts = ocrData.birth_day.split("/");
       const dob =
         parts.length === 3
           ? `${parts[2]}-${parts[1]}-${parts[0]}`
           : ocrData.birth_day;
 
-      // Convert gender: "Nam" → "MALE", mặc định FEMALE cho các trường hợp khác
+      
       const gender: Gender = ocrData.gender.trim().toLowerCase() === "nam" ? "MALE" : "FEMALE";
 
       return createPatient({

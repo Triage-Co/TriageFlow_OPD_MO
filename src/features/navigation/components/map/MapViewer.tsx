@@ -21,7 +21,7 @@ function CameraController() {
       ctrl.reset();
     }
 
-    // 3D angled perspective
+    
     camera.position.set(0, 45, 65);
     camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
@@ -34,7 +34,7 @@ function CameraController() {
     isInitialized.current = true;
   }, [camera, controls]);
 
-  // Handle pointer cleanup for OrbitControls inside R3F mock DOM elements
+  
   useEffect(() => {
     const el = gl.domElement as any;
     if (el && el.addEventListener) {
@@ -45,7 +45,7 @@ function CameraController() {
           if (ctrl.pointers) {
             ctrl.pointers = [];
           }
-          ctrl.state = -1; // -1 represents STATE.NONE in OrbitControls
+          ctrl.state = -1; 
         }
       };
 

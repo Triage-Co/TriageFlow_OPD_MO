@@ -33,7 +33,7 @@ export default function NavigationScreen() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Auto-routing check on screen mount
+  
   useEffect(() => {
     async function initAutoRouting() {
       try {
@@ -46,14 +46,14 @@ export default function NavigationScreen() {
         const targetRoomName = stepDetail.flow?.booking?.slot?.shift?.room?.room_name;
         if (!targetRoomName) return;
 
-        // Dynamically resolve buildingId from API step details, fallback to G2 building ID
+        
         const resolvedBuildingId =
           (stepDetail.flow?.booking?.slot?.shift?.room as any)?.floor?.buildingId ||
           "00b03ef8-7702-4b08-a07e-ec887432453c";
         
         setActiveBuildingId(resolvedBuildingId);
 
-        // Fetch dynamic building map details to perform matching
+        
         const { fetchBuildingMap } = require("@/features/navigation/services/map.service");
         const mapData = await fetchBuildingMap(resolvedBuildingId);
         if (!mapData || !mapData.floors) return;
@@ -61,7 +61,7 @@ export default function NavigationScreen() {
         let foundTarget: RoomOption | null = null;
         let foundStart: RoomOption | null = null;
 
-        // 1. Search for target room matching name from dynamic API list
+        
         const normTargetName = targetRoomName
           .toLowerCase()
           .normalize("NFD")
@@ -90,7 +90,7 @@ export default function NavigationScreen() {
           }
         }
 
-        // 2. Search for start room: entrance (Sảnh, Tiếp nhận, Nhà thuốc) on Floor 1
+        
         for (const floor of mapData.floors) {
           const room = floor.rooms.find((r: any) => {
             const l = r.roomLabel.toLowerCase();
@@ -108,7 +108,7 @@ export default function NavigationScreen() {
           }
         }
 
-        // Fallback: first room on Floor 1
+        
         if (!foundStart && mapData.floors.length > 0) {
           const firstFloor =
             mapData.floors.find((f: any) => f.floorNumber === 1) || mapData.floors[0];
@@ -139,7 +139,7 @@ export default function NavigationScreen() {
     initAutoRouting();
   }, []);
 
-  // Fetch routing path when both start and target are selected
+  
   useEffect(() => {
     if (startRoom && targetRoom) {
       setRouteLoading(true);

@@ -46,7 +46,7 @@ export default function PersonalInfoScreen() {
   const [avatar, setAvatar] = useState("");
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
 
-  // Tải dữ liệu hồ sơ từ API khi mở màn hình
+  
   useEffect(() => {
     const loadProfile = async () => {
       const profile = await fetchProfile();
@@ -68,7 +68,7 @@ export default function PersonalInfoScreen() {
       setGender((currentProfile.gender as Gender) || "");
       setPhone(currentProfile.phone || "");
       setAvatar(currentProfile.avatar || "");
-      setLocalAvatarUri(null); // Reset preview cục bộ
+      setLocalAvatarUri(null); 
     }
     clearError();
     setIsEditing(true);
@@ -92,21 +92,21 @@ export default function PersonalInfoScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1], // Crop tỉ lệ 1:1
+      aspect: [1, 1], 
       quality: 0.8,
     });
 
     if (result.canceled) return;
 
     const localUri = result.assets[0].uri;
-    setLocalAvatarUri(localUri); // Hiện preview cục bộ ngay lập tức
+    setLocalAvatarUri(localUri); 
 
-    // Tiến hành upload lên Cloudinary
+    
     const uploadedUrl = await uploadAvatar(localUri);
     if (uploadedUrl) {
-      setAvatar(uploadedUrl); // Lưu URL Cloudinary đã upload thành công
+      setAvatar(uploadedUrl); 
     } else {
-      setLocalAvatarUri(null); // Reset preview nếu lỗi
+      setLocalAvatarUri(null); 
       Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
     }
   };
@@ -160,7 +160,7 @@ export default function PersonalInfoScreen() {
     return genderVal;
   };
 
-  // Trạng thái đang tải lần đầu và chưa có dữ liệu hiển thị
+  
   if (isLoading && !user) {
     return (
       <ScreenWrapper edges={["left", "right"]}>
@@ -295,7 +295,7 @@ export default function PersonalInfoScreen() {
             </Text>
 
             {isEditing ? (
-              // ── Giao diện Chỉnh sửa ──
+              
               <View className="gap-3">
                 {error ? (
                   <View className="bg-red-50 border border-red-200 rounded-xl p-3 mb-2">

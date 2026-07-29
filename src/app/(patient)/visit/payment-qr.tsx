@@ -25,7 +25,7 @@ export default function PaymentQrScreen() {
   const params = useLocalSearchParams();
   const { fetchStepDetail, isFetchingStepDetail, fetchBookingResult, isFetchingResult } = useBooking();
 
-  // Params from booking creation
+  
   const stepId = params.stepId as string;
   const bookingId = params.bookingId as string;
   const bin = params.bin as string;
@@ -38,7 +38,7 @@ export default function PaymentQrScreen() {
   const patientName = params.patientName as string;
   const orderCode = (params.orderCode || params.ordercode) as string;
 
-  // Params for displaying doctor details
+  
   const doctorName = params.doctorName as string;
   const specialtyName = params.specialtyName as string;
   const selectedDate = params.selectedDate as string;
@@ -70,7 +70,7 @@ export default function PaymentQrScreen() {
   const amount = parseInt(amountStr || "0", 10);
   const formattedAmount = amount.toLocaleString("vi-VN") + " VND";
 
-  // Use official VietQR image generation or QR code generator api based on the payload qrCode
+  
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
     qrCode
   )}`;
@@ -101,7 +101,7 @@ export default function PaymentQrScreen() {
   const handleConfirmPayment = async () => {
     if (!stepId) return;
 
-    // 1. Gọi API /api/booking/generate để sinh/lấy số thứ tự và xác nhận thanh toán
+    
     const bookingResult = await fetchBookingResult(stepId);
     if (!bookingResult) {
       Alert.alert(
@@ -112,7 +112,7 @@ export default function PaymentQrScreen() {
       return;
     }
 
-    // 2. Lấy thông tin chi tiết phòng khám, chuyên khoa từ /api/step/account/{step_id}
+    
     const stepDetail = await fetchStepDetail(stepId);
     if (!stepDetail) {
       Alert.alert(
@@ -123,10 +123,10 @@ export default function PaymentQrScreen() {
       return;
     }
 
-    // 3. Lưu thông tin stepId vào bộ nhớ tạm trong ngày
+    
     await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
 
-    // 4. Lưu dữ liệu đã xác nhận và hiển thị Success Modal
+    
     setConfirmedData({
       queueNumber: bookingResult.queue_number || "--",
       specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || specialtyName || "",

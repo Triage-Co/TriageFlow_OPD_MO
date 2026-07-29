@@ -37,7 +37,7 @@ export default function ForgotVerifyScreen() {
   const [countdown, setCountdown] = useState(RESEND_COUNTDOWN);
   const canResend = countdown <= 0;
 
-  // Countdown timer cho nút gửi lại mã OTP
+  
   useEffect(() => {
     if (countdown <= 0) {
       return;
@@ -94,7 +94,7 @@ export default function ForgotVerifyScreen() {
           {
             text: "Đăng nhập",
             onPress: () => {
-              // Redirect về trang đăng nhập
+              
               router.replace("/(auth)/login");
             },
           },

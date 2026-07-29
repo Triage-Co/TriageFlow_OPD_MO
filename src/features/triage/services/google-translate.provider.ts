@@ -7,7 +7,7 @@ export class GoogleTranslateProvider implements ITranslationProvider {
       
       const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
       
-      // Thiết lập timeout 5 giây để không làm treo giao diện nếu mạng yếu
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
@@ -20,7 +20,7 @@ export class GoogleTranslateProvider implements ITranslationProvider {
       
       const data = await response.json();
       
-      // Bóc tách kết quả dịch từ format của Google Translate
+      
       if (Array.isArray(data) && data[0] && Array.isArray(data[0])) {
         const translatedSegments = data[0]
           .map((segment: any) => (segment && segment[0] ? segment[0] : ""))

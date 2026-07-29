@@ -15,7 +15,7 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
 
   const floorData3D = data?.floorData3D;
 
-  // Base floor slab shape from floorOutlinePoints
+  
   const slabMesh = React.useMemo(() => {
     if (!floorData3D || !floorData3D.floorOutlinePoints || floorData3D.floorOutlinePoints.length < 3) {
       return null;

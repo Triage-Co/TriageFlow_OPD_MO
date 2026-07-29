@@ -1,4 +1,4 @@
-// ─── API Response Types (Backend schema) ──────────────────────────────────────
+
 
 export interface ApiBuilding {
   id: string;
@@ -20,7 +20,7 @@ export interface ApiBoundary {
   doorId: string | null;
   lineGeom: {
     type: 'LineString';
-    coordinates: [number, number][]; // [lng, lat]
+    coordinates: [number, number][]; 
   };
 }
 
@@ -29,18 +29,18 @@ export interface ApiRoom {
   floorId: string;
   roomCode: string;
   roomLabel: string;
-  type: string; // e.g. "CONSULTATION"
+  type: string; 
   heightMeters: number;
   clinicId?: string | null;
   createdAt?: string;
   updatedAt?: string;
   centerGeom: {
     type: 'Point';
-    coordinates: [number, number]; // [lng, lat]
+    coordinates: [number, number]; 
   };
   outlineGeom: {
     type: 'Polygon';
-    coordinates: [number, number][][]; // array of polygons of [lng, lat]
+    coordinates: [number, number][][]; 
   };
   boundaries: ApiBoundary[];
   pois: any[];
@@ -58,7 +58,7 @@ export interface ApiDoor {
   createdAt?: string;
   positionGeom: {
     type: 'Point';
-    coordinates: [number, number]; // [lng, lat]
+    coordinates: [number, number]; 
   };
 }
 
@@ -128,7 +128,7 @@ export interface BuildingMapResponse {
   data: BuildingMapData;
 }
 
-// ─── 3D Render Processed Structures (matching FE Kiosk) ────────────────────────
+
 
 export interface WallSegment {
   startX: number;
@@ -209,7 +209,7 @@ export interface FloorData3D {
   };
 }
 
-// ─── Legacy GeoJSON Types (for backward compatibility if needed) ───────────────
+
 
 export type MapFeatureType = 'room' | 'corridor' | 'elevator' | 'stairs' | 'slab';
 

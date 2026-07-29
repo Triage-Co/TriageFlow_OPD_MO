@@ -156,7 +156,7 @@ function RoomMesh({ room }: { room: RoomData3D }) {
     room.roomLabel.toLowerCase().includes("tiếp nhận");
   const wallH = isReception ? 1.5 : DEFAULT_WALL_HEIGHT;
 
-  // Highlight room if it is a start, target, or selected node
+  
   const displayColor = (isStart || isTarget || isSelected) ? "#dbeafe" : room.color;
 
   return (
@@ -181,7 +181,7 @@ function RoomMesh({ room }: { room: RoomData3D }) {
             const dy = y - pointerStartRef.current.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            // Trigger selection only on clean taps (movement distance < 8 pixels)
+            
             if (dist < 8) {
               setSelectedNodeId(room.id);
             }

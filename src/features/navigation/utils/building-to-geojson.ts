@@ -253,7 +253,7 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
     });
   }
 
-  // 4. Convert Standalone Doors (roomAId === null or in floor.doors)
+  
   const standaloneDoors: StandaloneDoorData[] = [];
   if (floor.doors) {
     floor.doors.forEach((door) => {

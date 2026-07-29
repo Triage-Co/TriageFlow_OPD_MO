@@ -29,7 +29,7 @@ export default function SpecialtySelectScreen() {
   const { specialties, isLoading, error, refetch } = useSpecialties();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter list by search query
+  
   const filteredSpecialties = specialties.filter((item) =>
     item.specialty_name.toLowerCase().includes(searchQuery.toLowerCase())
   );

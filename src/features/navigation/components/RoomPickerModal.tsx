@@ -29,7 +29,7 @@ export function RoomPickerModal({
 }: RoomPickerModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Map all rooms from API floors to a flat select option list
+  
   const allRooms = useMemo(() => {
     if (!floors) return [];
     const options: RoomOption[] = [];
@@ -49,7 +49,7 @@ export function RoomPickerModal({
     return options;
   }, [floors]);
 
-  // Handle case-insensitive and tone-insensitive Vietnamese text search
+  
   const filteredRooms = useMemo(() => {
     if (!searchQuery.trim()) return allRooms;
     const q = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");

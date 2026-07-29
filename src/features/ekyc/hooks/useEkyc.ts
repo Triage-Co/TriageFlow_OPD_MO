@@ -51,14 +51,14 @@ export const useEkyc = (onSuccess?: (data: EkycOcrObject) => void) => {
       const nameMatch = rawString.match(/"name"\s*:\s*\\?"([^"\\]+)\\?"/i) ||
         rawString.match(/"name"\s*:\s*"([^"]+)"/i);
 
-      // Bóc tách birth_day dạng dd/MM/yyyy
+      
       const dobMatch = rawString.match(/"birth_day"\s*:\s*\\?"?([0-9]{2}\/[0-9]{2}\/[0-9]{4})/i);
 
-      // Bóc tách gender (Nam/Nữ)
+      
       const genderMatch = rawString.match(/"gender"\s*:\s*\\?"([^"\\]+)\\?"/i) ||
         rawString.match(/"gender"\s*:\s*"([^"]+)"/i);
 
-      // Bóc tách id (số CCCD/CMND)
+      
       const idMatch = rawString.match(/"id"\s*:\s*\\?"([0-9]+)\\?"/i) ||
         rawString.match(/"id"\s*:\s*"([0-9]+)"/i);
 
@@ -78,14 +78,14 @@ export const useEkyc = (onSuccess?: (data: EkycOcrObject) => void) => {
   };
 
   const handleLaunchEkyc = async () => {
-    // Chỉ hoạt động trên Android thực tế
+    
     if (Platform.OS !== 'android') {
       Alert.alert('Thông báo', 'Tính năng eKYC chỉ hỗ trợ trên thiết bị Android.');
       return;
     }
 
     try {
-      // Yêu cầu quyền Camera và Record Audio
+      
       const granted = await PermissionsAndroid.requestMultiple([
         PermissionsAndroid.PERMISSIONS.CAMERA,
         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
@@ -109,8 +109,8 @@ export const useEkyc = (onSuccess?: (data: EkycOcrObject) => void) => {
         accessToken: process.env.EXPO_PUBLIC_VNPT_EKYC_ACCESS_TOKEN || "",
         tokenId: process.env.EXPO_PUBLIC_VNPT_EKYC_TOKEN_ID || "",
         tokenKey: process.env.EXPO_PUBLIC_VNPT_EKYC_TOKEN_KEY || "",
-        documentType: 1, // CMND/CCCD
-        versionSdk: 1,   // STANDARD
+        documentType: 1, 
+        versionSdk: 1,   
         isShowTutorial: false,
         isEnableScanQrCode: false,
       };
@@ -119,7 +119,7 @@ export const useEkyc = (onSuccess?: (data: EkycOcrObject) => void) => {
 
       if (result && result.lastStep === 'Done' && result.ocrResult) {
         if (onSuccess) {
-          // Chế độ tạo bệnh nhân: parse OCR và gọi callback
+          
           const ocrData = parseOcrResult(result.ocrResult);
           if (ocrData) {
             onSuccess(ocrData);
@@ -127,7 +127,7 @@ export const useEkyc = (onSuccess?: (data: EkycOcrObject) => void) => {
             Alert.alert('Lỗi', 'Không thể bóc tách thông tin từ CCCD. Vui lòng kiểm tra lại chất lượng chụp giấy tờ.');
           }
         } else {
-          // Chế độ standalone: lưu trạng thái verified vào cache
+          
           await AsyncStorage.setItem('@ekyc_verified', 'true');
           setIsVerified(true);
           Alert.alert('Thành công', 'Xác thực danh tính CCCD thành công!');

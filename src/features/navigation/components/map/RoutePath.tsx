@@ -15,11 +15,11 @@ interface RoutePathProps {
 export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: RoutePathProps) {
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
 
-  // Emissive neon glow animation
+  
   useFrame((state) => {
     if (materialRef.current) {
       const t = state.clock.getElapsedTime();
-      // Emissive neon color pulsating between 0.3 and 1.2
+      
       const intensity = 0.75 + Math.sin(t * 5.0) * 0.45;
       materialRef.current.emissiveIntensity = intensity;
     }
@@ -28,7 +28,7 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
   const tubeGeometry = useMemo(() => {
     if (!path || path.length < 2) return null;
 
-    // Filter only points on the current active floor
+    
     let floorNodes = path.filter((node: any) => {
       if (node.floorNumber !== undefined) {
         return Number(node.floorNumber) === Number(activeFloor);
@@ -36,7 +36,7 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
       return true;
     });
 
-    // Fallback: draw all nodes if floor filtering is too aggressive
+    
     if (floorNodes.length < 2) {
       floorNodes = path;
     }
@@ -47,10 +47,10 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
       const [lng, lat] = node.coords;
       const x = lng * 111320 - centerShiftX;
       const z = -(lat * 110540) - centerShiftZ;
-      return new THREE.Vector3(x, 0.4, z); // Elevated above the floor to float clearly
+      return new THREE.Vector3(x, 0.4, z); 
     });
 
-    // Filter out duplicate consecutive points to prevent geometry compilation errors
+    
     const uniquePoints: THREE.Vector3[] = [];
     points.forEach((p) => {
       if (uniquePoints.length === 0) {

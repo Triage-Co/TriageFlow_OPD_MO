@@ -11,34 +11,34 @@ interface SpecialtyStyle {
 /** Trả về tên icon Ionicons phù hợp với chuyên khoa */
 export function getSpecialtyIcon(specialtyCode: string): IoniconsName {
   const map: Record<string, IoniconsName> = {
-    SP_1:  "medical-outline",          // Đa khoa
-    SP_2:  "body-outline",             // Nội khoa
-    SP_3:  "happy-outline",            // Nhi khoa
-    SP_4:  "cut-outline",              // Ngoại khoa
-    SP_5:  "nutrition-outline",        // Tiêu hóa
-    SP_6:  "fitness-outline",          // Chấn thương Chỉnh hình
-    SP_7:  "eye-outline",              // Mắt
-    SP_8:  "warning-outline",          // Chống độc
-    SP_9:  "color-palette-outline",    // Da liễu
-    SP_10: "flask-outline",            // Nội tiết
-    SP_11: "water-outline",            // Tiết niệu
-    SP_12: "heart-outline",            // Tim mạch
-    SP_13: "ribbon-outline",           // Ung bướu
-    SP_14: "ear-outline",              // Tai Mũi Họng
-    SP_15: "flower-outline",           // Phụ khoa
-    SP_16: "bulb-outline",             // Tâm thần
-    SP_17: "flash-outline",            // Thần kinh
-    SP_18: "happy-outline",            // Răng Hàm Mặt (fallback)
-    SP_19: "bug-outline",              // Truyền nhiễm
-    SP_20: "walk-outline",             // Cơ xương khớp
-    SP_21: "pulse-outline",            // Mạch máu
-    SP_22: "cafe-outline",             // Đái tháo đường
-    SP_23: "cloudy-outline",           // Dị ứng
-    SP_24: "ellipse-outline",          // Thận học
-    SP_25: "eyedrop-outline",          // Huyết học
-    SP_26: "leaf-outline",             // Sơ sinh
-    SP_27: "cloud-outline",            // Hô hấp
-    SP_29: "construct-outline",        // Phẫu thuật Hàm Mặt
+    SP_1:  "medical-outline",          
+    SP_2:  "body-outline",             
+    SP_3:  "happy-outline",            
+    SP_4:  "cut-outline",              
+    SP_5:  "nutrition-outline",        
+    SP_6:  "fitness-outline",          
+    SP_7:  "eye-outline",              
+    SP_8:  "warning-outline",          
+    SP_9:  "color-palette-outline",    
+    SP_10: "flask-outline",            
+    SP_11: "water-outline",            
+    SP_12: "heart-outline",            
+    SP_13: "ribbon-outline",           
+    SP_14: "ear-outline",              
+    SP_15: "flower-outline",           
+    SP_16: "bulb-outline",             
+    SP_17: "flash-outline",            
+    SP_18: "happy-outline",            
+    SP_19: "bug-outline",              
+    SP_20: "walk-outline",             
+    SP_21: "pulse-outline",            
+    SP_22: "cafe-outline",             
+    SP_23: "cloudy-outline",           
+    SP_24: "ellipse-outline",          
+    SP_25: "eyedrop-outline",          
+    SP_26: "leaf-outline",             
+    SP_27: "cloud-outline",            
+    SP_29: "construct-outline",        
   };
   return map[specialtyCode] ?? "medical-outline";
 }

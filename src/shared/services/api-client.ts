@@ -17,7 +17,7 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor – gắn Bearer token nếu có
+
 apiClient.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem(TOKEN_KEY);
@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Flag để theo dõi quá trình refresh token
+
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
@@ -44,13 +44,13 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Response interceptor – tự động refresh token khi nhận lỗi 401
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Tránh vòng lặp vô hạn nếu API refresh hoặc login trả 401
+    
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
@@ -58,7 +58,7 @@ apiClient.interceptors.response.use(
       !originalRequest.url?.includes("/api/auth/login")
     ) {
       if (isRefreshing) {
-        // Nếu đang refresh token, đẩy request này vào hàng đợi chờ token mới
+        
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -78,7 +78,7 @@ apiClient.interceptors.response.use(
           throw new Error("No refresh token available");
         }
 
-        // Gọi axios riêng biệt để tránh chạy qua interceptors hoặc gây loop
+        
         const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
           refreshToken,
         });
@@ -105,7 +105,7 @@ apiClient.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
-        // Xóa token và buộc đăng xuất
+        
         await AsyncStorage.removeItem(TOKEN_KEY);
         await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
 

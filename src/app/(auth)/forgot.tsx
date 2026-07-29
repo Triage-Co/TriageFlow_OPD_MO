@@ -30,7 +30,7 @@ export default function ForgotScreen() {
       return;
     }
 
-    // Email regex validation
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       Alert.alert("Thông báo", "Định dạng email không hợp lệ.");

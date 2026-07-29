@@ -40,7 +40,7 @@ export default function TicketScreen() {
 
     const loadTicketDetails = async () => {
       if (!stepId) {
-        // Fallback to static params
+        
         setTicketData({
           queueNumber: (params.queueNumber as string) || "--",
           specialtyName: (params.specialtyName as string) || "Tổng quát",
@@ -76,7 +76,7 @@ export default function TicketScreen() {
             });
           }
         } else if (active) {
-          // Fallback if stepDetail fails
+          
           setTicketData({
             queueNumber: (params.queueNumber as string) || "--",
             specialtyName: (params.specialtyName as string) || "Tổng quát",
@@ -107,7 +107,7 @@ export default function TicketScreen() {
   const startTime = ticketData?.startTime || (params.startTime as string) || "Đang xếp ca";
   const patientName = ticketData?.patientName || (params.patientName as string) || "Bệnh nhân";
 
-  // Ngăn nút Back cứng trên Android quay lại màn thanh toán
+  
   useEffect(() => {
     const backAction = () => {
       router.replace("/(patient)/(tabs)/home");

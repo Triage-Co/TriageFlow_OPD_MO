@@ -14,7 +14,7 @@ export function calculateAgeFromDob(dob: string): number {
     age--;
   }
 
-  // Giới hạn an toàn: nếu dob không hợp lệ, trả về 30 mặc định
+  
   if (isNaN(age) || age < 0 || age > 150) {
     console.warn("[DateUtils] Không thể tính tuổi từ dob, dùng mặc định 30:", dob);
     return 30;

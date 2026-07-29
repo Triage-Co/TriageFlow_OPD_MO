@@ -5,7 +5,7 @@ export type Patient = {
   account_id: string;
   medical_coverage_id: string;
   full_name: string;
-  dob: string; // ISO string or format YYYY-MM-DD
+  dob: string; 
   gender: Gender;
   citizen_id: string;
   createdAt?: string;
@@ -14,7 +14,7 @@ export type Patient = {
 
 export type CreatePatientRequest = {
   medical_coverage_id: string;
-  dob: string; // Format YYYY-MM-DD
+  dob: string; 
   gender: Gender;
   full_name: string;
   citizen_id: string;

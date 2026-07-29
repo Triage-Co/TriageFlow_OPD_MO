@@ -3,7 +3,7 @@ import { BuildingMapResponse, BuildingMapData } from "../types/map.types";
 
 export const HARDCODED_BUILDING_ID = "00b03ef8-7702-4b08-a07e-ec887432453c";
 
-// Cache map to store data for different buildings
+
 const cachedBuildingData = new Map<string, BuildingMapData>();
 const buildingDataPromises = new Map<string, Promise<BuildingMapData>>();
 
@@ -35,7 +35,7 @@ export async function fetchBuildingMap(
       throw new Error("Invalid API response format");
     })
     .catch((err) => {
-      buildingDataPromises.delete(buildingId); // Clear promise on failure
+      buildingDataPromises.delete(buildingId); 
       throw err;
     });
 

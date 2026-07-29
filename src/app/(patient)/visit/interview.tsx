@@ -28,10 +28,10 @@ export default function InterviewScreen() {
     clearSession,
   } = useTriage();
 
-  // State lưu đáp án của từng item: Record<itemId, choiceId>
+  
   const [answers, setAnswers] = useState<Record<string, EvidenceChoiceId>>({});
 
-  // Reset đáp án khi chuyển sang câu hỏi mới
+  
   useEffect(() => {
     setAnswers({});
   }, [currentQuestion]);
@@ -63,10 +63,10 @@ export default function InterviewScreen() {
     router.replace("/(patient)/body-map");
   };
 
-  // Nút "Tiếp theo" chỉ active khi người dùng chọn ít nhất 1 đáp án
+  
   const hasSelectedAny = Object.keys(answers).length > 0;
 
-  // Đang tải câu hỏi đầu tiên (từ startDiagnosisSession)
+  
   if (!currentQuestion && !shouldStop && isLoading) {
     return (
       <ScreenWrapper>
@@ -80,7 +80,7 @@ export default function InterviewScreen() {
     );
   }
 
-  // Không có câu hỏi và đã hết hỏi → hiển thị trạng thái kết thúc phiên
+  
   if (!currentQuestion && !shouldStop && !isLoading) {
     return (
       <ScreenWrapper>

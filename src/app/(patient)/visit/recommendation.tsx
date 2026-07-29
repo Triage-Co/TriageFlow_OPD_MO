@@ -16,7 +16,7 @@ export default function RecommendationScreen() {
 
   const handleGoHome = async () => {
     await clearSession();
-    // Quay về Trang chủ của bệnh nhân
+    
     router.replace("/(patient)/(tabs)/home");
   };
 

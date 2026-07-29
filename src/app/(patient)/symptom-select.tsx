@@ -33,12 +33,12 @@ export default function SymptomSelectScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(15);
 
-  // Lấy danh sách các triệu chứng đã chọn trong vùng này từ map
+  
   const selectedSymptoms = useMemo(() => {
     return selectedSymptomsMap[regionId] || [];
   }, [selectedSymptomsMap, regionId]);
 
-  // Reset tìm kiếm khi đổi vùng
+  
   useEffect(() => {
     setSearchQuery("");
     setVisibleCount(15);
@@ -46,10 +46,10 @@ export default function SymptomSelectScreen() {
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
-    setVisibleCount(15); // Reset về số lượng ban đầu khi tìm kiếm
+    setVisibleCount(15); 
   };
 
-  // 1. Lọc triệu chứng dựa trên từ khóa tìm kiếm
+  
   const filteredSymptoms = useMemo(() => {
     if (!searchQuery.trim()) return symptoms;
     const q = searchQuery.toLowerCase().trim();
@@ -60,12 +60,12 @@ export default function SymptomSelectScreen() {
     );
   }, [symptoms, searchQuery]);
 
-  // 2. Cắt danh sách để hiển thị phân trang
+  
   const visibleSymptoms = useMemo(() => {
     return filteredSymptoms.slice(0, visibleCount);
   }, [filteredSymptoms, visibleCount]);
 
-  // 3. Tải thêm khi lướt xuống cuối
+  
   const handleLoadMore = () => {
     if (visibleCount < filteredSymptoms.length) {
       setVisibleCount((prev) => prev + 15);

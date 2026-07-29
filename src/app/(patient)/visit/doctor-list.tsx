@@ -20,11 +20,11 @@ export default function DoctorListScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  // Đọc từ route params – đến từ specialty-select hoặc recommendation
+  
   const specialtyCode = (params.specialtyCode as string) || "SP_1";
   const specialtyName = (params.specialtyName as string) || "Chuyên khoa";
 
-  // Tự động tạo danh sách 7 ngày kể từ hôm nay
+  
   const dateOptions = useMemo(() => {
     const options = [];
     const today = new Date();
@@ -59,7 +59,7 @@ export default function DoctorListScreen() {
 
   const { doctors, isLoading, error } = useDoctorList(specialtyCode, selectedDate);
 
-  // Trích xuất chữ cái viết tắt tên bác sĩ
+  
   const getInitials = (fullName?: string): string => {
     if (!fullName) return "DR";
     const cleanName = fullName.replace(/^(BS\.|BS|PGS\.|PGS|TS\.|TS|ThS\.|ThS)\s+/i, "");

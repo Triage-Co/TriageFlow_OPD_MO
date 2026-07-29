@@ -5,7 +5,7 @@ const STORAGE_KEY = "today_booking_step";
 export interface SavedStep {
   stepId: string;
   patientName: string;
-  date: string; // Định dạng YYYY-MM-DD
+  date: string; 
 }
 
 export const bookingStorageService = {
@@ -24,7 +24,7 @@ export const bookingStorageService = {
       if (data.date === today) {
         return { stepId: data.stepId, patientName: data.patientName };
       }
-      // Hết ngày -> Tự động xóa
+      
       await AsyncStorage.removeItem(STORAGE_KEY);
     } catch {
       await AsyncStorage.removeItem(STORAGE_KEY);

@@ -40,7 +40,7 @@ export function useProfile() {
         };
         setProfileData(mappedData);
 
-        // Đồng bộ thông tin mới nhất vào Auth Context
+        
         updateUser(mappedData);
         return mappedData;
       }
@@ -60,7 +60,7 @@ export function useProfile() {
     try {
       const response = await profileService.updateProfile(data);
       if (response.status === "success" || response.code === 200) {
-        // Đồng bộ dữ liệu state cục bộ
+        
         setProfileData((prev) => {
           if (!prev) return null;
           return {
@@ -72,7 +72,7 @@ export function useProfile() {
           };
         });
 
-        // Đồng bộ dữ liệu sang Auth Context để hiển thị ở các màn hình khác
+        
         updateUser({
           full_name: data.user_name,
           gender: data.gender,

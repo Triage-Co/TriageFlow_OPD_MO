@@ -41,7 +41,7 @@ export default function OtpScreen() {
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // Countdown timer
+  
   useEffect(() => {
     if (countdown <= 0) {
       return;
@@ -77,12 +77,12 @@ export default function OtpScreen() {
       newOtp[index] = digit;
       setOtp(newOtp);
 
-      // Auto focus next
+      
       if (digit && index < otpLength - 1) {
         inputRefs.current[index + 1]?.focus();
       }
 
-      // Tự động submit khi điền đủ
+      
       if (digit && index === otpLength - 1) {
         const fullOtp = [...newOtp.slice(0, otpLength - 1), digit].join("");
         if (fullOtp.length === otpLength) {

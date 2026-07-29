@@ -50,7 +50,7 @@ export default function BodyMapScreen() {
 
   const age = selectedPatient?.dob ? calculateAgeFromDob(selectedPatient.dob) : 30;
 
-  // Context của Triage
+  
   const {
     selectedSymptomsMap,
     toggleSymptom,
@@ -62,13 +62,13 @@ export default function BodyMapScreen() {
     searchSymptomsByRegion,
   } = useTriage();
 
-  // State cục bộ cho Bottom Sheet
+  
   const [selectedRegion, setSelectedRegion] = useState<BodyRegion | null>(null);
 
   const handleSelectRegion = (region: BodyRegion) => {
     setSelectedRegion(region);
 
-    // Kích hoạt tìm kiếm triệu chứng của vùng đó trong context
+    
     searchSymptomsByRegion({
       bodyPartId: region.id,
       gender,
@@ -77,7 +77,7 @@ export default function BodyMapScreen() {
       fallbackSearchPhrases: region.fallbackSearchPhrases,
     });
 
-    // Chuyển hướng sang màn chọn triệu chứng toàn màn hình
+    
     router.push({
       pathname: "/(patient)/symptom-select",
       params: {
@@ -96,9 +96,9 @@ export default function BodyMapScreen() {
     }
   };
 
-  // Bỏ chọn một triệu chứng từ tag list
+  
   const handleRemoveSymptom = (symptom: TranslatedSymptomSearchItem) => {
-    // Tìm regionId của triệu chứng này trong map
+    
     for (const [regionId, symptomsList] of Object.entries(selectedSymptomsMap)) {
       if (symptomsList.some((s) => s.id === symptom.id)) {
         toggleSymptom(regionId, symptom);

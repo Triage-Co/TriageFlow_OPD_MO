@@ -51,7 +51,7 @@ export default function SymptomsScreen() {
         console.error("Lỗi khi parse fallbackSearchPhrases:", e);
       }
 
-      // Tuổi hardcode 30 theo đặc tả yêu cầu
+      
       searchSymptomsByRegion({
         bodyPartId: params.regionId,
         gender: (params.gender as BodyGender) || "male",
@@ -70,7 +70,7 @@ export default function SymptomsScreen() {
     if (selectedSymptom) {
       setIsSubmitting(true);
       try {
-        // Thêm triệu chứng vào map rồi bắt đầu phiên chẩn đoán
+        
         toggleSymptom(params.regionId || "default", selectedSymptom);
         await startDiagnosisSession();
       } finally {

@@ -288,7 +288,7 @@ export default function HomeScreen() {
                 renderItem={({ item }) => {
                   const isSelected = selectedPatientId === item.patient_id;
                   
-                  // Extract initials
+                  
                   let initials = "BN";
                   if (item.full_name) {
                     const parts = item.full_name.trim().split(" ");

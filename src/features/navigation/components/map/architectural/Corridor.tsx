@@ -3,7 +3,7 @@ import { animated, SpringValue } from "@react-spring/three";
 
 interface CorridorProps {
   position: [number, number, number];
-  size: [number, number]; // width, depth
+  size: [number, number]; 
   opacity: SpringValue<number>;
   isActive: boolean;
   label?: string;

@@ -34,7 +34,7 @@ export default function TicketTabScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTicket, setActiveTicket] = useState<ActiveTicket | null>(null);
 
-  // Hàm tải thông tin phiếu khám hiện tại từ bộ nhớ tạm và API
+  
   const loadTicketData = useCallback(async (showLoadingIndicator = true) => {
     if (showLoadingIndicator) setIsLoading(true);
     try {
@@ -46,17 +46,17 @@ export default function TicketTabScreen() {
 
       const { stepId, patientName } = activeBooking;
 
-      // 1. Tải chi tiết bước khám để lấy phòng ban, giờ khám
+      
       const stepDetail = await fetchStepDetail(stepId);
       if (!stepDetail) {
         console.warn("[TicketTab] Không thể tải chi tiết bước khám.");
         return;
       }
 
-      // 2. Lấy số thứ tự từ danh sách queues của step
+      
       let queueNumber = stepDetail.queues?.[0]?.queue_number;
 
-      // 3. Nếu queues chưa có số thứ tự, tiến hành gọi API generate để sinh số
+      
       if (!queueNumber) {
         const bookingResult = await fetchBookingResult(stepId);
         if (bookingResult) {
@@ -64,7 +64,7 @@ export default function TicketTabScreen() {
         }
       }
 
-      // 4. Cập nhật giao diện Phiếu khám
+      
       setActiveTicket({
         stepId,
         patientName,
@@ -81,12 +81,12 @@ export default function TicketTabScreen() {
     }
   }, [fetchStepDetail, fetchBookingResult]);
 
-  // Load khi screen mount
+  
   useEffect(() => {
     loadTicketData();
   }, [loadTicketData]);
 
-  // Xử lý kéo xuống làm mới (Pull to refresh)
+  
   const handleRefresh = () => {
     setIsRefreshing(true);
     loadTicketData(false);
@@ -100,7 +100,7 @@ export default function TicketTabScreen() {
     router.push("/(patient)/(tabs)/navigation");
   };
 
-  // Tạo URL ảnh QR dựa trên số thứ tự
+  
   const qrImageUrl = activeTicket
     ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
       activeTicket.queueNumber || "0"
@@ -120,7 +120,7 @@ export default function TicketTabScreen() {
             </Text>
           </View>
         ) : activeTicket ? (
-          // Trạng thái 1: ĐÃ CÓ PHIẾU KHÁM TRONG NGÀY
+          
           <View className="flex-1 justify-between">
             {/* Blue Header Area */}
             <View className="bg-primary pt-14 pb-5 items-center justify-center px-5 shadow-sm">

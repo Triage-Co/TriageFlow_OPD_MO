@@ -35,7 +35,7 @@ class TranslationService {
     const normalizedText = text.trim();
     if (!normalizedText) return "";
 
-    // 1. Kiểm tra Translation Cache trước nếu có symptomId
+    
     if (symptomId) {
       const cached = triageCacheService.getTranslationCache(symptomId);
       if (cached && cached.vi) {
@@ -43,11 +43,11 @@ class TranslationService {
       }
     }
 
-    // 2. Tìm kiếm trong từ điển tĩnh (case-sensitive)
+    
     let staticTranslated = STATIC_EN_VI_DICTIONARY[normalizedText];
     if (staticTranslated) return staticTranslated;
 
-    // Tìm kiếm trong từ điển tĩnh (case-insensitive fallback)
+    
     const lowerNormalized = normalizedText.toLowerCase();
     for (const key of Object.keys(STATIC_EN_VI_DICTIONARY)) {
       if (key.toLowerCase() === lowerNormalized) {
@@ -55,11 +55,11 @@ class TranslationService {
       }
     }
 
-    // 3. Gọi provider thực tế để dịch
+    
     try {
       const translated = await this.provider.translate(normalizedText, "en", "vi");
       
-      // Cache lại nếu có symptomId
+      
       if (symptomId && translated) {
         triageCacheService.setTranslationCache(symptomId, { en: normalizedText, vi: translated });
       }

@@ -30,7 +30,7 @@ export default function EmailOtpScreen() {
       return;
     }
 
-    // Email regex validation
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       Alert.alert("Thông báo", "Định dạng email không hợp lệ.");
@@ -40,7 +40,7 @@ export default function EmailOtpScreen() {
     clearError();
     const success = await sendOtp(email.trim());
     if (success) {
-      // Navigate sang màn otp.tsx kèm email và mode
+      
       router.push({
         pathname: "/(auth)/otp",
         params: { email: email.trim(), mode: "otp-login" },

@@ -39,23 +39,23 @@ export default function PatientListScreen() {
     getPatientDetail,
   } = usePatient();
 
-  // ── Modals state ──
+  
   const [isEkycVisible, setIsEkycVisible] = useState(false);
   const [isEditVisible, setIsEditVisible] = useState(false);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
 
-  // ── Form Edit state ──
+  
   const [editForm, setEditForm] = useState({
     fullName: "",
     gender: "" as "MALE" | "FEMALE" | "",
-    dob: "", // YYYY-MM-DD
+    dob: "", 
   });
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
   const [editPickerDate, setEditPickerDate] = useState(new Date());
 
-  // ── eKYC hook: truyền onSuccess để nhận OCR data khi xác thực xong ──
+  
   const handleEkycSuccess = useCallback(
     async (ocrData: EkycOcrObject) => {
       const res = await createPatientFromEkyc(ocrData);
@@ -189,7 +189,7 @@ export default function PatientListScreen() {
     return gender.toUpperCase() === "MALE" ? "Nam" : "Nữ";
   };
 
-  // Swipeable right actions
+  
   const renderRightActions = (patient: Patient, progress: any, dragX: any, swipeable: any) => {
     return (
       <View className="flex-row h-full ml-3 bg-neutral-50 rounded-2xl overflow-hidden border border-neutral-200">

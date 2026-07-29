@@ -11,7 +11,7 @@ export default function BookingSuccessScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  // Params from routing
+  
   const queueId = params.queueId as string;
   const queueNumber = params.queueNumber as string;
   const status = params.status as string;
@@ -21,7 +21,7 @@ export default function BookingSuccessScreen() {
   const slotTime = params.slotTime as string;
   const bookingId = params.bookingId as string;
 
-  // Trạng thái hiển thị tiếng Việt
+  
   const getStatusLabel = (s: string) => {
     switch (s?.toUpperCase()) {
       case "PENDING":
@@ -33,10 +33,10 @@ export default function BookingSuccessScreen() {
     }
   };
 
-  // Ngăn chặn nút Back cứng trên Android
+  
   React.useEffect(() => {
     const backAction = () => {
-      // Bắt buộc về home, không quay lại trang thanh toán QR
+      
       router.replace("/(patient)/(tabs)/home");
       return true;
     };

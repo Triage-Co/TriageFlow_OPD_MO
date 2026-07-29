@@ -3,7 +3,7 @@ import { GeoJSONFeatureCollection, BuildingMapData } from "../types/map.types";
 import { fetchBuildingMap, HARDCODED_BUILDING_ID } from "../services/map.service";
 import { buildingMapToGeoJSON } from "../utils/building-to-geojson";
 
-// In-memory cache using buildingId and floorNumber as compound key
+
 const cache = new Map<string, GeoJSONFeatureCollection>();
 
 /**
@@ -43,7 +43,7 @@ export function useBuildingMap(floorNumber: number, buildingId: string = HARDCOD
 
     fetchBuildingMap(buildingId)
       .then((buildingData) => {
-        // Fallback to first available floor if requested floor is not in dataset
+        
         const floorData =
           buildingData?.floors?.find((f) => f.floorNumber === floorNumber) ||
           buildingData?.floors?.[0];
@@ -53,7 +53,7 @@ export function useBuildingMap(floorNumber: number, buildingId: string = HARDCOD
         }
 
         const geojson = buildingMapToGeoJSON(floorData);
-        geojson.rawMap = buildingData; // Save rawMap references in cached features
+        geojson.rawMap = buildingData; 
         cache.set(cacheKey, geojson);
 
         if (isMounted.current) {

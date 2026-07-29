@@ -26,7 +26,7 @@ import { Colors } from "@/config/colors";
 import { usePatient } from "@/features/patient/hooks/usePatient";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 
-// Safely require expo-camera to prevent crashing on custom Dev Clients that haven't been rebuilt
+
 let CameraView: any = null;
 let useCameraPermissions: any = null;
 let isCameraAvailable = false;
@@ -42,7 +42,7 @@ try {
   console.warn("ExpoCamera module is not compiled in this client, falling back to mock scanner.", e);
 }
 
-// Mock hook to satisfy React rules of hooks when expo-camera is unavailable
+
 const useMockCameraPermissions = () => {
   const [perm] = useState({
     granted: true,
@@ -56,7 +56,7 @@ const useMockCameraPermissions = () => {
 
 const { width } = Dimensions.get("window");
 const VIEWFINDER_SIZE = 260;
-const LASER_MAX_TRAVEL = VIEWFINDER_SIZE - 4; // Travel full height of viewfinder
+const LASER_MAX_TRAVEL = VIEWFINDER_SIZE - 4; 
 
 export default function ScanScreen() {
   const router = useRouter();
@@ -65,28 +65,28 @@ export default function ScanScreen() {
   const { patients, fetchPatients, isLoading } = usePatient();
   const [activeTab, setActiveTab] = useState<"personal" | "scan">("personal");
 
-  // Camera permissions hook from expo-camera
+  
   const hookToUse = isCameraAvailable && useCameraPermissions ? useCameraPermissions : useMockCameraPermissions;
   const [permission, requestPermission] = hookToUse();
 
   const [scanned, setScanned] = useState(false);
 
-  // Shared value for scanning laser animation
+  
   const translateY = useSharedValue(0);
 
-  // Load patients list on mount
+  
   useEffect(() => {
     fetchPatients();
   }, [fetchPatients]);
 
-  // Request camera permission automatically when switching to the scanner tab if available
+  
   useEffect(() => {
     if (activeTab === "scan" && isCameraAvailable && permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
   }, [activeTab, permission]);
 
-  // Start laser scanning animation
+  
   useEffect(() => {
     if (activeTab === "scan") {
       translateY.value = withRepeat(
@@ -94,7 +94,7 @@ export default function ScanScreen() {
           withTiming(LASER_MAX_TRAVEL, { duration: 2000 }),
           withTiming(0, { duration: 2000 })
         ),
-        -1, // infinite loop
+        -1, 
         false
       );
     } else {
@@ -108,10 +108,10 @@ export default function ScanScreen() {
     };
   });
 
-  // Get active patient or fallback to mock data to match mockup perfectly
+  
   const activePatient = patients && patients.length > 0 ? patients[0] : null;
 
-  // Formatting helpers
+  
   const getInitials = (name: string): string => {
     const cleanName = name.replace(/^(BS\.|BS|PGS\.|PGS|TS\.|TS|ThS\.|ThS)\s+/i, "");
     const parts = cleanName.trim().split(/\s+/);
@@ -123,7 +123,7 @@ export default function ScanScreen() {
   };
 
   const calculateAge = (dobString?: string): number => {
-    if (!dobString) return 39; // fallback matching mockup age
+    if (!dobString) return 39; 
     const birthDate = new Date(dobString);
     if (isNaN(birthDate.getTime())) return 39;
     const today = new Date();
@@ -136,7 +136,7 @@ export default function ScanScreen() {
   };
 
   const formatDobVi = (dobString?: string): string => {
-    if (!dobString) return "15 tháng 3, 1985"; // fallback matching mockup
+    if (!dobString) return "15 tháng 3, 1985"; 
     const date = new Date(dobString);
     if (isNaN(date.getTime())) return dobString;
     const monthsVi = [
@@ -146,7 +146,7 @@ export default function ScanScreen() {
     return `${date.getDate()} ${monthsVi[date.getMonth()]} năm ${date.getFullYear()}`;
   };
 
-  // Mock patient data for perfect preview fallback
+  
   const patientName = activePatient?.full_name || "Nguyễn Thị Mai";
   const initials = getInitials(patientName);
   const patientCode = activePatient 
@@ -160,15 +160,15 @@ export default function ScanScreen() {
     ? "Hoạt động - BHYT liên kết" 
     : "Hoạt động - BHYT Bảo Việt";
 
-  // Dynamic QR API (using qrserver dynamic generator based on patient_id/citizen_id)
+  
   const qrData = activePatient?.patient_id || "BN-2024-15738-DEMO";
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
 
-  // Dynamic bottom calculation for sub-tab bar to hover cleanly above CustomTabBar on iOS & Android
+  
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 20;
-  const subTabBarBottom = bottomOffset + 68; // CustomTabBar height (approx 52px) + extra margin
+  const subTabBarBottom = bottomOffset + 68; 
 
-  // Handle actual QR Scanned successfully
+  
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
@@ -179,7 +179,7 @@ export default function ScanScreen() {
     );
   };
 
-  // Callback to mock scanning in emulation mode when viewfinder is clicked
+  
   const handleMockScanClick = () => {
     handleBarcodeScanned({ data: "CHECKPOINT-MOCK-LOCATION-3F" });
   };
@@ -192,7 +192,7 @@ export default function ScanScreen() {
     <ScreenWrapper edges={["left", "right"]}>
       <View className="flex-1">
         {activeTab === "scan" ? (
-          // --- VIEW 1: SCAN QR CHECKPOINT (DARK THEME) ---
+          
           <View className="flex-1 bg-black relative">
             <StatusBar style="light" />
 
@@ -237,7 +237,7 @@ export default function ScanScreen() {
             {/* ── 2. VIEW FINDER OVERLAY (centered on screen) ── */}
             <View className="flex-1 items-center justify-center px-10 pb-40 z-10">
               {!isCameraAvailable ? (
-                // Developer Warning Card for missing native module in Development Client
+                
                 <View className="items-center justify-center bg-black/75 p-6 rounded-3xl border border-white/10 w-full shadow-lg">
                   <Ionicons name="alert-circle-outline" size={48} color="#EAB308" className="mb-4" />
                   <Text className="text-white text-center font-bold text-[15px] mb-2">
@@ -257,7 +257,7 @@ export default function ScanScreen() {
               ) : !permission ? (
                 <ActivityIndicator size="large" color={Colors.primary} />
               ) : !permission.granted ? (
-                // Camera Permission Request Card
+                
                 <View className="items-center justify-center bg-black/70 p-6 rounded-3xl border border-white/10 w-full shadow-lg">
                   <Ionicons name="camera-outline" size={48} color="#FFFFFF" className="mb-4" />
                   <Text className="text-white text-center font-bold text-base mb-2">
@@ -274,7 +274,7 @@ export default function ScanScreen() {
                   </Pressable>
                 </View>
               ) : (
-                // Viewfinder frame hovering on top of the fullscreen camera feed
+                
                 <>
                   <View 
                     style={{ width: VIEWFINDER_SIZE, height: VIEWFINDER_SIZE }} 

@@ -23,7 +23,7 @@ export default function AutoBookingScreen() {
       }
 
       try {
-        // 1. Lấy danh sách bệnh nhân
+        
         const patientsRes = await patientService.getPatients();
         if (!active) return;
 
@@ -42,7 +42,7 @@ export default function AutoBookingScreen() {
         const finalPatientId = targetPatient.patient_id;
         const patientName = targetPatient.full_name;
 
-        // 2. Tạo đặt phòng tự động
+        
         const bookingResult = await submitAutoBooking(finalPatientId, interviewToken);
         if (!active) return;
 

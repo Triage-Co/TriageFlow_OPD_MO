@@ -5,7 +5,7 @@ import { RoomMarker } from "./RoomMarker";
 interface RoomProps {
   id?: string;
   position: [number, number, number];
-  size: [number, number]; // width (x), depth (z)
+  size: [number, number]; 
   label?: string;
   doorPosition?: "top" | "bottom" | "left" | "right";
   doorOffset?: number;

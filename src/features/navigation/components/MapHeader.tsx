@@ -12,7 +12,7 @@ export function MapHeader() {
   const { activeFloor, activeBuildingId } = useNavigationStore();
   const { rawMap } = useBuildingMap(activeFloor, activeBuildingId || undefined);
 
-  // Fallbacks to default values if map data is loading or offline
+  
   const buildingName = rawMap?.building?.name || "Tòa G2 – Khoa Khám Bệnh";
   const buildingAddress = rawMap?.building?.addressLabel || "Sơ đồ 3D chỉ đường trong bệnh viện";
 
