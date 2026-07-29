@@ -75,8 +75,8 @@ export function RoomMarker({
 
   return (
     <animated.group ref={meshRef as any} scale={scale as any} position={[0, 3.3, 0]}>
-      {/* 1. Foot anchor cone geometry */}
-      <mesh position={[0, 0.05, 0]} rotation={[Math.PI, 0, 0]} castShadow>
+      {/* 1. Foot anchor cone geometry (No shadows on mobile for performance) */}
+      <mesh position={[0, 0.05, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.2, 0.6, 16]} />
         <meshStandardMaterial
           color={pinColor}

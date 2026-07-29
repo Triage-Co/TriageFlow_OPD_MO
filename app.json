@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TriageFlowOPD_MO",
+    "name": "TriageFlow",
     "slug": "TriageFlowOPD_MO",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.trungntse173505.TriageFlowOPD_MO"
+      "package": "com.capstone.triageflow.opd.demo"
     },
     "web": {
       "bundler": "metro",

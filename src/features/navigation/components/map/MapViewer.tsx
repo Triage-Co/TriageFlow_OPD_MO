@@ -8,7 +8,7 @@ import { FloorRenderer } from "./FloorRenderer";
 import { useBuildingMap } from "../../hooks/useBuildingMap";
 
 function CameraController() {
-  const { camera, controls } = useThree();
+  const { camera, controls, gl } = useThree();
 
   const lastValidPosition = useRef(new THREE.Vector3());
   const lastValidTarget = useRef(new THREE.Vector3());
@@ -33,6 +33,31 @@ function CameraController() {
     lastValidPosition.current.copy(camera.position);
     isInitialized.current = true;
   }, [camera, controls]);
+
+  // Handle pointer cleanup for OrbitControls inside R3F mock DOM elements
+  useEffect(() => {
+    const el = gl.domElement as any;
+    if (el && el.addEventListener) {
+      const handleTouchEnd = (e: any) => {
+        const activeTouches = e.touches ? e.touches.length : 0;
+        const ctrl = controls as any;
+        if (activeTouches < 2 && ctrl) {
+          if (ctrl.pointers) {
+            ctrl.pointers = [];
+          }
+          ctrl.state = -1; // -1 represents STATE.NONE in OrbitControls
+        }
+      };
+
+      el.addEventListener("touchend", handleTouchEnd);
+      el.addEventListener("touchcancel", handleTouchEnd);
+
+      return () => {
+        el.removeEventListener("touchend", handleTouchEnd);
+        el.removeEventListener("touchcancel", handleTouchEnd);
+      };
+    }
+  }, [gl, controls]);
 
   useFrame(() => {
     if (!isInitialized.current) return;
@@ -68,8 +93,8 @@ function CameraController() {
 }
 
 export function MapViewer() {
-  const { activeFloor } = useNavigationStore();
-  const { data, loading, error } = useBuildingMap(activeFloor);
+  const { activeFloor, activeBuildingId } = useNavigationStore();
+  const { data, loading, error } = useBuildingMap(activeFloor, activeBuildingId || undefined);
 
   if (loading && !data) {
     return (
@@ -99,7 +124,6 @@ export function MapViewer() {
           <directionalLight
             position={[10, 30, 20]}
             intensity={1.2}
-            castShadow
           />
 
           <group position={[0, 0, 0]}>
@@ -118,11 +142,11 @@ export function MapViewer() {
           enablePan={true}
           maxDistance={120}
           minDistance={15}
-          zoomSpeed={0.8}
-          rotateSpeed={0.9}
-          panSpeed={1.0}
+          zoomSpeed={1.8}
+          rotateSpeed={1.1}
+          panSpeed={1.3}
           enableDamping={true}
-          dampingFactor={0.15}
+          dampingFactor={0.06}
         />
       </Canvas>
     </View>

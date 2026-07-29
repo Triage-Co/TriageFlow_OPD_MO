@@ -37,7 +37,7 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
     <group visible={true}>
       {/* 1. Base floor slab */}
       {slabMesh ? (
-        <mesh receiveShadow position={[0, -0.5, 0]} geometry={slabMesh}>
+        <mesh position={[0, -0.5, 0]} geometry={slabMesh}>
           <meshStandardMaterial
             color="#ffffff"
             transparent
@@ -47,7 +47,7 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
           />
         </mesh>
       ) : (
-        <mesh receiveShadow position={[0, -0.15, 0]} castShadow>
+        <mesh position={[0, -0.15, 0]}>
           <boxGeometry args={[120, 0.3, 80]} />
           <meshStandardMaterial color="#f1f5f9" roughness={0.8} metalness={0.05} />
         </mesh>

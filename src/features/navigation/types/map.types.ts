@@ -78,6 +78,23 @@ export interface ApiClinic {
   boundaries?: ApiClinicBoundary[];
 }
 
+export interface ApiArea {
+  id: string;
+  floorId: string;
+  areaCode: string;
+  areaLabel: string;
+  description: string | null;
+  centerGeom: {
+    type: "Point";
+    coordinates: [number, number];
+  };
+  outlineGeom: {
+    type: "Polygon";
+    coordinates: [number, number][][];
+  };
+  boundaries?: ApiBoundary[];
+}
+
 export interface ApiFloor {
   id: string;
   buildingId: string;
@@ -89,12 +106,14 @@ export interface ApiFloor {
   createdAt?: string;
   updatedAt?: string;
   outlineGeom: {
-    type: 'Polygon';
+    type: "Polygon";
     coordinates: [number, number][][];
   };
   rooms: ApiRoom[];
   doors: ApiDoor[];
   clinics?: ApiClinic[];
+  areas?: ApiArea[];
+  standaloneBoundaries?: ApiBoundary[];
 }
 
 export interface BuildingMapData {
@@ -164,13 +183,24 @@ export interface RoomData3D {
   pinIcon: string;
 }
 
+export interface RoomOption {
+  id: string;
+  roomCode: string;
+  roomLabel: string;
+  floorNumber: number;
+  type: string;
+}
+
 export interface FloorData3D {
   rooms: RoomData3D[];
   clinicPartitions: ClinicPartitionSegment[];
   standaloneDoors: StandaloneDoorData[];
+  standaloneWalls: WallSegment[];
   floorOutlinePoints: { x: number; z: number }[];
   floorWidth: number;
   floorHeight: number;
+  centerShiftX?: number;
+  centerShiftZ?: number;
   bounds: {
     minX: number;
     maxX: number;
@@ -209,4 +239,5 @@ export interface GeoJSONFeatureCollection {
   type: 'FeatureCollection';
   features: GeoJSONFeature[];
   floorData3D?: FloorData3D;
+  rawMap?: BuildingMapData;
 }

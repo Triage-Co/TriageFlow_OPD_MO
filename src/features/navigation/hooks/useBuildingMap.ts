@@ -1,20 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-import { GeoJSONFeatureCollection } from "../types/map.types";
-import { fetchBuildingMap } from "../services/map.service";
+import { GeoJSONFeatureCollection, BuildingMapData } from "../types/map.types";
+import { fetchBuildingMap, HARDCODED_BUILDING_ID } from "../services/map.service";
 import { buildingMapToGeoJSON } from "../utils/building-to-geojson";
 
-// In-memory cache to avoid redundant API requests when toggling floors
-const cache = new Map<number, GeoJSONFeatureCollection>();
+// In-memory cache using buildingId and floorNumber as compound key
+const cache = new Map<string, GeoJSONFeatureCollection>();
 
 /**
- * Hook to fetch building map data for a specific floor.
+ * Hook to fetch building map data for a specific building and floor level.
  * Automatically transforms backend coordinate geometry to 3D scene GeoJSON features.
  */
-export function useBuildingMap(floorNumber: number) {
+export function useBuildingMap(floorNumber: number, buildingId: string = HARDCODED_BUILDING_ID) {
+  const cacheKey = `${buildingId}-${floorNumber}`;
+
   const [data, setData] = useState<GeoJSONFeatureCollection | null>(
-    () => cache.get(floorNumber) ?? null
+    () => cache.get(cacheKey) ?? null
   );
-  const [loading, setLoading] = useState<boolean>(!cache.has(floorNumber));
+  const [rawMap, setRawMap] = useState<BuildingMapData | null>(null);
+  const [loading, setLoading] = useState<boolean>(!cache.has(cacheKey));
   const [error, setError] = useState<Error | null>(null);
 
   const isMounted = useRef(true);
@@ -26,8 +29,10 @@ export function useBuildingMap(floorNumber: number) {
   }, []);
 
   useEffect(() => {
-    if (cache.has(floorNumber)) {
-      setData(cache.get(floorNumber)!);
+    if (cache.has(cacheKey)) {
+      const cachedData = cache.get(cacheKey)!;
+      setData(cachedData);
+      setRawMap(cachedData.rawMap ?? null);
       setLoading(false);
       setError(null);
       return;
@@ -36,7 +41,7 @@ export function useBuildingMap(floorNumber: number) {
     setLoading(true);
     setError(null);
 
-    fetchBuildingMap()
+    fetchBuildingMap(buildingId)
       .then((buildingData) => {
         // Fallback to first available floor if requested floor is not in dataset
         const floorData =
@@ -48,10 +53,12 @@ export function useBuildingMap(floorNumber: number) {
         }
 
         const geojson = buildingMapToGeoJSON(floorData);
-        cache.set(floorNumber, geojson);
+        geojson.rawMap = buildingData; // Save rawMap references in cached features
+        cache.set(cacheKey, geojson);
 
         if (isMounted.current) {
           setData(geojson);
+          setRawMap(buildingData);
         }
       })
       .catch((err) => {
@@ -64,7 +71,7 @@ export function useBuildingMap(floorNumber: number) {
           setLoading(false);
         }
       });
-  }, [floorNumber]);
+  }, [floorNumber, buildingId]);
 
-  return { data, loading, error };
+  return { data, rawMap, loading, error };
 }

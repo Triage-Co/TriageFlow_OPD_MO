@@ -213,13 +213,14 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
     };
   });
 
-  // 3. Convert Clinic Partitions
+  // 3. Convert Clinic Partitions / Area Partitions
   const clinicPartitions: ClinicPartitionSegment[] = [];
-  if (floor.clinics) {
-    floor.clinics.forEach((clinic) => {
-      const color = CLINIC_COLORS[clinic.clinicCode] || CLINIC_COLORS.Default;
-      if (clinic.boundaries) {
-        clinic.boundaries.forEach((b) => {
+  const areasToParse = floor.areas || (floor as any).clinics;
+  if (areasToParse) {
+    areasToParse.forEach((area: any) => {
+      const color = CLINIC_COLORS[area.areaCode || area.clinicCode] || CLINIC_COLORS.Default;
+      if (area.boundaries) {
+        area.boundaries.forEach((b: any) => {
           if (b.lineGeom && b.lineGeom.coordinates && b.lineGeom.coordinates.length >= 2) {
             const coords = b.lineGeom.coordinates;
             const startX = coords[0][0] * DEG_TO_METER_X - centerShiftX;
@@ -233,9 +234,9 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
             const angle = Math.atan2(dz, dx);
 
             clinicPartitions.push({
-              clinicId: clinic.id,
-              clinicCode: clinic.clinicCode,
-              clinicLabel: clinic.clinicLabel,
+              clinicId: area.id,
+              clinicCode: area.areaCode || area.clinicCode,
+              clinicLabel: area.areaLabel || area.clinicLabel,
               color,
               startX,
               startZ,
@@ -292,13 +293,48 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
     });
   }
 
+  // 5. Convert Standalone Boundaries
+  const standaloneWalls: WallSegment[] = [];
+  if (floor.standaloneBoundaries) {
+    floor.standaloneBoundaries.forEach((b) => {
+      if (b.boundaryType === "DOOR") {
+        if (b.lineGeom && b.lineGeom.coordinates && b.lineGeom.coordinates.length >= 2) {
+          const coords = b.lineGeom.coordinates;
+          const startX = coords[0][0] * DEG_TO_METER_X - centerShiftX;
+          const startZ = -(coords[0][1] * DEG_TO_METER_Z) - centerShiftZ;
+          const endX = coords[1][0] * DEG_TO_METER_X - centerShiftX;
+          const endZ = -(coords[1][1] * DEG_TO_METER_Z) - centerShiftZ;
+
+          const dx = endX - startX;
+          const dz = endZ - startZ;
+          const length = Math.sqrt(dx * dx + dz * dz);
+          const angle = Math.atan2(dz, dx);
+
+          standaloneDoors.push({
+            id: b.id,
+            centerX: (startX + endX) / 2,
+            centerZ: (startZ + endZ) / 2,
+            width: length,
+            angle,
+          });
+        }
+      } else {
+        const seg = boundaryToWallSegment(b, centerShiftX, centerShiftZ);
+        if (seg) standaloneWalls.push(seg);
+      }
+    });
+  }
+
   return {
     rooms,
     clinicPartitions,
     standaloneDoors,
+    standaloneWalls,
     floorOutlinePoints,
     floorWidth: globalMaxX - globalMinX,
     floorHeight: globalMaxZ - globalMinZ,
+    centerShiftX,
+    centerShiftZ,
     bounds: {
       minX: globalMinX - centerShiftX,
       maxX: globalMaxX - centerShiftX,

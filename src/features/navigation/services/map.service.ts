@@ -3,41 +3,67 @@ import { BuildingMapResponse, BuildingMapData } from "../types/map.types";
 
 export const HARDCODED_BUILDING_ID = "00b03ef8-7702-4b08-a07e-ec887432453c";
 
-// Global cache variables to ensure only a single API call is ever made for this building
-let cachedBuildingData: BuildingMapData | null = null;
-let buildingDataPromise: Promise<BuildingMapData> | null = null;
+// Cache map to store data for different buildings
+const cachedBuildingData = new Map<string, BuildingMapData>();
+const buildingDataPromises = new Map<string, Promise<BuildingMapData>>();
 
 /**
- * Fetches the complete map detail data for the building.
- * Utilizes a Promise-based cache to avoid redundant network calls and handle concurrent requests.
+ * Fetches the complete map detail data for a specific building.
+ * Dynamic caching per buildingId.
  */
 export async function fetchBuildingMap(
   buildingId: string = HARDCODED_BUILDING_ID,
   forceRefresh: boolean = false
 ): Promise<BuildingMapData> {
-  if (cachedBuildingData && !forceRefresh) {
-    return cachedBuildingData;
+  if (cachedBuildingData.has(buildingId) && !forceRefresh) {
+    return cachedBuildingData.get(buildingId)!;
   }
 
-  if (buildingDataPromise && !forceRefresh) {
-    return buildingDataPromise;
+  if (buildingDataPromises.has(buildingId) && !forceRefresh) {
+    return buildingDataPromises.get(buildingId)!;
   }
 
-  buildingDataPromise = apiClient.get<BuildingMapResponse>(
+  const promise = apiClient.get<BuildingMapResponse>(
     `/api/navigation/building/${buildingId}/map`
   )
     .then((response) => {
       if (response.data?.data) {
-        cachedBuildingData = response.data.data;
-        buildingDataPromise = null;
-        return cachedBuildingData;
+        cachedBuildingData.set(buildingId, response.data.data);
+        buildingDataPromises.delete(buildingId);
+        return response.data.data;
       }
       throw new Error("Invalid API response format");
     })
     .catch((err) => {
-      buildingDataPromise = null; // Clear promise on failure to allow retries
+      buildingDataPromises.delete(buildingId); // Clear promise on failure
       throw err;
     });
 
-  return buildingDataPromise;
+  buildingDataPromises.set(buildingId, promise);
+  return promise;
+}
+
+/**
+ * Fetches routing path between two nodes in the building.
+ */
+export async function fetchRoute(
+  startId: string,
+  startType: "ROOM" | "ROOM_ENTRANCE" | "JUNCTION" | "ELEVATOR" | "STAIR",
+  targetId: string,
+  targetType: "ROOM" | "ROOM_ENTRANCE" | "JUNCTION" | "ELEVATOR" | "STAIR"
+): Promise<any> {
+  const query = new URLSearchParams({
+    startId,
+    startType,
+    targetId,
+    targetType,
+  }).toString();
+  const response = await apiClient.get<any>(`/api/navigation/route?${query}`);
+  if (response.data?.data) {
+    return response.data.data;
+  }
+  if (response.data) {
+    return response.data;
+  }
+  throw new Error("Không thể tải dữ liệu đường đi");
 }
