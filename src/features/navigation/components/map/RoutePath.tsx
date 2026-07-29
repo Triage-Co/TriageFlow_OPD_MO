@@ -13,22 +13,20 @@ interface RoutePathProps {
  * Renders the 3D route paths as a glowing neon tube on the floor.
  */
 export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: RoutePathProps) {
-  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
 
-  
   useFrame((state) => {
     if (materialRef.current) {
       const t = state.clock.getElapsedTime();
-      
-      const intensity = 0.75 + Math.sin(t * 5.0) * 0.45;
-      materialRef.current.emissiveIntensity = intensity;
+      const opacity = 0.7 + Math.sin(t * 5.0) * 0.3;
+      materialRef.current.opacity = opacity;
+      state.invalidate();
     }
   });
 
   const tubeGeometry = useMemo(() => {
     if (!path || path.length < 2) return null;
 
-    
     let floorNodes = path.filter((node: any) => {
       if (node.floorNumber !== undefined) {
         return Number(node.floorNumber) === Number(activeFloor);
@@ -36,7 +34,6 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
       return true;
     });
 
-    
     if (floorNodes.length < 2) {
       floorNodes = path;
     }
@@ -47,10 +44,9 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
       const [lng, lat] = node.coords;
       const x = lng * 111320 - centerShiftX;
       const z = -(lat * 110540) - centerShiftZ;
-      return new THREE.Vector3(x, 0.4, z); 
+      return new THREE.Vector3(x, 0.4, z);
     });
 
-    
     const uniquePoints: THREE.Vector3[] = [];
     points.forEach((p) => {
       if (uniquePoints.length === 0) {
@@ -78,13 +74,9 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
 
   return (
     <mesh geometry={tubeGeometry}>
-      <meshStandardMaterial
+      <meshBasicMaterial
         ref={materialRef}
         color="#3b82f6"
-        emissive="#3b82f6"
-        emissiveIntensity={0.8}
-        roughness={0.1}
-        metalness={0.9}
         transparent
         opacity={0.9}
         depthWrite={false}

@@ -8,7 +8,7 @@ import { FloorRenderer } from "./FloorRenderer";
 import { useBuildingMap } from "../../hooks/useBuildingMap";
 
 function CameraController() {
-  const { camera, controls, gl } = useThree();
+  const { camera, controls } = useThree();
 
   const lastValidPosition = useRef(new THREE.Vector3());
   const lastValidTarget = useRef(new THREE.Vector3());
@@ -21,7 +21,6 @@ function CameraController() {
       ctrl.reset();
     }
 
-    
     camera.position.set(0, 45, 65);
     camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
@@ -33,31 +32,6 @@ function CameraController() {
     lastValidPosition.current.copy(camera.position);
     isInitialized.current = true;
   }, [camera, controls]);
-
-  
-  useEffect(() => {
-    const el = gl.domElement as any;
-    if (el && el.addEventListener) {
-      const handleTouchEnd = (e: any) => {
-        const activeTouches = e.touches ? e.touches.length : 0;
-        const ctrl = controls as any;
-        if (activeTouches < 2 && ctrl) {
-          if (ctrl.pointers) {
-            ctrl.pointers = [];
-          }
-          ctrl.state = -1; 
-        }
-      };
-
-      el.addEventListener("touchend", handleTouchEnd);
-      el.addEventListener("touchcancel", handleTouchEnd);
-
-      return () => {
-        el.removeEventListener("touchend", handleTouchEnd);
-        el.removeEventListener("touchcancel", handleTouchEnd);
-      };
-    }
-  }, [gl, controls]);
 
   useFrame(() => {
     if (!isInitialized.current) return;
@@ -95,6 +69,7 @@ function CameraController() {
 export function MapViewer() {
   const { activeFloor, activeBuildingId } = useNavigationStore();
   const { data, loading, error } = useBuildingMap(activeFloor, activeBuildingId || undefined);
+  const controlsRef = useRef<any>(null);
 
   if (loading && !data) {
     return (
@@ -113,11 +88,28 @@ export function MapViewer() {
     );
   }
 
+  const handleTouchReset = () => {
+    const ctrl = controlsRef.current;
+    if (ctrl) {
+      if (ctrl.pointers) {
+        ctrl.pointers = [];
+      }
+      ctrl.state = -1;
+      ctrl.update();
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onTouchEnd={handleTouchReset}
+      onTouchCancel={handleTouchReset}
+    >
       <Canvas
         camera={{ position: [0, 45, 65], fov: 45 }}
         style={styles.canvas}
+        frameloop="demand"
+        gl={{ antialias: false, powerPreference: "high-performance" }}
       >
         <Suspense fallback={null}>
           <ambientLight intensity={0.75} />
@@ -134,13 +126,14 @@ export function MapViewer() {
         </Suspense>
 
         <OrbitControls
+          ref={controlsRef}
           makeDefault
           minPolarAngle={0}
           maxPolarAngle={Math.PI / 2.1}
           enableRotate={true}
           enableZoom={true}
           enablePan={true}
-          maxDistance={120}
+          maxDistance={200}
           minDistance={15}
           zoomSpeed={1.8}
           rotateSpeed={1.1}

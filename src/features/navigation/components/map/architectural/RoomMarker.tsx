@@ -60,16 +60,23 @@ export function RoomMarker({
   const textureUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${unicode}.png`;
   const texture = useTexture(textureUrl) as THREE.Texture;
 
+  if (texture) {
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+  }
+
   useFrame((state) => {
     if (meshRef.current) {
       const t = state.clock.getElapsedTime();
       meshRef.current.position.y = 3.3 + Math.sin(t * 2.8) * 0.12;
       meshRef.current.rotation.y = t * 0.9;
+      state.invalidate();
     }
   });
 
   const { scale } = useSpring({
-    scale: 0.65,
+    from: { scale: 0.01 },
+    to: { scale: 0.65 },
     config: { mass: 1, tension: 210, friction: 20 }
   });
 
@@ -78,10 +85,8 @@ export function RoomMarker({
       {/* 1. Foot anchor cone geometry (No shadows on mobile for performance) */}
       <mesh position={[0, 0.05, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.2, 0.6, 16]} />
-        <meshStandardMaterial
+        <meshBasicMaterial
           color={pinColor}
-          roughness={0.12}
-          metalness={0.25}
           depthWrite={true}
         />
       </mesh>

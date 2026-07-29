@@ -18,6 +18,7 @@ export function Beacon({ position }: BeaconProps) {
         const scale = 1 + Math.sin(t * 3.5) * 0.15;
         ring.scale.set(scale, scale, 1);
       }
+      state.invalidate();
     }
   });
 

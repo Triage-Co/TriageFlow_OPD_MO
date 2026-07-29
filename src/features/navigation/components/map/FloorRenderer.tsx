@@ -38,18 +38,16 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
       {/* 1. Base floor slab */}
       {slabMesh ? (
         <mesh position={[0, -0.5, 0]} geometry={slabMesh}>
-          <meshStandardMaterial
+          <meshLambertMaterial
             color="#ffffff"
             transparent
             opacity={0.9}
-            roughness={0.5}
-            metalness={0.05}
           />
         </mesh>
       ) : (
         <mesh position={[0, -0.15, 0]}>
           <boxGeometry args={[120, 0.3, 80]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.8} metalness={0.05} />
+          <meshLambertMaterial color="#f1f5f9" />
         </mesh>
       )}
 
