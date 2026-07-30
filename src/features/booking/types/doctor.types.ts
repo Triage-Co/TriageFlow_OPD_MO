@@ -85,7 +85,8 @@ export interface BookingPaymentData {
 
 export interface BookingResponseData {
   step_id: string;
-  data: {
+  booking_id?: string;
+  data?: {
     booking_id: string;
     patient_id: string;
     slot_id: string;
@@ -107,10 +108,19 @@ export interface BookingResponse {
 }
 
 export interface BookingGenerateData {
-  queue_id: string;
-  step_id: string;
-  queue_number: string;
-  status: string;
+  queue_id?: string;
+  step_id?: string;
+  queue_number?: string;
+  status?: string;
+  queue?: {
+    queue_id?: string;
+    step_id?: string;
+    queue_number?: string;
+    status?: string;
+  };
+  slot?: any;
+  room?: any;
+  specialty?: any;
 }
 
 export interface BookingGenerateResponse {

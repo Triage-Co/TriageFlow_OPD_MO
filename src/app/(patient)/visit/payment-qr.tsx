@@ -128,7 +128,7 @@ export default function PaymentQrScreen() {
 
     
     setConfirmedData({
-      queueNumber: bookingResult.queue_number || "--",
+      queueNumber: bookingResult.queue?.queue_number || bookingResult.queue_number || "--",
       specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || specialtyName || "",
       roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || "",
       startTime: stepDetail.flow?.booking?.slot?.start_time || slotTime || "",

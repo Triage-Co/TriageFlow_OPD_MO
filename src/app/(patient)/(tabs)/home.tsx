@@ -10,6 +10,7 @@ import { patientService } from "@/features/patient/services/patient.service";
 import { Patient } from "@/features/patient/types/patient.types";
 import { SymbolView } from "expo-symbols";
 import { AppButton } from "@/shared/components/AppButton";
+import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
 
 /**
  * Home screen – Trang chủ của bệnh nhân
@@ -31,7 +32,7 @@ export default function HomeScreen() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [bookingFlowType, setBookingFlowType] = useState<"booking" | "triage" | null>(null);
+  const [bookingFlowType, setBookingFlowType] = useState<"booking" | "triage" | "payment" | null>(null);
   const [isFetchingPatients, setIsFetchingPatients] = useState(false);
 
   const loadPatients = async () => {
@@ -51,7 +52,7 @@ export default function HomeScreen() {
     loadPatients();
   }, []);
 
-  const handlePressBooking = async (type: "booking" | "triage") => {
+  const handlePressBooking = async (type: "booking" | "triage" | "payment") => {
     setBookingFlowType(type);
     setIsFetchingPatients(true);
     const list = await loadPatients();
@@ -75,19 +76,25 @@ export default function HomeScreen() {
     }
   };
 
-  const handleConfirmPatient = () => {
-    if (!selectedPatientId) return;
+  const handleConfirmPatient = (patientId: string) => {
     setIsPatientModalVisible(false);
+    setSelectedPatientId(patientId);
 
     if (bookingFlowType === "booking") {
       router.push({
         pathname: "/(patient)/appointment/specialty-select",
-        params: { patientId: selectedPatientId }
+        params: { patientId }
       });
     } else if (bookingFlowType === "triage") {
       router.push({
         pathname: "/(patient)/body-map",
-        params: { patientId: selectedPatientId }
+        params: { patientId }
+      });
+    } else if (bookingFlowType === "payment") {
+      const selected = patients.find(p => p.patient_id === patientId);
+      router.push({
+        pathname: "/(patient)/visit/pending-payments",
+        params: { patientId, patientName: selected?.full_name || "Bệnh nhân" }
       });
     }
   };
@@ -172,6 +179,17 @@ export default function HomeScreen() {
             </View>
             <Text className="text-xs text-gray-700 font-semibold text-center">Dẫn đường</Text>
           </Pressable>
+
+          {/* Nút 4: Thanh toán */}
+          <Pressable 
+            onPress={() => handlePressBooking("payment")}
+            className="items-center gap-2 flex-1 active:opacity-75"
+          >
+            <View className="bg-emerald-100/70 w-14 h-14 rounded-2xl items-center justify-center">
+              <Ionicons name="card-outline" size={24} color="#10B981" />
+            </View>
+            <Text className="text-xs text-gray-700 font-semibold text-center">Thanh toán</Text>
+          </Pressable>
         </View>
 
         {/* ── Banner Đặt Khám ── */}
@@ -249,119 +267,12 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Modal chọn bệnh nhân */}
-      <Modal
+      <PatientPickerModal
         visible={isPatientModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsPatientModalVisible(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-center items-center px-6">
-          <View className="w-full bg-white rounded-[28px] overflow-hidden max-h-[80%] shadow-lg">
-            <View className="p-6">
-              {/* Header */}
-              <View className="flex-row justify-between items-center mb-5">
-                <Text className="text-gray-800 text-lg font-bold">Khám cho ai?</Text>
-                <Pressable
-                  onPress={() => setIsPatientModalVisible(false)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <SymbolView
-                    name={{ ios: "xmark.circle.fill", android: "cancel" }}
-                    size={24}
-                    tintColor="#9CA3AF"
-                  />
-                </Pressable>
-              </View>
-
-              {/* Title & Desc */}
-              <Text className="text-gray-500 text-xs mb-4">
-                Vui lòng chọn hồ sơ bệnh nhân đăng ký khám:
-              </Text>
-
-              {/* Patient List */}
-              <FlatList
-                data={patients}
-                keyExtractor={(item) => item.patient_id}
-                showsVerticalScrollIndicator={false}
-                style={{ maxHeight: 250 }}
-                contentContainerStyle={{ paddingBottom: 10 }}
-                renderItem={({ item }) => {
-                  const isSelected = selectedPatientId === item.patient_id;
-                  
-                  
-                  let initials = "BN";
-                  if (item.full_name) {
-                    const parts = item.full_name.trim().split(" ");
-                    if (parts.length > 1) {
-                      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                    } else if (parts.length === 1) {
-                      initials = parts[0].substring(0, 2).toUpperCase();
-                    }
-                  }
-
-                  const formattedDob = item.dob ? item.dob.split("T")[0].split("-").reverse().join("/") : "";
-                  
-                  return (
-                    <Pressable
-                      onPress={() => setSelectedPatientId(item.patient_id)}
-                      className={`flex-row items-center p-3 rounded-2xl border mb-3 active:opacity-75 ${
-                        isSelected
-                          ? "bg-primary/5 border-primary"
-                          : "bg-white border-neutral-100"
-                      }`}
-                    >
-                      {/* Initials Avatar */}
-                      <View className={`w-10 h-10 rounded-xl items-center justify-center mr-3 ${
-                        isSelected ? "bg-primary/10" : "bg-neutral-100"
-                      }`}>
-                        <Text className={`font-bold text-sm ${isSelected ? "text-primary" : "text-gray-500"}`}>
-                          {initials}
-                        </Text>
-                      </View>
-
-                      {/* Info */}
-                      <View className="flex-1">
-                        <Text className="text-gray-800 font-bold text-sm">{item.full_name}</Text>
-                        <Text className="text-gray-400 text-xs mt-0.5">
-                          {item.gender === "MALE" ? "Nam" : "Nữ"} • Ngày sinh: {formattedDob}
-                        </Text>
-                      </View>
-
-                      {/* Checkmark or Radio */}
-                      {isSelected ? (
-                        <View className="w-5 h-5 rounded-full bg-primary items-center justify-center">
-                          <SymbolView
-                            name={{ ios: "checkmark", android: "check" }}
-                            size={12}
-                            tintColor="#FFFFFF"
-                          />
-                        </View>
-                      ) : (
-                        <View className="w-5 h-5 rounded-full border border-neutral-200" />
-                      )}
-                    </Pressable>
-                  );
-                }}
-              />
-
-              {/* Actions */}
-              <View className="gap-2 mt-4">
-                <AppButton
-                  title="Tiếp tục"
-                  variant="primary"
-                  onPress={handleConfirmPatient}
-                  disabled={!selectedPatientId}
-                />
-                <AppButton
-                  title="Hủy"
-                  variant="secondary"
-                  onPress={() => setIsPatientModalVisible(false)}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsPatientModalVisible(false)}
+        selectedPatientId={selectedPatientId}
+        onConfirm={handleConfirmPatient}
+      />
 
       {/* Fetching overlay */}
       {isFetchingPatients && (

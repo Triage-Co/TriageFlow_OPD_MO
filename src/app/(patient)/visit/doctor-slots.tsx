@@ -97,7 +97,7 @@ export default function DoctorSlotsScreen() {
           pathname: "/(patient)/visit/payment-qr",
           params: {
             stepId: bookingResult.step_id,
-            bookingId: bookingResult.data.booking_id,
+            bookingId: bookingResult.booking_id || bookingResult.data?.booking_id || "",
             bin: bookingResult.payment.data.bin,
             accountNumber: bookingResult.payment.data.accountNumber,
             accountName: bookingResult.payment.data.accountName,

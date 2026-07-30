@@ -46,7 +46,22 @@ class DoctorService {
   }
 
   async getStepDetail(stepId: string): Promise<StepDetailResponse> {
-    const response = await apiClient.get<StepDetailResponse>(`/api/step/account/${stepId}`);
+    const response = await apiClient.get<StepDetailResponse>(`/api/step/${stepId}/me`);
+    return response.data;
+  }
+
+  async getActiveFlow(patientId: string): Promise<any> {
+    const response = await apiClient.get(`/api/flow/patient/${patientId}/active`);
+    return response.data;
+  }
+
+  async getPatientFlows(patientId: string): Promise<any> {
+    const response = await apiClient.get(`/api/flow/patient/${patientId}`);
+    return response.data;
+  }
+
+  async getPendingPaymentSteps(patientId: string): Promise<any> {
+    const response = await apiClient.get(`/api/step?patient_id=${encodeURIComponent(patientId)}`);
     return response.data;
   }
 }
