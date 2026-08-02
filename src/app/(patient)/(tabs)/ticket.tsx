@@ -6,7 +6,7 @@ import { doctorService } from "@/features/booking/services/doctor.service";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +16,7 @@ import {
   Text,
   View,
   Pressable,
+  TouchableOpacity,
 } from "react-native";
 
 interface ActiveTicket {
@@ -26,6 +27,25 @@ interface ActiveTicket {
   roomName: string;
   startTime: string;
 }
+
+const getFlowExamDate = (flow: any): string => {
+  if (flow.date) {
+    return flow.date.split("T")[0];
+  }
+  const bookingDate = flow.booking?.slot?.shift?.date;
+  if (bookingDate) {
+    return bookingDate.split("T")[0];
+  }
+  if (flow.steps && Array.isArray(flow.steps)) {
+    for (const step of flow.steps) {
+      const stepBookingDate = step.flow?.booking?.slot?.shift?.date || step.booking?.slot?.shift?.date;
+      if (stepBookingDate) {
+        return stepBookingDate.split("T")[0];
+      }
+    }
+  }
+  return flow.create_at ? flow.create_at.split("T")[0] : "";
+};
 
 export default function TicketTabScreen() {
   const router = useRouter();
@@ -41,8 +61,9 @@ export default function TicketTabScreen() {
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
 
   // States for multiple flows support
-  const [availableFlows, setAvailableFlows] = useState<any[]>([]);
+  const [allFlows, setAllFlows] = useState<any[]>([]);
   const [selectedFlow, setSelectedFlow] = useState<any | null>(null);
+  const [selectedTab, setSelectedTab] = useState<"today" | "upcoming">("today");
 
   const selectFlow = useCallback((flow: any, patientName: string) => {
     setSelectedFlow(flow);
@@ -63,10 +84,15 @@ export default function TicketTabScreen() {
 
     const finalActiveStep = currentActiveStep || activeSteps[0] || flow.steps[0];
 
+    // Tìm bước chứa thông tin chuyên khoa/phòng khám/số thứ tự
+    const examStep = flow.steps.find(
+      (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.queues?.[0]?.queue_number
+    ) || finalActiveStep;
+
     if (finalActiveStep) {
-      const queueNumber = finalActiveStep.queues?.[0]?.queue_number || "--";
-      const specialtyName = finalActiveStep.specialty_info?.specialty_name || finalActiveStep.step_name || "Khám bệnh";
-      const roomName = finalActiveStep.room_info?.room_name || "Đang xếp phòng";
+      const queueNumber = examStep?.queues?.[0]?.queue_number || "--";
+      const specialtyName = examStep?.specialty_info?.specialty_name || examStep?.step_name || "Khám bệnh";
+      const roomName = examStep?.room_info?.room_name || "Đang xếp phòng";
       
       let startTimeStr = "Đang xếp ca";
       if (flow.create_at) {
@@ -89,65 +115,66 @@ export default function TicketTabScreen() {
     }
   }, []);
 
+  const filterFlowsByTab = useCallback((flows: any[], tab: "today" | "upcoming") => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+    return flows.filter((flow: any) => {
+      const examDate = getFlowExamDate(flow);
+      if (tab === "today") {
+        return examDate === todayStr && flow.status === "IN_PROGRESS";
+      } else {
+        return examDate >= tomorrowStr;
+      }
+    });
+  }, []);
+
+  const currentFlows = useMemo(() => {
+    return filterFlowsByTab(allFlows, selectedTab);
+  }, [allFlows, selectedTab, filterFlowsByTab]);
+
   const loadTicketData = useCallback(async (patientId: string, patientName: string, showLoadingIndicator = true) => {
     if (showLoadingIndicator) setIsLoading(true);
     try {
       const response = await doctorService.getActiveFlow(patientId);
+      console.log("[TicketTab] getActiveFlow response:", JSON.stringify(response, null, 2));
       
       if (!response || !response.data || response.data.length === 0) {
-        setActiveTicket(null);
-        setActiveFlow(null);
-        setAvailableFlows([]);
-        setSelectedFlow(null);
+        setAllFlows([]);
         return;
       }
 
-      // Lấy ngày hôm nay định dạng YYYY-MM-DD
-      const todayStr = new Date().toISOString().split("T")[0];
-
-      // Lọc các flow đang diễn ra (IN_PROGRESS) được tạo ngày hôm nay
-      const todayFlows = response.data.filter((flow: any) => {
-        const flowDate = flow.create_at ? flow.create_at.split("T")[0] : "";
-        return flow.status === "IN_PROGRESS" && flowDate === todayStr;
-      });
-
-      if (todayFlows.length === 0) {
-        setActiveTicket(null);
-        setActiveFlow(null);
-        setAvailableFlows([]);
-        setSelectedFlow(null);
-        return;
-      }
-
-      setAvailableFlows(todayFlows);
-
-      // Nếu chỉ có 1 flow, chọn luôn
-      if (todayFlows.length === 1) {
-        selectFlow(todayFlows[0], patientName);
-      } else {
-        // Có nhiều flow, nếu đã chọn một flow trước đó rồi, đồng bộ lại dữ liệu mới nhất của flow đó
-        if (selectedFlow) {
-          const matchedFlow = todayFlows.find((f: any) => f.flow_id === selectedFlow.flow_id);
-          if (matchedFlow) {
-            selectFlow(matchedFlow, patientName);
-            return;
-          }
-        }
-        // Chưa chọn flow nào hoặc flow cũ không tồn tại nữa, reset để hiện danh sách lựa chọn
-        setActiveTicket(null);
-        setActiveFlow(null);
-      }
+      setAllFlows(response.data);
     } catch (err) {
       console.error("[TicketTab] Lỗi tải phiếu khám:", err);
-      setActiveTicket(null);
-      setActiveFlow(null);
-      setAvailableFlows([]);
-      setSelectedFlow(null);
+      setAllFlows([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [selectedFlow, selectFlow]);
+  }, []);
+
+  // Sync selected flow when currentFlows changes
+  useEffect(() => {
+    if (currentFlows.length === 1) {
+      selectFlow(currentFlows[0], selectedPatientName);
+    } else if (currentFlows.length > 1) {
+      if (selectedFlow) {
+        const matchedFlow = currentFlows.find((f: any) => f.flow_id === selectedFlow.flow_id);
+        if (matchedFlow) {
+          selectFlow(matchedFlow, selectedPatientName);
+          return;
+        }
+      }
+      setActiveTicket(null);
+      setActiveFlow(null);
+    } else {
+      setActiveTicket(null);
+      setActiveFlow(null);
+    }
+  }, [currentFlows, selectedPatientName, selectFlow]);
 
   // Tự động kích hoạt Modal chọn bệnh nhân nếu chưa chọn
   useEffect(() => {
@@ -226,6 +253,78 @@ export default function TicketTabScreen() {
           </Pressable>
         </View>
 
+        {/* Sub-tabs for filtering Today vs Upcoming */}
+        <View 
+          style={{
+            flexDirection: "row",
+            backgroundColor: "#F3F4F6",
+            padding: 4,
+            borderRadius: 9999,
+            marginLeft: 20,
+            marginRight: 20,
+            marginTop: 16,
+            borderWidth: 1,
+            borderColor: "#E5E7EB",
+          }}
+        >
+          <TouchableOpacity 
+            onPress={() => {
+              setSelectedTab("today");
+              setSelectedFlow(null);
+            }}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 9999,
+              alignItems: "center",
+              backgroundColor: selectedTab === "today" ? "#FFFFFF" : "transparent",
+              shadowColor: selectedTab === "today" ? "#000" : "transparent",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.15,
+              shadowRadius: 1.5,
+              elevation: selectedTab === "today" ? 2 : 0,
+            }}
+          >
+            <Text 
+              style={{
+                fontSize: 13,
+                fontWeight: "bold",
+                color: selectedTab === "today" ? Colors.primary : "#6B7280",
+              }}
+            >
+              Hôm nay
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => {
+              setSelectedTab("upcoming");
+              setSelectedFlow(null);
+            }}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 9999,
+              alignItems: "center",
+              backgroundColor: selectedTab === "upcoming" ? "#FFFFFF" : "transparent",
+              shadowColor: selectedTab === "upcoming" ? "#000" : "transparent",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.15,
+              shadowRadius: 1.5,
+              elevation: selectedTab === "upcoming" ? 2 : 0,
+            }}
+          >
+            <Text 
+              style={{
+                fontSize: 13,
+                fontWeight: "bold",
+                color: selectedTab === "upcoming" ? Colors.primary : "#6B7280",
+              }}
+            >
+              Lịch hẹn
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {isLoading ? (
           // Trạng thái Loading
           <View className="flex-1 items-center justify-center">
@@ -234,7 +333,7 @@ export default function TicketTabScreen() {
               Đang tải thông tin phiếu khám...
             </Text>
           </View>
-        ) : availableFlows.length > 1 && !activeTicket ? (
+        ) : currentFlows.length > 1 && !activeTicket ? (
           // Trạng thái 1.5: Hồ sơ có nhiều lượt khám khác nhau trong ngày -> Hiện danh sách chọn
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -250,17 +349,28 @@ export default function TicketTabScreen() {
           >
             <View className="mb-4">
               <Text className="text-gray-800 text-[16px] font-bold">
-                Chọn Lượt Khám Hôm Nay
+                {selectedTab === "today" ? "Chọn Lượt Khám Hôm Nay" : "Chọn Lịch Hẹn Đăng Ký"}
               </Text>
               <Text className="text-gray-400 text-xs mt-1 leading-[18px]">
-                Hồ sơ của {selectedPatientName} hiện có nhiều lượt khám đang diễn ra. Vui lòng chọn một lượt để xem phiếu khám và lộ trình chi tiết:
+                {selectedTab === "today"
+                  ? `Hồ sơ của ${selectedPatientName} hiện có nhiều lượt khám đang diễn ra hôm nay. Vui lòng chọn một lượt để xem phiếu khám:`
+                  : `Hồ sơ của ${selectedPatientName} có nhiều lịch hẹn đăng ký sắp tới. Vui lòng chọn một lượt để xem chi tiết:`}
               </Text>
             </View>
 
-            {availableFlows.map((flowItem) => {
-              const firstStep = flowItem.steps?.[0];
-              const specialtyName = firstStep?.specialty_info?.specialty_name || firstStep?.step_name || "Lượt khám y tế";
+            {currentFlows.map((flowItem) => {
+              const examStep = flowItem.steps?.find((s: any) => s.specialty_info?.specialty_name) || flowItem.steps?.[0];
+              const specialtyName = examStep?.specialty_info?.specialty_name || examStep?.step_name || "Lượt khám y tế";
               
+              const examDate = getFlowExamDate(flowItem);
+              let dateText = "";
+              if (examDate) {
+                const dateParts = examDate.split("-");
+                if (dateParts.length === 3) {
+                  dateText = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                }
+              }
+
               let createdTime = "";
               if (flowItem.create_at) {
                 const parts = flowItem.create_at.split("T");
@@ -279,14 +389,18 @@ export default function TicketTabScreen() {
                       <View className="bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                         <Text className="text-primary text-[10px] font-bold">Lượt khám</Text>
                       </View>
-                      <Text className="text-gray-400 text-[11px] font-bold">Lúc {createdTime}</Text>
+                      <Text className="text-gray-400 text-[11px] font-bold">
+                        {selectedTab === "today" ? `Lúc ${createdTime}` : `${dateText} - Lúc ${createdTime}`}
+                      </Text>
                     </View>
                     <Text className="text-gray-800 text-[14px] font-extrabold mb-1">
                       {specialtyName}
                     </Text>
-                    <Text className="text-gray-400 text-[11px] font-medium">
-                      Trạng thái: <Text className="text-primary font-bold">Đang diễn ra</Text>
-                    </Text>
+                    {selectedTab === "today" && (
+                      <Text className="text-gray-400 text-[11px] font-medium">
+                        Trạng thái: <Text className="text-primary font-bold">Đang diễn ra</Text>
+                      </Text>
+                    )}
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                 </Pressable>
@@ -296,7 +410,7 @@ export default function TicketTabScreen() {
         ) : activeTicket ? (
           // Trạng thái 1: Hiển thị Thẻ Phiếu Khám
           <View className="flex-1 justify-between">
-            {availableFlows.length > 1 && (
+            {currentFlows.length > 1 && (
               <Pressable
                 onPress={() => {
                   setActiveTicket(null);
@@ -429,7 +543,7 @@ export default function TicketTabScreen() {
             </ScrollView>
           </View>
         ) : (
-          // Trạng thái 2: CHƯA CÓ LỊCH HẸN KHÁM HÔM NAY (Placeholder)
+          // Trạng thái 2: CHƯA CÓ LỊCH HẸN KHÁM (Placeholder)
           <View className="flex-1 justify-between px-6 py-12 items-center">
             <View className="flex-1 items-center justify-center">
               <View className="w-24 h-24 rounded-full bg-[#84AFEB]/10 items-center justify-center mb-6">
@@ -440,12 +554,16 @@ export default function TicketTabScreen() {
                 />
               </View>
               <Text className="text-gray-800 text-[18px] font-extrabold mb-2 text-center">
-                Không có phiếu khám hôm nay
+                {selectedTab === "today" ? "Không có phiếu khám hôm nay" : "Không có lịch hẹn sắp tới"}
               </Text>
               <Text className="text-gray-400 text-[13px] font-medium text-center px-4 leading-[20px]">
                 {selectedPatientName
-                  ? `Hồ sơ ${selectedPatientName} chưa có lịch hẹn khám bệnh nào trong ngày hôm nay.`
-                  : "Bạn chưa chọn bệnh nhân hoặc chưa có lịch hẹn khám nào trong hôm nay."}
+                  ? selectedTab === "today"
+                    ? `Hồ sơ ${selectedPatientName} chưa có lịch hẹn khám bệnh nào trong ngày hôm nay.`
+                    : `Hồ sơ ${selectedPatientName} chưa có lịch hẹn khám bệnh nào sắp tới.`
+                  : selectedTab === "today"
+                    ? "Bạn chưa chọn bệnh nhân hoặc chưa có lịch hẹn khám nào trong hôm nay."
+                    : "Bạn chưa chọn bệnh nhân hoặc chưa có lịch hẹn khám nào sắp tới."}
               </Text>
             </View>
           </View>

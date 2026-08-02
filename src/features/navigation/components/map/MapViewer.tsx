@@ -1,7 +1,8 @@
-import React, { Suspense, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
 import { Canvas, useFrame, useThree } from "@react-three/fiber/native";
 import { OrbitControls } from "@react-three/drei/native";
+import { Ionicons } from "@expo/vector-icons";
 import * as THREE from "three";
 import { useNavigationStore } from "../../store/useNavigationStore";
 import { FloorRenderer } from "./FloorRenderer";
@@ -68,8 +69,9 @@ function CameraController() {
 
 export function MapViewer() {
   const { activeFloor, activeBuildingId } = useNavigationStore();
-  const { data, loading, error } = useBuildingMap(activeFloor, activeBuildingId || undefined);
+  const { data, rawMap, loading, error } = useBuildingMap(activeFloor, activeBuildingId || undefined);
   const controlsRef = useRef<any>(null);
+  const [controlMode, setControlMode] = useState<"pan" | "rotate">("pan");
 
   if (loading && !data) {
     return (
@@ -98,6 +100,8 @@ export function MapViewer() {
       ctrl.update();
     }
   };
+
+  const hasMultipleFloors = !!(rawMap?.floors && rawMap.floors.length > 1);
 
   return (
     <View
@@ -130,9 +134,9 @@ export function MapViewer() {
           makeDefault
           minPolarAngle={0}
           maxPolarAngle={Math.PI / 2.1}
-          enableRotate={true}
+          enableRotate={controlMode === "rotate"}
           enableZoom={true}
-          enablePan={true}
+          enablePan={controlMode === "pan"}
           maxDistance={200}
           minDistance={15}
           zoomSpeed={1.8}
@@ -140,8 +144,45 @@ export function MapViewer() {
           panSpeed={1.3}
           enableDamping={true}
           dampingFactor={0.06}
+          touches={{
+            ONE: controlMode === "pan" ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN,
+          }}
         />
       </Canvas>
+
+      {/* Floating control mode toggle button (circular, vertical stack next to floor switcher) */}
+      <View style={[styles.toggleContainer, { right: hasMultipleFloors ? 72 : 16 }]}>
+        <TouchableOpacity
+          style={[
+            styles.toggleButton,
+            controlMode === "pan" ? styles.activeButton : styles.inactiveButton,
+          ]}
+          onPress={() => setControlMode("pan")}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="hand-left-outline"
+            size={20}
+            color={controlMode === "pan" ? "#ffffff" : "#4b5563"}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.toggleButton,
+            controlMode === "rotate" ? styles.activeButton : styles.inactiveButton,
+          ]}
+          onPress={() => setControlMode("rotate")}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="sync-outline"
+            size={20}
+            color={controlMode === "rotate" ? "#ffffff" : "#4b5563"}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -172,5 +213,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+  toggleContainer: {
+    position: "absolute",
+    top: 16,
+    right: 72, // Đặt thẳng hàng và ngay cạnh Floor Switcher
+    flexDirection: "column",
+    gap: 8,
+    zIndex: 30,
+  },
+  toggleButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  activeButton: {
+    backgroundColor: "#3b82f6",
+  },
+  inactiveButton: {
+    backgroundColor: "#ffffff",
   },
 });

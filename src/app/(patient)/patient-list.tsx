@@ -3,6 +3,7 @@ import type { EkycOcrObject } from "@/features/ekyc/types/ekyc.types";
 import { usePatient } from "@/features/patient/hooks/usePatient";
 import { Patient } from "@/features/patient/types/patient.types";
 import { AppButton } from "@/shared/components/AppButton";
+import { AppInput } from "@/shared/components/AppInput";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -50,7 +51,8 @@ export default function PatientListScreen() {
   const [editForm, setEditForm] = useState({
     fullName: "",
     gender: "" as "MALE" | "FEMALE" | "",
-    dob: "", 
+    dob: "",
+    medicalCoverageId: "",
   });
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
   const [editPickerDate, setEditPickerDate] = useState(new Date());
@@ -104,6 +106,7 @@ export default function PatientListScreen() {
       fullName: patient.full_name,
       gender: patient.gender,
       dob: patient.dob ? patient.dob.split("T")[0] : "",
+      medicalCoverageId: patient.medical_coverage_id || "",
     });
     setEditPickerDate(patient.dob ? new Date(patient.dob) : new Date());
     setIsEditVisible(true);
@@ -145,6 +148,7 @@ export default function PatientListScreen() {
       full_name: fullName.trim(),
       gender: gender as "MALE" | "FEMALE",
       dob,
+      medical_coverage_id: editForm.medicalCoverageId,
     });
 
     if (success) {
@@ -548,6 +552,11 @@ export default function PatientListScreen() {
                   </Text>
                 </Pressable>
               </View>
+<AppInput
+  placeholder="Mã bảo hiểm y tế"
+  value={editForm.medicalCoverageId}
+  onChangeText={(v) => setEditForm((p) => ({ ...p, medicalCoverageId: v }))}
+/>
 
               {/* Actions */}
               <View className="gap-2">

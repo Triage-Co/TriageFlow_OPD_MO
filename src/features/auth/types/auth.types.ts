@@ -11,7 +11,7 @@ export type RegisterRequest = {
   password: string;
   gender: Gender;
   phone: string;
-  role: "USER";
+
 };
 
 /** Response 201 từ /api/auth/register */

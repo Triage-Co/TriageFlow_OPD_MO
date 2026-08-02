@@ -27,10 +27,9 @@ export function useBooking() {
         setError(response.message || "Đặt lịch khám thất bại. Vui lòng thử lại.");
         return null;
       } catch (err: any) {
-        console.error("[useBooking] Create booking error:", err);
         const errMsg = err?.response?.data?.message || err?.message || "Đặt lịch khám thất bại.";
         setError(errMsg);
-        return null;
+        return { error: errMsg } as any; // Trả về object chứa field error thay vì ném lỗi để tránh màn hình đỏ ở môi trường Development
       } finally {
         setIsSubmitting(false);
       }

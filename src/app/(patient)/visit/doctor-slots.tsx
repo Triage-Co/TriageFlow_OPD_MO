@@ -24,14 +24,13 @@ export default function DoctorSlotsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuthContext();
-  const { submitBooking, isSubmitting } = useBooking();
+  const { submitBooking, isSubmitting, error: bookingError } = useBooking();
 
   const doctorId = params.doctorId as string;
-  const doctorName = (params.doctorName as string) || "Bác sĩ điều trị";
-  const specialtyName = (params.specialtyName as string) || "Chuyên khoa";
-  const initialDate = (params.selectedDate as string) || "2026-07-09";
-  const licenseNumber = (params.licenseNumber as string) || "";
-  const experienceYears = (params.experienceYears as string) || "0";
+  const doctorName = (params.doctorName as string);
+  const specialtyName = (params.specialtyName as string);
+  const initialDate = (params.selectedDate as string);
+  const experienceYears = (params.experienceYears as string);
 
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
@@ -42,8 +41,9 @@ export default function DoctorSlotsScreen() {
   const todayStr = `${year}-${month}-${day}`;
   const isToday = initialDate === todayStr;
   const currentHours = today.getHours();
+  const currentMinutes = today.getMinutes();
 
-  
+
   const { slots, isLoading, error } = useDoctorSlots(doctorId, initialDate);
 
   const getInitials = (name: string): string => {
@@ -74,7 +74,7 @@ export default function DoctorSlotsScreen() {
     }
 
     try {
-      
+
       const patientsRes = await patientService.getPatients();
       if (!patientsRes?.data || patientsRes.data.length === 0) {
         Alert.alert(
@@ -84,7 +84,7 @@ export default function DoctorSlotsScreen() {
         return;
       }
 
-      
+
       const targetPatient = params.patientId
         ? patientsRes.data.find((p) => p.patient_id === params.patientId) || patientsRes.data[0]
         : patientsRes.data[0];
@@ -92,7 +92,8 @@ export default function DoctorSlotsScreen() {
       const patientName = targetPatient.full_name;
 
       const bookingResult = await submitBooking(patientId, selectedSlot.slot_id);
-      if (bookingResult) {
+      
+      if (bookingResult && !("error" in bookingResult)) {
         router.push({
           pathname: "/(patient)/visit/payment-qr",
           params: {
@@ -115,16 +116,16 @@ export default function DoctorSlotsScreen() {
           },
         });
       } else {
+        const apiErrorMessage = (bookingResult as any)?.error || "Đặt lịch khám thất bại. Vui lòng thử lại.";
         Alert.alert(
           "Đặt lịch khám thất bại",
-          "Có lỗi xảy ra trong quá trình tạo lịch khám. Vui lòng thử lại sau ít phút."
+          apiErrorMessage
         );
       }
     } catch (err: any) {
-      console.error("[DoctorSlots] Lỗi khi xác nhận lịch khám:", err);
       Alert.alert(
         "Lỗi kết nối",
-        "Không thể lấy thông tin bệnh nhân. Vui lòng thử lại sau."
+        "Không thể hoàn thành yêu cầu đặt lịch khám. Vui lòng thử lại sau."
       );
     }
   };
@@ -133,7 +134,7 @@ export default function DoctorSlotsScreen() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
       <View className="flex-1 justify-between">
-        
+
         {/* ── NỘI DUNG CUỘN LÊN ── */}
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
           {/* ── 1. HEADER ── */}
@@ -163,7 +164,7 @@ export default function DoctorSlotsScreen() {
             <View className="flex-1">
               <Text className="text-gray-800 text-[15px] font-bold">{doctorName}</Text>
               <Text className="text-gray-500 text-[12px] font-medium">{specialtyName}</Text>
-              
+
               {/* Ngày khám đã chọn ở màn hình trước */}
               <View className="flex-row items-center mt-1">
                 <Ionicons name="calendar-outline" size={12} color={Colors.primary} />
@@ -222,7 +223,10 @@ export default function DoctorSlotsScreen() {
                     const parts = slot.start_time.split(":");
                     if (parts.length >= 2) {
                       const slotHours = parseInt(parts[0], 10);
-                      if (slotHours < currentHours) {
+                      const slotMinutes = parseInt(parts[1], 10);
+                      if (slotHours < currentHours ||
+                        (slotHours === currentHours && slotMinutes < currentMinutes)
+                      ) {
                         isPastSlot = true;
                       }
                     }
@@ -238,43 +242,39 @@ export default function DoctorSlotsScreen() {
                       onPress={() => handleSlotSelect(slot)}
                       activeOpacity={0.7}
                       style={{ width: "22.5%" }}
-                      className={`py-3 rounded-[18px] items-center justify-center border ${
-                        isSelected
-                          ? "bg-primary border-primary shadow-md shadow-primary/20"
-                          : !isAvailable
+                      className={`py-3 rounded-[18px] items-center justify-center border ${isSelected
+                        ? "bg-primary border-primary shadow-md shadow-primary/20"
+                        : !isAvailable
                           ? "bg-gray-50 border-gray-100 opacity-50"
                           : "bg-white border-gray-100 shadow-sm shadow-black/5"
-                      }`}
+                        }`}
                     >
                       {/* Start Time */}
                       <Text
-                        className={`text-[14px] font-extrabold ${
-                          isSelected
-                            ? "text-white"
-                            : !isAvailable
+                        className={`text-[14px] font-extrabold ${isSelected
+                          ? "text-white"
+                          : !isAvailable
                             ? "text-gray-300"
                             : "text-gray-700"
-                        }`}
+                          }`}
                       >
                         {slot.start_time}
                       </Text>
 
                       {/* Small Separator Line */}
                       <View
-                        className={`w-5 h-[1.5px] my-1 ${
-                          isSelected ? "bg-white/30" : "bg-gray-100"
-                        }`}
+                        className={`w-5 h-[1.5px] my-1 ${isSelected ? "bg-white/30" : "bg-gray-100"
+                          }`}
                       />
 
                       {/* End Time */}
                       <Text
-                        className={`text-[10px] font-bold ${
-                          isSelected
-                            ? "text-white/80"
-                            : !isAvailable
+                        className={`text-[10px] font-bold ${isSelected
+                          ? "text-white/80"
+                          : !isAvailable
                             ? "text-gray-300"
                             : "text-gray-400"
-                        }`}
+                          }`}
                       >
                         {slot.end_time}
                       </Text>

@@ -14,6 +14,9 @@ import {
   Text,
   View,
   Pressable,
+  Modal,
+  ScrollView,
+  TouchableOpacity,
 } from "react-native";
 
 export default function HistoryScreen() {
@@ -21,7 +24,9 @@ export default function HistoryScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [flows, setFlows] = useState<any[]>([]);
+  const [visitSessions, setVisitSessions] = useState<any[]>([]);
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
   // States for patient selection
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -31,19 +36,19 @@ export default function HistoryScreen() {
   const loadHistoryData = useCallback(async (patientId: string, showLoadingIndicator = true) => {
     if (showLoadingIndicator) setIsLoading(true);
     try {
-      const response = await doctorService.getPatientFlows(patientId);
-      if (response && response.data) {
-        // Sắp xếp các flow mới nhất lên đầu
-        const sortedFlows = [...response.data].sort((a: any, b: any) => {
-          return new Date(b.create_at).getTime() - new Date(a.create_at).getTime();
+      const data = await doctorService.getVisitSessions(patientId);
+      if (data && Array.isArray(data)) {
+        // Sắp xếp các phiên khám mới nhất lên đầu dựa trên visit_date
+        const sortedSessions = [...data].sort((a: any, b: any) => {
+          return new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime();
         });
-        setFlows(sortedFlows);
+        setVisitSessions(sortedSessions);
       } else {
-        setFlows([]);
+        setVisitSessions([]);
       }
     } catch (err) {
       console.error("[HistoryScreen] Lỗi tải lịch sử khám bệnh:", err);
-      setFlows([]);
+      setVisitSessions([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -71,14 +76,9 @@ export default function HistoryScreen() {
     }
   };
 
-  const handleGoToRoute = (flow: any) => {
-    router.push({
-      pathname: "/(patient)/visit/clinical-route",
-      params: {
-        flowData: JSON.stringify(flow),
-        patientName: selectedPatientName,
-      },
-    });
+  const handleViewSessionDetails = (session: any) => {
+    setSelectedSession(session);
+    setIsDetailModalVisible(true);
   };
 
   // Định dạng ngày hiển thị: YYYY-MM-DDTHH:MM:SS -> DD/MM/YYYY HH:MM
@@ -88,19 +88,6 @@ export default function HistoryScreen() {
     const dateStr = parts[0].split("-").reverse().join("/");
     const timeStr = parts[1] ? parts[1].substring(0, 5) : "";
     return `${dateStr} ${timeStr}`;
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return { text: "Hoàn thành", bg: "bg-green-50", textClass: "text-green-600 border-green-200" };
-      case "IN_PROGRESS":
-        return { text: "Đang khám", bg: "bg-blue-50", textClass: "text-primary border-blue-200" };
-      case "CANCELLED":
-        return { text: "Đã hủy", bg: "bg-gray-50", textClass: "text-gray-400 border-gray-200" };
-      default:
-        return { text: status, bg: "bg-neutral-50", textClass: "text-neutral-500 border-neutral-200" };
-    }
   };
 
   return (
@@ -124,46 +111,51 @@ export default function HistoryScreen() {
       <View className="flex-1">
         {/* Header Area */}
         <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
-          <Pressable
+          <TouchableOpacity
             onPress={() => router.back()}
-            className="p-1 active:opacity-70"
+            style={{ padding: 4 }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="arrow-back" size={24} color="white" />
-          </Pressable>
+          </TouchableOpacity>
           <Text className="text-white text-[17px] font-bold">
             Lịch Sử Khám Bệnh
           </Text>
-          <Pressable
+          <TouchableOpacity
             onPress={() => setIsPatientModalVisible(true)}
-            className="p-1 active:opacity-70"
+            style={{ padding: 4 }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="people" size={22} color="white" />
-          </Pressable>
+          </TouchableOpacity>
         </View>
 
         {/* Subtitle hiển thị tên bệnh nhân đang chọn */}
         {selectedPatientName ? (
-          <View className="bg-gray-50 px-5 py-2.5 border-b border-gray-200 flex-row justify-between items-center">
-            <Text className="text-gray-500 text-xs font-semibold">
-              Hồ sơ: <Text className="text-gray-800 font-bold">{selectedPatientName}</Text>
-            </Text>
-            <Text className="text-gray-400 text-[10px] font-medium">
-              {flows.length} lượt khám
-            </Text>
+          <View className="bg-white px-5 py-3 border-b border-gray-100 flex-row justify-between items-center shadow-sm shadow-black/5">
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="person-circle" size={16} color={Colors.primary} />
+              <Text className="text-gray-500 text-xs font-semibold">
+                Hồ sơ: <Text className="text-gray-800 font-extrabold">{selectedPatientName}</Text>
+              </Text>
+            </View>
+            <View className="bg-primary/10 px-2 py-0.5 rounded-md">
+              <Text className="text-primary text-[10px] font-black">
+                {visitSessions.length} PHIÊN KHÁM
+              </Text>
+            </View>
           </View>
         ) : null}
 
         {isLoading ? (
-          <View className="flex-1 items-center justify-center">
+          <View className="flex-1 items-center justify-center bg-gray-50">
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text className="text-gray-400 text-xs mt-3">Đang tải lịch sử khám...</Text>
+            <Text className="text-gray-400 text-xs mt-3 font-semibold">Đang tải lịch sử khám...</Text>
           </View>
-        ) : flows.length === 0 ? (
-          <View className="flex-1 items-center justify-center p-6">
+        ) : visitSessions.length === 0 ? (
+          <View className="flex-1 items-center justify-center p-6 bg-gray-50">
             <Ionicons name="folder-open-outline" size={48} color="#D1D5DB" />
-            <Text className="text-gray-400 text-sm mt-3 text-center">
+            <Text className="text-gray-400 text-sm mt-3 text-center font-medium">
               {selectedPatientId
                 ? "Bệnh nhân này chưa có dữ liệu lịch sử khám bệnh nào."
                 : "Vui lòng chọn bệnh nhân để xem lịch sử."}
@@ -171,10 +163,11 @@ export default function HistoryScreen() {
           </View>
         ) : (
           <FlatList
-            data={flows}
-            keyExtractor={(item) => item.flow_id}
-            contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            data={visitSessions}
+            keyExtractor={(item) => item.visit_session_id}
+            contentContainerStyle={{ padding: 18, paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
+            className="bg-gray-50/50"
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
@@ -183,53 +176,152 @@ export default function HistoryScreen() {
               />
             }
             renderItem={({ item }) => {
-              const badge = getStatusBadge(item.status);
-              
-              // Tổng hợp danh sách tên chuyên khoa đã thực hiện
-              const specialtiesList = item.steps
-                ?.map((s: any) => s.specialty_info?.specialty_name || s.step_name)
-                .filter((name: any, idx: number, self: any) => name && self.indexOf(name) === idx)
-                .slice(0, 3)
-                .join(", ");
-
               return (
-                <Pressable
-                  onPress={() => handleGoToRoute(item)}
-                  className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 shadow-sm active:opacity-95"
+                <TouchableOpacity
+                  onPress={() => handleViewSessionDetails(item)}
+                  activeOpacity={0.9}
+                  style={{
+                    backgroundColor: "white",
+                    borderRadius: 16,
+                    borderLeftWidth: 4,
+                    borderLeftColor: Colors.primary,
+                    borderWidth: 1,
+                    borderColor: "#F3F4F6",
+                    padding: 18,
+                    marginBottom: 16,
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 3,
+                    elevation: 2,
+                  }}
                 >
-                  <View className="flex-row justify-between items-center mb-3">
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons name="calendar" size={14} color="#6B7280" />
-                      <Text className="text-gray-800 text-[13px] font-bold">
-                        Lượt khám: {formatDateTime(item.create_at)}
+                  <View className="flex-1 mr-3">
+                    <View className="flex-row items-center gap-2 mb-2">
+                      <View className="bg-gray-100 rounded-lg p-1">
+                        <Ionicons name="medical" size={12} color={Colors.primary} />
+                      </View>
+                      <Text className="text-gray-800 text-[13px] font-extrabold">
+                        {formatDateTime(item.visit_date)}
                       </Text>
                     </View>
-                    <View className={`${badge.bg} px-2.5 py-0.5 rounded-full border`}>
-                      <Text className={`${badge.textClass} text-[10px] font-bold`}>
-                        {badge.text}
-                      </Text>
-                    </View>
-                  </View>
 
-                  <Text className="text-gray-500 text-xs mb-3 leading-[18px]">
-                    Khoa khám: <Text className="text-gray-700 font-bold">{specialtiesList || "Tổng quát"}</Text>
-                  </Text>
-
-                  <View className="flex-row justify-between items-center pt-3 border-t border-gray-50">
-                    <Text className="text-gray-400 text-[11px] font-semibold">
-                      Tổng số bước: {item.steps?.length || 0}
+                    <Text className="text-gray-500 text-xs mb-1.5 leading-[18px]">
+                      Lý do: <Text className="text-gray-800 font-semibold">{item.chief_complaint || "Không ghi nhận lý do"}</Text>
                     </Text>
-                    <View className="flex-row items-center gap-1">
-                      <Text className="text-primary text-xs font-bold">Xem lộ trình</Text>
-                      <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
-                    </View>
+                    
+                    <Text className="text-gray-500 text-xs mb-1 leading-[18px]" numberOfLines={1}>
+                      Chẩn đoán: <Text className="text-primary font-bold">{item.final_diagnosis || item.diagnosis || "Chưa cập nhật"}</Text>
+                    </Text>
                   </View>
-                </Pressable>
+                  
+                  <View className="items-center justify-center bg-gray-50 w-8 h-8 rounded-full border border-gray-100">
+                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                  </View>
+                </TouchableOpacity>
               );
             }}
           />
         )}
       </View>
+
+      {/* ── CHI TIẾT BỆNH ÁN MODAL ── */}
+      <Modal
+        visible={isDetailModalVisible}
+        animationType="slide"
+        onRequestClose={() => setIsDetailModalVisible(false)}
+      >
+        <ScreenWrapper edges={["left", "right", "bottom"]}>
+          <View className="flex-1 bg-gray-50">
+            {/* Header Modal */}
+            <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
+              <TouchableOpacity
+                onPress={() => setIsDetailModalVisible(false)}
+                style={{
+                  padding: 6,
+                  backgroundColor: "rgba(255, 255, 255, 0.15)",
+                  borderRadius: 999,
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={20} color="white" />
+              </TouchableOpacity>
+              <Text className="text-white text-[17px] font-black tracking-tight">Chi Tiết Bệnh Án</Text>
+              <View className="w-8" />
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} className="flex-1 px-5 pt-5">
+              {/* Thẻ ngày khám */}
+              <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
+                <View className="flex-row items-center gap-2 mb-3">
+                  <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+                  <Text className="text-gray-800 text-[15px] font-black">
+                    Thông tin phiên khám
+                  </Text>
+                </View>
+                
+                <View className="bg-gray-50 rounded-2xl p-4.5 mb-4">
+                  <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+                    Ngày thực hiện khám
+                  </Text>
+                  <Text className="text-gray-800 text-sm font-extrabold">
+                    {formatDateTime(selectedSession?.visit_date)}
+                  </Text>
+                </View>
+
+                <View className="pt-2">
+                  <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                    Lý do khám (Chief Complaint)
+                  </Text>
+                  <Text className="text-gray-700 text-sm font-medium leading-[20px]">
+                    {selectedSession?.chief_complaint || "Không ghi nhận triệu chứng hay lý do khám cụ thể."}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Bệnh sử & Tiền sử */}
+              <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
+                <View className="flex-row items-center gap-2 mb-4">
+                  <Ionicons name="pulse" size={18} color="#EF4444" />
+                  <Text className="text-gray-800 text-[15px] font-black">
+                    Thông tin bệnh lý
+                  </Text>
+                </View>
+                
+                <View className="bg-blue-50/20 border-l-4 border-l-blue-400 p-3.5 rounded-r-xl mb-4">
+                  <Text className="text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Bệnh sử hiện tại (HPI)</Text>
+                  <Text className="text-gray-800 text-sm font-semibold leading-[20px]">
+                    {selectedSession?.hpi || "—"}
+                  </Text>
+                </View>
+
+                <View className="bg-amber-50/20 border-l-4 border-l-amber-400 p-3.5 rounded-r-xl">
+                  <Text className="text-gray-500 text-[10px] font-black uppercase tracking-wider mb-1">Tiền sử bệnh (PMH)</Text>
+                  <Text className="text-gray-800 text-sm font-semibold leading-[20px]">
+                    {selectedSession?.pmh || "—"}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Chẩn đoán */}
+              <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-8 border-l-4 border-l-emerald-500">
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                  <Text className="text-gray-500 text-[11px] font-black uppercase tracking-wider">
+                    Chẩn đoán cuối cùng
+                  </Text>
+                </View>
+                <Text className="text-emerald-700 text-[16px] font-black leading-[22px] mt-1 pl-7">
+                  {selectedSession?.final_diagnosis || selectedSession?.diagnosis || "—"}
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </ScreenWrapper>
+      </Modal>
     </ScreenWrapper>
   );
 }

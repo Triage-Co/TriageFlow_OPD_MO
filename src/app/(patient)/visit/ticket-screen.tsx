@@ -58,11 +58,11 @@ export default function TicketScreen() {
         if (!active) return;
 
         if (stepDetail) {
-          let qNum = stepDetail.queues?.[0]?.queue_number;
+          let qNum: string | undefined = stepDetail.queues?.[0]?.queue_number;
           if (!qNum) {
             const bookingResult = await fetchBookingResult(stepId);
             if (bookingResult && active) {
-              qNum = bookingResult.queue_number;
+              qNum = bookingResult.queue?.queue_number || bookingResult.queue_number;
             }
           }
 

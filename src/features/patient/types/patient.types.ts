@@ -45,6 +45,7 @@ export type UpdatePatientRequest = {
   dob?: string;
   gender?: Gender;
   full_name?: string;
+  medical_coverage_id?: string;
 };
 
 export type UpdatePatientResponse = {

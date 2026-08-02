@@ -30,28 +30,28 @@ export const patientService = {
 
   /**
    * Tạo bệnh nhân mới
-   * POST /api/patient
+   * POST /api/patient/me
    */
   async createPatient(data: CreatePatientRequest): Promise<CreatePatientResponse> {
-    const response = await apiClient.post<CreatePatientResponse>("/api/patient", data);
+    const response = await apiClient.post<CreatePatientResponse>("/api/patient/me", data);
     return response.data;
   },
 
   /**
    * Cập nhật thông tin bệnh nhân
-   * PATCH /api/patient/{patient_id}
+   * PATCH /api/patient/me/{patient_id}
    */
   async updatePatient(patientId: string, data: UpdatePatientRequest): Promise<UpdatePatientResponse> {
-    const response = await apiClient.patch<UpdatePatientResponse>(`/api/patient/${patientId}`, data);
+    const response = await apiClient.patch<UpdatePatientResponse>(`/api/patient/me/${patientId}`, data);
     return response.data;
   },
 
   /**
    * Xóa bệnh nhân
-   * DELETE /api/patient/{patient_id}
+   * DELETE /api/patient/me/{patient_id}
    */
   async deletePatient(patientId: string): Promise<DeletePatientResponse> {
-    const response = await apiClient.delete<DeletePatientResponse>(`/api/patient/${patientId}`);
+    const response = await apiClient.delete<DeletePatientResponse>(`/api/patient/me/${patientId}`);
     return response.data;
   },
 };

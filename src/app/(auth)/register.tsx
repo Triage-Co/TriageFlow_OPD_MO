@@ -58,7 +58,7 @@ export default function RegisterScreen() {
       gender: gender as Gender,
       phone: phone.trim(),
       password,
-      role: "USER",
+
     });
 
     if (success) {

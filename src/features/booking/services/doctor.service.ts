@@ -60,6 +60,11 @@ class DoctorService {
     return response.data;
   }
 
+  async getVisitSessions(patientId: string): Promise<any[]> {
+    const response = await apiClient.get(`/api/visit-session/patient/${patientId}`);
+    return response.data;
+  }
+
   async getPendingPaymentSteps(patientId: string): Promise<any> {
     const response = await apiClient.get(`/api/step?patient_id=${encodeURIComponent(patientId)}`);
     return response.data;

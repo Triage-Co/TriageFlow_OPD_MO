@@ -174,29 +174,31 @@ export default function NavigationScreen() {
         <MapViewer />
 
         {/* Dynamic Floor Switcher (floating side list from rawMap.floors) */}
-        <View className="absolute right-4 top-24 z-20 flex-col items-center">
-          {rawMap?.floors
-            ?.slice()
-            ?.sort((a, b) => a.floorNumber - b.floorNumber)
-            ?.map((f) => (
-              <TouchableOpacity
-                key={f.id}
-                onPress={() => setActiveFloor(f.floorNumber)}
-                style={{
-                  backgroundColor: activeFloor === f.floorNumber ? "#3b82f6" : "#ffffff",
-                  borderColor: activeFloor === f.floorNumber ? "#3b82f6" : "#e5e7eb",
-                }}
-                className="w-10 h-10 rounded-full items-center justify-center border shadow-md mb-2 active:scale-95"
-              >
-                <Text
-                  style={{ color: activeFloor === f.floorNumber ? "#ffffff" : "#374151" }}
-                  className="text-xs font-extrabold"
+        {rawMap?.floors && rawMap.floors.length > 1 && (
+          <View className="absolute right-4 top-24 z-20 flex-col items-center">
+            {rawMap?.floors
+              ?.slice()
+              ?.sort((a, b) => a.floorNumber - b.floorNumber)
+              ?.map((f) => (
+                <TouchableOpacity
+                  key={f.id}
+                  onPress={() => setActiveFloor(f.floorNumber)}
+                  style={{
+                    backgroundColor: activeFloor === f.floorNumber ? "#3b82f6" : "#ffffff",
+                    borderColor: activeFloor === f.floorNumber ? "#3b82f6" : "#e5e7eb",
+                  }}
+                  className="w-10 h-10 rounded-full items-center justify-center border shadow-md mb-2 active:scale-95"
                 >
-                  T{f.floorNumber}
-                </Text>
-              </TouchableOpacity>
-            ))}
-        </View>
+                  <Text
+                    style={{ color: activeFloor === f.floorNumber ? "#ffffff" : "#374151" }}
+                    className="text-xs font-extrabold"
+                  >
+                    T{f.floorNumber}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+          </View>
+        )}
 
         {/* Compact Floating Routing Panel (Top-Left Corner) */}
         <View className="absolute left-4 top-24 z-20 w-[190px] bg-white/95 rounded-[20px] border border-gray-100 shadow-md p-3">
