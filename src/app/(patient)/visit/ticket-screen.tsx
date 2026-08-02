@@ -33,6 +33,7 @@ export default function TicketScreen() {
   const stepId = params.stepId as string | undefined;
 
   const [ticketData, setTicketData] = useState<TicketData | null>(null);
+  const [patientId, setPatientId] = useState<string>((params.patientId as string) || "");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -67,6 +68,10 @@ export default function TicketScreen() {
           }
 
           if (active) {
+            const pId = (stepDetail as any).patient_id || (stepDetail.flow as any)?.patient_id || "";
+            if (pId) {
+              setPatientId(pId);
+            }
             setTicketData({
               queueNumber: qNum || "--",
               specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || (params.specialtyName as string) || "Tổng quát",
@@ -143,8 +148,14 @@ export default function TicketScreen() {
     router.replace("/(patient)/(tabs)/ticket");
   };
 
-  const handleGoToNavigationTab = () => {
-    router.push("/(patient)/(tabs)/navigation");
+  const handleGoToClinicalRoute = () => {
+    router.push({
+      pathname: "/(patient)/visit/clinical-route",
+      params: {
+        patientId: patientId || (params.patientId as string) || "",
+        patientName: patientName || "",
+      },
+    });
   };
 
   const handleStartBooking = () => {
@@ -273,7 +284,7 @@ export default function TicketScreen() {
               />
               <AppButton
                 title="Lộ Trình Khám"
-                onPress={handleGoToNavigationTab}
+                onPress={handleGoToClinicalRoute}
               />
               <AppButton
                 title="Về Trang Chủ"

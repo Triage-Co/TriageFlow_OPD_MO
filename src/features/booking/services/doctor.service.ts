@@ -45,13 +45,15 @@ class DoctorService {
     return response.data;
   }
 
-  async getStepDetail(stepId: string): Promise<StepDetailResponse> {
-    const response = await apiClient.get<StepDetailResponse>(`/api/step/${stepId}/me`);
+  async getStepDetail(stepId: string, config?: any): Promise<StepDetailResponse> {
+    const response = await apiClient.get<StepDetailResponse>(`/api/step/${stepId}/me`, config);
     return response.data;
   }
 
-  async getActiveFlow(patientId: string): Promise<any> {
-    const response = await apiClient.get(`/api/flow/patient/${patientId}/active`);
+  async getActiveFlow(patientId: string, date?: string): Promise<any> {
+    const response = await apiClient.get(`/api/flow/patient/${patientId}/active`, {
+      params: { date },
+    });
     return response.data;
   }
 

@@ -92,12 +92,12 @@ export function useBooking() {
   );
 
   const fetchStepDetail = useCallback(
-    async (stepId: string): Promise<StepDetailData | null> => {
+    async (stepId: string, config?: any): Promise<StepDetailData | null> => {
       setIsFetchingStepDetail(true);
       setError(null);
       console.log(`[useBooking] Fetching step detail for stepId=${stepId}`);
       try {
-        const response = await doctorService.getStepDetail(stepId);
+        const response = await doctorService.getStepDetail(stepId, config);
         console.log("[useBooking] Get step detail response:", JSON.stringify(response, null, 2));
 
         if (response.status === "success" || response.code === 200) {

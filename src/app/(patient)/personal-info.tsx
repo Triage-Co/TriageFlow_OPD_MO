@@ -4,6 +4,7 @@ import { useProfile } from "@/features/profile/hooks/useProfile";
 import { AppButton } from "@/shared/components/AppButton";
 import { AppInput } from "@/shared/components/AppInput";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { showGlobalToast } from "@/shared/components/ToastProvider";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -107,7 +108,6 @@ export default function PersonalInfoScreen() {
       setAvatar(uploadedUrl); 
     } else {
       setLocalAvatarUri(null); 
-      Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
     }
   };
 
@@ -134,11 +134,9 @@ export default function PersonalInfoScreen() {
     });
 
     if (success) {
-      Alert.alert("Thành công", "Cập nhật thông tin hồ sơ thành công.");
+      showGlobalToast("Cập nhật thông tin hồ sơ thành công.", "success");
       setIsEditing(false);
       setLocalAvatarUri(null);
-    } else {
-      Alert.alert("Thất bại", error || "Cập nhật thông tin hồ sơ thất bại.");
     }
   };
 

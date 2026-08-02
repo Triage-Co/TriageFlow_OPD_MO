@@ -55,6 +55,7 @@ export default function PaymentQrScreen() {
     patientName: string;
     bookingId: string;
     stepId: string;
+    patientId: string;
   } | null>(null);
 
   const handleViewTicket = () => {
@@ -115,11 +116,6 @@ export default function PaymentQrScreen() {
     
     const stepDetail = await fetchStepDetail(stepId);
     if (!stepDetail) {
-      Alert.alert(
-        "Lỗi tải thông tin",
-        "Đã xác nhận thanh toán thành công nhưng không thể lấy thông tin chi tiết phòng khám. Vui lòng thử lại.",
-        [{ text: "Đồng ý" }]
-      );
       return;
     }
 
@@ -135,6 +131,7 @@ export default function PaymentQrScreen() {
       patientName: patientName || "",
       bookingId: bookingId || "",
       stepId: stepId || "",
+      patientId: (params.patientId as string) || "",
     });
     setShowSuccessModal(true);
   };

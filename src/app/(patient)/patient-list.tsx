@@ -5,6 +5,7 @@ import { Patient } from "@/features/patient/types/patient.types";
 import { AppButton } from "@/shared/components/AppButton";
 import { AppInput } from "@/shared/components/AppInput";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { showGlobalToast } from "@/shared/components/ToastProvider";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
@@ -63,9 +64,7 @@ export default function PatientListScreen() {
       const res = await createPatientFromEkyc(ocrData);
       if (res.success) {
         setIsEkycVisible(false);
-        Alert.alert("Thành công", "Hồ sơ bệnh nhân đã được tạo từ CCCD.");
-      } else {
-        Alert.alert("Thất bại", res.message || "Không thể tạo bệnh nhân. Vui lòng thử lại.");
+        showGlobalToast("Hồ sơ bệnh nhân đã được tạo từ CCCD.", "success");
       }
     },
     [createPatientFromEkyc]
@@ -88,8 +87,6 @@ export default function PatientListScreen() {
       if (detail) {
         setSelectedPatient(detail);
         setIsDetailVisible(true);
-      } else {
-        Alert.alert("Lỗi", error || "Không thể tải chi tiết bệnh nhân.");
       }
     } finally {
       setIsFetchingDetail(false);
@@ -152,10 +149,8 @@ export default function PatientListScreen() {
     });
 
     if (success) {
-      Alert.alert("Thành công", "Cập nhật bệnh nhân thành công.");
+      showGlobalToast("Cập nhật bệnh nhân thành công.", "success");
       setIsEditVisible(false);
-    } else {
-      Alert.alert("Thất bại", error || "Đã xảy ra lỗi khi cập nhật bệnh nhân.");
     }
   };
 
@@ -171,9 +166,7 @@ export default function PatientListScreen() {
           onPress: async () => {
             const success = await deletePatient(patientId);
             if (success) {
-              Alert.alert("Thành công", "Đã xóa bệnh nhân thành công.");
-            } else {
-              Alert.alert("Thất bại", error || "Không thể xóa bệnh nhân.");
+              showGlobalToast("Đã xóa bệnh nhân thành công.", "success");
             }
           },
         },

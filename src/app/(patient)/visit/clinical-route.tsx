@@ -25,13 +25,14 @@ export default function ClinicalRouteScreen() {
   const patientId = params.patientId as string;
 
   const [currentFlow, setCurrentFlow] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // States for payment modal inside route timeline
   const [selectedStep, setSelectedStep] = useState<any | null>(null);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
-  // Khởi tạo flow từ tham số route
+  // Khởi tạo flow từ tham số route hoặc tự động tải từ server nếu không truyền flowData
   useEffect(() => {
     if (params.flowData) {
       try {
@@ -39,22 +40,26 @@ export default function ClinicalRouteScreen() {
       } catch (e) {
         console.error("Lỗi parse flowData trong ClinicalRouteScreen:", e);
       }
+    } else if (patientId) {
+      loadLatestFlow(true);
     }
-  }, [params.flowData]);
+  }, [params.flowData, patientId]);
 
-  // Hàm tải lại lộ trình khám mới nhất từ Server
   const loadLatestFlow = async (showIndicator = false) => {
     if (!patientId) return;
-    if (showIndicator) setIsRefreshing(true);
+    if (showIndicator) {
+      if (currentFlow) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+    }
     try {
-      const response = await doctorService.getActiveFlow(patientId);
+      const todayStr = new Date().toISOString().split("T")[0];
+      const response = await doctorService.getActiveFlow(patientId, todayStr);
       if (response && response.data && response.data.length > 0) {
         // Tìm flow đang chạy mới nhất của bệnh nhân
-        const todayStr = new Date().toISOString().split("T")[0];
-        const activeFlow = response.data.find((f: any) => {
-          const flowDate = f.create_at ? f.create_at.split("T")[0] : "";
-          return f.status === "IN_PROGRESS" && flowDate === todayStr;
-        });
+        const activeFlow = response.data.find((f: any) => f.status === "IN_PROGRESS");
 
         // Nếu không có flow hoạt động hôm nay, lấy flow đầu tiên trong danh sách
         setCurrentFlow(activeFlow || response.data[0]);
@@ -75,6 +80,7 @@ export default function ClinicalRouteScreen() {
       console.log("Error refreshing clinical route flow:", err);
     } finally {
       setIsRefreshing(false);
+      setIsLoading(false);
     }
   };
 
@@ -182,7 +188,12 @@ export default function ClinicalRouteScreen() {
       </View>
 
       {/* Timeline Content */}
-      {visibleSteps.length === 0 ? (
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text className="text-gray-400 text-xs mt-3">Đang tải lộ trình khám...</Text>
+        </View>
+      ) : visibleSteps.length === 0 ? (
         <View className="flex-1 items-center justify-center p-6">
           <Ionicons name="trail-sign-outline" size={48} color="#D1D5DB" />
           <Text className="text-gray-400 text-sm mt-3 text-center">

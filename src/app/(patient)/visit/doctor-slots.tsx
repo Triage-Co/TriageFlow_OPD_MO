@@ -113,20 +113,14 @@ export default function DoctorSlotsScreen() {
             selectedDate: initialDate,
             slotTime: selectedSlot.start_time,
             patientName,
+            patientId,
           },
         });
       } else {
-        const apiErrorMessage = (bookingResult as any)?.error || "Đặt lịch khám thất bại. Vui lòng thử lại.";
-        Alert.alert(
-          "Đặt lịch khám thất bại",
-          apiErrorMessage
-        );
+        console.warn("[DoctorSlots] Booking failed:", (bookingResult as any)?.error);
       }
     } catch (err: any) {
-      Alert.alert(
-        "Lỗi kết nối",
-        "Không thể hoàn thành yêu cầu đặt lịch khám. Vui lòng thử lại sau."
-      );
+      console.error("[DoctorSlots] Connection error:", err);
     }
   };
 

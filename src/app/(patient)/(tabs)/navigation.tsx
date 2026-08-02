@@ -40,7 +40,7 @@ export default function NavigationScreen() {
         const activeBooking = await bookingStorageService.getActiveBookingStep();
         if (!activeBooking) return;
 
-        const stepDetail = await fetchStepDetail(activeBooking.stepId);
+        const stepDetail = await fetchStepDetail(activeBooking.stepId, { skipGlobalToast: true });
         if (!stepDetail) return;
 
         const targetRoomName = stepDetail.flow?.booking?.slot?.shift?.room?.room_name;

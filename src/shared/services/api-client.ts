@@ -1,5 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { showGlobalToast } from "@/shared/components/ToastProvider";
+
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 const API_TIMEOUT_MS = process.env.EXPO_PUBLIC_API_TIMEOUT_MS
@@ -50,7 +52,7 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    
+
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
@@ -58,7 +60,7 @@ apiClient.interceptors.response.use(
       !originalRequest.url?.includes("/api/auth/login")
     ) {
       if (isRefreshing) {
-        
+
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -78,7 +80,7 @@ apiClient.interceptors.response.use(
           throw new Error("No refresh token available");
         }
 
-        
+
         const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
           refreshToken,
         });
@@ -105,7 +107,7 @@ apiClient.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
-        
+
         await AsyncStorage.removeItem(TOKEN_KEY);
         await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
 
@@ -117,6 +119,15 @@ apiClient.interceptors.response.use(
       error?.response?.data?.message ||
       error?.message ||
       "Đã xảy ra lỗi, vui lòng thử lại.";
+
+    const config = error?.config;
+    const isAuthRequest = config?.url?.includes("/api/auth/") && !config?.url?.includes("/api/auth/logout");
+    const shouldSkipToast = config?.skipGlobalToast || isAuthRequest;
+
+    if (!shouldSkipToast) {
+      showGlobalToast(message, "error");
+    }
+
     return Promise.reject(new Error(message));
   }
 );

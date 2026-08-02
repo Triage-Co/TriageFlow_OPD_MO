@@ -62,24 +62,17 @@ export default function AutoBookingScreen() {
               orderCode: bookingResult.payment.data.orderCode.toString(),
               ordercode: bookingResult.payment.data.orderCode.toString(),
               patientName,
+              patientId: finalPatientId,
               flowType: "auto",
             },
           });
         } else {
-          Alert.alert(
-            "Xếp phòng tự động thất bại",
-            "Không thể phân phòng khám tự động lúc này. Vui lòng tự chọn bác sĩ khám.",
-            [{ text: "Đóng", onPress: () => router.back() }]
-          );
+          router.back();
         }
       } catch (err: any) {
         console.error("[AutoBooking] Lỗi xếp phòng tự động:", err);
         if (active) {
-          Alert.alert(
-            "Lỗi kết nối",
-            "Đã xảy ra lỗi khi kết nối máy chủ. Vui lòng thử lại.",
-            [{ text: "Quay lại", onPress: () => router.back() }]
-          );
+          router.back();
         }
       }
     };
