@@ -103,7 +103,7 @@ export default function HomeScreen() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-        
+
         {/* ── Header Immersive (Nền primary tràn viền) ── */}
         <View className="bg-primary rounded-b-[36px] px-6 pt-14 pb-8 shadow-md">
           <View className="flex-row items-center justify-between">
@@ -131,70 +131,66 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── Thao tác nhanh (Quick Actions) ── */}
-        <View className="flex-row justify-around items-center px-5 py-6 gap-4">
-          {/* Nút 1: Đặt lịch khám */}
-          <Pressable 
-            onPress={() => handlePressBooking("booking")}
-            className="items-center gap-2 flex-1 active:opacity-75"
-          >
-            <View className="bg-purple-100/70 w-14 h-14 rounded-2xl items-center justify-center">
-              {/* Dựng hình chiếc thẻ nằm ngang */}
-              <View className="w-7 h-5 bg-purple-500 rounded justify-center items-center relative shadow-sm">
-                <View className="absolute top-1 left-0.5 right-0.5 h-[2px] bg-white/40" />
-                <View className="w-1.5 h-1.5 rounded-full bg-white/60 absolute bottom-1 right-1" />
+        {/* ── Thao tác nhanh (Quick Actions - Lưới 2x2 dạng đứng tối giản không nền) ── */}
+        <View className="px-5 py-4 gap-4">
+          {/* Hàng 1 */}
+          <View className="flex-row gap-4">
+            {/* Nút 1: Đặt lịch khám */}
+            <Pressable
+              onPress={() => handlePressBooking("booking")}
+              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
+            >
+              <View className="mb-3.5 mt-1">
+                <Ionicons name="calendar-outline" size={42} color="#A855F7" />
               </View>
-            </View>
-            <Text className="text-xs text-gray-700 font-semibold text-center">Đặt lịch khám</Text>
-          </Pressable>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Đặt lịch khám</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Đăng ký hẹn</Text>
+            </Pressable>
 
-          {/* Nút 2: Phiếu khám */}
-          <Pressable 
-            onPress={() => router.push("/(patient)/(tabs)/ticket")}
-            className="items-center gap-2 flex-1 active:opacity-75"
-          >
-            <View className="bg-blue-100/70 w-14 h-14 rounded-2xl items-center justify-center">
-              <RNImage 
-                source={require("../../../../assets/images/Phieukham.png")}
-                className="w-6 h-6"
-                style={{ tintColor: "#2563EB" }}
-                resizeMode="contain"
-              />
-            </View>
-            <Text className="text-xs text-gray-700 font-semibold text-center">Phiếu khám</Text>
-          </Pressable>
+            {/* Nút 2: Phiếu khám */}
+            <Pressable
+              onPress={() => router.push("/(patient)/(tabs)/ticket")}
+              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
+            >
+              <View className="mb-3.5 mt-1">
+                <Ionicons name="document-text-outline" size={42} color="#2563EB" />
+              </View>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Phiếu khám</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Số thứ tự khám</Text>
+            </Pressable>
+          </View>
 
-          {/* Nút 3: Dẫn đường */}
-          <Pressable 
-            onPress={() => router.push("/(patient)/(tabs)/navigation")}
-            className="items-center gap-2 flex-1 active:opacity-75"
-          >
-            <View className="bg-orange-100/70 w-14 h-14 rounded-2xl items-center justify-center">
-              <RNImage 
-                source={require("../../../../assets/images/DanDuong.png")}
-                className="w-6 h-6"
-                style={{ tintColor: "#EA580C" }}
-                resizeMode="contain"
-              />
-            </View>
-            <Text className="text-xs text-gray-700 font-semibold text-center">Dẫn đường</Text>
-          </Pressable>
+          {/* Hàng 2 */}
+          <View className="flex-row gap-4">
+            {/* Nút 3: Dẫn đường */}
+            <Pressable
+              onPress={() => router.push("/(patient)/(tabs)/navigation")}
+              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
+            >
+              <View className="mb-3.5 mt-1">
+                <Ionicons name="map-outline" size={42} color="#EA580C" />
+              </View>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Dẫn đường</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Bản đồ 3D</Text>
+            </Pressable>
 
-          {/* Nút 4: Thanh toán */}
-          <Pressable 
-            onPress={() => handlePressBooking("payment")}
-            className="items-center gap-2 flex-1 active:opacity-75"
-          >
-            <View className="bg-emerald-100/70 w-14 h-14 rounded-2xl items-center justify-center">
-              <Ionicons name="card-outline" size={24} color="#10B981" />
-            </View>
-            <Text className="text-xs text-gray-700 font-semibold text-center">Thanh toán</Text>
-          </Pressable>
+            {/* Nút 4: Thanh toán */}
+            <Pressable
+              onPress={() => handlePressBooking("payment")}
+              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
+            >
+              <View className="mb-3.5 mt-1">
+                <Ionicons name="card-outline" size={42} color="#10B981" />
+              </View>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Thanh toán</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Đóng phí</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* ── Banner Đặt Khám ── */}
         <View className="px-5 mb-6">
-          <Pressable 
+          <Pressable
             onPress={() => handlePressBooking("triage")}
             className="bg-primary rounded-[24px] p-5 flex-row items-center justify-between shadow-sm shadow-primary/20 active:opacity-90"
           >
@@ -211,40 +207,6 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* ── Section: Thông báo ── */}
-        <View className="px-5 mb-6">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-gray-800 text-[16px] font-bold">Thông báo</Text>
-            <Pressable className="active:opacity-75">
-              <Text className="text-primary text-[13px] font-semibold">Xem tất cả</Text>
-            </Pressable>
-          </View>
-
-          {/* List thông báo */}
-          <View className="gap-3">
-            {/* Thông báo 1 */}
-            <View className="bg-white rounded-2xl p-4 flex-row items-start gap-3 shadow shadow-black/5">
-              <View className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5" />
-              <View className="flex-1">
-                <Text className="text-gray-700 text-sm font-semibold leading-5">
-                  Còn 2 người trước bạn tại phòng khám Nội
-                </Text>
-                <Text className="text-gray-400 text-xs mt-1">5 phút trước</Text>
-              </View>
-            </View>
-
-            {/* Thông báo 2 */}
-            <View className="bg-white rounded-2xl p-4 flex-row items-start gap-3 shadow shadow-black/5">
-              <View className="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5" />
-              <View className="flex-1">
-                <Text className="text-gray-700 text-sm font-semibold leading-5">
-                  Thanh toán xét nghiệm máu đã xác nhận
-                </Text>
-                <Text className="text-gray-400 text-xs mt-1">23 phút trước</Text>
-              </View>
-            </View>
-          </View>
-        </View>
 
         {/* ── Section: Mẹo sức khỏe ── */}
         <View className="px-5 mb-8">
@@ -262,7 +224,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-         {/* Tạo khoảng trống dưới cùng để tránh bị đè bởi Floating TabBar */}
+        {/* Tạo khoảng trống dưới cùng để tránh bị đè bởi Floating TabBar */}
         <View className="h-24" />
       </ScrollView>
 

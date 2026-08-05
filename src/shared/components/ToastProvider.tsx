@@ -37,7 +37,7 @@ export const showGlobalToast = (message: string, type: ToastType = "error", dura
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<ToastMessage | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = useCallback((message: string, type: ToastType = "info", duration = 4000) => {
     if (timeoutRef.current) {

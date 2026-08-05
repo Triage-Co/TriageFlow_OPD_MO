@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState, useMemo } from "react";
+import { sortStepsTopologically } from "@/shared/utils/flow.utils";
 import {
   ActivityIndicator,
   Alert,
@@ -69,31 +70,39 @@ export default function TicketTabScreen() {
     setSelectedFlow(flow);
     setActiveFlow(flow);
 
+    // Sắp xếp các bước theo cấu trúc tô-pô & trọng số trạng thái tiến độ
+    const sortedSteps = sortStepsTopologically(flow.steps || []);
+
     // Tìm bước khám active hiện tại
-    const activeSteps = flow.steps.filter(
+    const activeSteps = sortedSteps.filter(
       (s: any) => s.step_status !== "COMPLETED" && s.step_status !== "CANCELLED"
     );
 
     const currentActiveStep = activeSteps.find((s: any) => {
       if (!s.depends_on || s.depends_on.length === 0) return true;
       return s.depends_on.every((depId: string) => {
-        const depStep = flow.steps.find((fs: any) => fs.step_id === depId);
+        const depStep = sortedSteps.find((fs: any) => fs.step_id === depId);
         return !depStep || depStep.step_status === "COMPLETED" || depStep.step_status === "CANCELLED";
       });
     });
 
-    const finalActiveStep = currentActiveStep || activeSteps[0] || flow.steps[0];
+    const finalActiveStep = currentActiveStep || activeSteps[0] || sortedSteps[0];
 
-    // Tìm bước chứa thông tin chuyên khoa/phòng khám/số thứ tự
-    const examStep = flow.steps.find(
-      (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.queues?.[0]?.queue_number
-    ) || finalActiveStep;
+    // Ưu tiên tìm trong danh sách các bước active trước, nếu không có mới tìm trong toàn bộ
+    const examStep =
+      activeSteps.find(
+        (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.queues?.[0]?.queue_number
+      ) ||
+      sortedSteps.find(
+        (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.queues?.[0]?.queue_number
+      ) ||
+      finalActiveStep;
 
     if (finalActiveStep) {
       const queueNumber = examStep?.queues?.[0]?.queue_number || "--";
       const specialtyName = examStep?.specialty_info?.specialty_name || examStep?.step_name || "Khám bệnh";
       const roomName = examStep?.room_info?.room_name || "Đang xếp phòng";
-      
+
       let startTimeStr = "Đang xếp ca";
       if (flow.create_at) {
         const timeParts = flow.create_at.split("T")[1];
@@ -140,7 +149,7 @@ export default function TicketTabScreen() {
     try {
       const response = await doctorService.getActiveFlow(patientId);
       console.log("[TicketTab] getActiveFlow response:", JSON.stringify(response, null, 2));
-      
+
       if (!response || !response.data || response.data.length === 0) {
         setAllFlows([]);
         return;
@@ -215,14 +224,14 @@ export default function TicketTabScreen() {
 
   const qrImageUrl = activeTicket
     ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-        activeTicket.queueNumber || "0"
-      )}`
+      activeTicket.queueNumber || "0"
+    )}`
     : "";
 
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style={activeTicket ? "light" : "dark"} />
-      
+
       {/* Patient selector modal */}
       <PatientPickerModal
         visible={isPatientModalVisible}
@@ -254,7 +263,7 @@ export default function TicketTabScreen() {
         </View>
 
         {/* Sub-tabs for filtering Today vs Upcoming */}
-        <View 
+        <View
           style={{
             flexDirection: "row",
             backgroundColor: "#F3F4F6",
@@ -267,7 +276,7 @@ export default function TicketTabScreen() {
             borderColor: "#E5E7EB",
           }}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
               setSelectedTab("today");
               setSelectedFlow(null);
@@ -285,7 +294,7 @@ export default function TicketTabScreen() {
               elevation: selectedTab === "today" ? 2 : 0,
             }}
           >
-            <Text 
+            <Text
               style={{
                 fontSize: 13,
                 fontWeight: "bold",
@@ -295,7 +304,7 @@ export default function TicketTabScreen() {
               Hôm nay
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => {
               setSelectedTab("upcoming");
               setSelectedFlow(null);
@@ -313,7 +322,7 @@ export default function TicketTabScreen() {
               elevation: selectedTab === "upcoming" ? 2 : 0,
             }}
           >
-            <Text 
+            <Text
               style={{
                 fontSize: 13,
                 fontWeight: "bold",
@@ -361,7 +370,7 @@ export default function TicketTabScreen() {
             {currentFlows.map((flowItem) => {
               const examStep = flowItem.steps?.find((s: any) => s.specialty_info?.specialty_name) || flowItem.steps?.[0];
               const specialtyName = examStep?.specialty_info?.specialty_name || examStep?.step_name || "Lượt khám y tế";
-              
+
               const examDate = getFlowExamDate(flowItem);
               let dateText = "";
               if (examDate) {
@@ -531,10 +540,6 @@ export default function TicketTabScreen() {
 
               {/* Các nút hành động dưới card */}
               <View className="mt-6 gap-y-3 pb-8">
-                <AppButton
-                  title="Theo dõi hàng đợi"
-                  onPress={() => Alert.alert("Thông báo", "Bạn đang ở trang theo dõi hàng đợi khám.")}
-                />
                 <AppButton
                   title="Lộ Trình Khám"
                   onPress={handleGoToClinicalRoute}

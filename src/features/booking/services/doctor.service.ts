@@ -71,6 +71,11 @@ class DoctorService {
     const response = await apiClient.get(`/api/step?patient_id=${encodeURIComponent(patientId)}`);
     return response.data;
   }
+
+  async getPendingServiceOrders(patientId: string): Promise<any> {
+    const response = await apiClient.get(`/api/service-order/pending/${encodeURIComponent(patientId)}`);
+    return response.data;
+  }
 }
 
 export const doctorService = new DoctorService();
