@@ -32,7 +32,7 @@ export default function HomeScreen() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [bookingFlowType, setBookingFlowType] = useState<"booking" | "triage" | "payment" | null>(null);
+  const [bookingFlowType, setBookingFlowType] = useState<"booking" | "triage" | "payment" | "package" | null>(null);
   const [isFetchingPatients, setIsFetchingPatients] = useState(false);
 
   const loadPatients = async () => {
@@ -52,7 +52,7 @@ export default function HomeScreen() {
     loadPatients();
   }, []);
 
-  const handlePressBooking = async (type: "booking" | "triage" | "payment") => {
+  const handlePressBooking = async (type: "booking" | "triage" | "payment" | "package") => {
     setBookingFlowType(type);
     setIsFetchingPatients(true);
     const list = await loadPatients();
@@ -77,25 +77,41 @@ export default function HomeScreen() {
   };
 
   const handleConfirmPatient = (patientId: string) => {
+    console.log("[HomeScreen] handleConfirmPatient called with patientId:", patientId, "bookingFlowType:", bookingFlowType);
     setIsPatientModalVisible(false);
     setSelectedPatientId(patientId);
 
     if (bookingFlowType === "booking") {
+      console.log("[HomeScreen] Navigating to specialty-select");
       router.push({
         pathname: "/(patient)/appointment/specialty-select",
         params: { patientId }
       });
     } else if (bookingFlowType === "triage") {
+      console.log("[HomeScreen] Navigating to body-map");
       router.push({
         pathname: "/(patient)/body-map",
         params: { patientId }
       });
     } else if (bookingFlowType === "payment") {
+      console.log("[HomeScreen] Navigating to pending-payments");
       const selected = patients.find(p => p.patient_id === patientId);
       router.push({
         pathname: "/(patient)/visit/pending-payments",
         params: { patientId, patientName: selected?.full_name || "Bệnh nhân" }
       });
+    } else if (bookingFlowType === "package") {
+      console.log("[HomeScreen] Navigating to package-select");
+      try {
+        router.push({
+          pathname: "/(patient)/package/package-select",
+          params: { patientId }
+        });
+      } catch (err) {
+        console.error("[HomeScreen] router.push error:", err);
+      }
+    } else {
+      console.warn("[HomeScreen] Unknown bookingFlowType:", bookingFlowType);
     }
   };
 
@@ -174,16 +190,16 @@ export default function HomeScreen() {
               <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Bản đồ 3D</Text>
             </Pressable>
 
-            {/* Nút 4: Thanh toán */}
+            {/* Nút 4: Gói khám */}
             <Pressable
-              onPress={() => handlePressBooking("payment")}
+              onPress={() => handlePressBooking("package")}
               className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
             >
               <View className="mb-3.5 mt-1">
-                <Ionicons name="card-outline" size={42} color="#10B981" />
+                <Ionicons name="medkit-outline" size={42} color="#10B981" />
               </View>
-              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Thanh toán</Text>
-              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Đóng phí</Text>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Gói khám</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Gói sức khỏe</Text>
             </Pressable>
           </View>
         </View>
