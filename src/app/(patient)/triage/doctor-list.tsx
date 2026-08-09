@@ -74,7 +74,7 @@ export default function DoctorListScreen() {
   const handleSelectDoctor = (doctor: Doctor) => {
     const doctorName = doctor.full_name || doctor.account?.user_name || "Bác sĩ";
     router.push({
-      pathname: "/(patient)/visit/doctor-slots",
+      pathname: "/(patient)/triage/doctor-slots",
       params: {
         doctorId: doctor.staff_id,
         doctorName: doctorName,

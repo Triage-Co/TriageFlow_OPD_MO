@@ -79,7 +79,7 @@ export default function BodyMapScreen() {
 
     
     router.push({
-      pathname: "/(patient)/symptom-select",
+      pathname: "/(patient)/triage/symptom-select",
       params: {
         regionId: region.id,
         regionLabelVi: region.labelVi || region.name || "",

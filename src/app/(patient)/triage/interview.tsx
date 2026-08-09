@@ -60,7 +60,7 @@ export default function InterviewScreen() {
 
   const handleQuit = async () => {
     await clearSession();
-    router.replace("/(patient)/body-map");
+    router.replace("/(patient)/triage/body-map");
   };
 
   

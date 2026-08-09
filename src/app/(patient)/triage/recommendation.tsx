@@ -40,7 +40,7 @@ export default function RecommendationScreen() {
 
   const handleSelectDoctor = () => {
     router.push({
-      pathname: "/(patient)/visit/doctor-list",
+      pathname: "/(patient)/triage/doctor-list",
       params: {
         specialtyCode,
         specialtyName: specialistName,
@@ -56,7 +56,7 @@ export default function RecommendationScreen() {
       );
       return;
     }
-    router.push("/(patient)/visit/auto-booking");
+    router.push("/(patient)/triage/auto-booking");
   };
 
   return (

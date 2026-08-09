@@ -329,7 +329,7 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setShouldStop(true);
       }
 
-      router.push("/(patient)/visit/interview");
+      router.push("/(patient)/triage/interview");
     } catch (err: any) {
       console.error("[TriageContext] Lỗi khi bắt đầu chẩn đoán:", err);
       if (err?.response) {
@@ -488,7 +488,7 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log("[Triage] Đề xuất chuyên khoa:", translatedRec.recommended_specialist?.nameVi);
 
-      router.push("/(patient)/visit/recommendation");
+      router.push("/(patient)/triage/recommendation");
     } catch (err: any) {
       console.error("[TriageContext] Lỗi khi lấy đề xuất chuyên khoa:", err);
       if (err?.response) {

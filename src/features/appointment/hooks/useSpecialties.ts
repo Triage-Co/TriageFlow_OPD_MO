@@ -12,7 +12,7 @@ export function useSpecialties() {
     setError(null);
     console.log("[useSpecialties] Calling API getSpecialties");
     try {
-      const data = await specialtyService.getSpecialties();
+      const data = await specialtyService.getSpecialties({page:1, limit: 100});
       console.log(`[useSpecialties] API Success: received ${data.length} specialties`);
       setSpecialties(data);
     } catch (err: any) {

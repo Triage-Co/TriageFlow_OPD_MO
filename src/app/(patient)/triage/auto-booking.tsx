@@ -18,7 +18,7 @@ export default function AutoBookingScreen() {
     const performAutoBooking = async () => {
       if (!interviewToken) {
         Alert.alert("Lỗi", "Không tìm thấy phiên chẩn đoán. Vui lòng thử lại.");
-        router.replace("/(patient)/body-map");
+        router.replace("/(patient)/triage/body-map");
         return;
       }
 

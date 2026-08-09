@@ -1,10 +1,10 @@
 import apiClient from "@/shared/services/api-client";
-import { Specialty } from "../types/specialty.types";
+import { Specialty, SpecialtyListResponse } from "../types/specialty.types";
 
 class SpecialtyService {
-  async getSpecialties(): Promise<Specialty[]> {
-    const response = await apiClient.get("/api/specialty");
-    return response.data?.data || [];
+  async getSpecialties(params?: { page?: number; limit?: number }): Promise<Specialty[]> {
+    const response = await apiClient.get<SpecialtyListResponse>("/api/specialty", { params });
+    return response.data?.data?.data || [];
   }
 }
 

@@ -37,7 +37,7 @@ export default function SpecialtySelectScreen() {
   const handleSelectSpecialty = (specialty: Specialty) => {
     console.log(`[SpecialtySelect] Selected specialty, navigating to doctor-list: ${specialty.specialty_name} (${specialty.specialty_id})`);
     router.push({
-      pathname: "/(patient)/visit/doctor-list",
+      pathname: "/(patient)/triage/doctor-list",
       params: {
         specialtyCode: specialty.specialty_code,
         specialtyName: specialty.specialty_name,

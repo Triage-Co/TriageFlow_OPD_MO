@@ -66,7 +66,7 @@ export default function HomeScreen() {
           { text: "Hủy", style: "cancel" },
           {
             text: "Tạo hồ sơ",
-            onPress: () => router.push("/(patient)/patient-list"),
+            onPress: () => router.push("/(patient)/triage/patient-list"),
           }
         ]
       );
@@ -90,7 +90,7 @@ export default function HomeScreen() {
     } else if (bookingFlowType === "triage") {
       console.log("[HomeScreen] Navigating to body-map");
       router.push({
-        pathname: "/(patient)/body-map",
+        pathname: "/(patient)/triage/body-map",
         params: { patientId }
       });
     } else if (bookingFlowType === "payment") {

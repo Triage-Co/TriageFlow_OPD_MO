@@ -107,7 +107,7 @@ export default function ProfileScreen() {
           <ActionCard
             iconName={{ ios: "person", android: "person" }}
             title="Thông tin cá nhân"
-            onPress={() => router.push("/(patient)/personal-info")}
+            onPress={() => router.push("/(patient)/triage/personal-info")}
           />
           <ActionCard
             iconName={{ ios: "shield", android: "shield" }}
@@ -122,7 +122,7 @@ export default function ProfileScreen() {
           <ActionCard
             iconName={{ ios: "person.3", android: "people" }}
             title="Hồ Sơ Khám Bệnh"
-            onPress={() => router.push("/(patient)/patient-list" as any)}
+            onPress={() => router.push("/(patient)/triage/patient-list" as any)}
           />
           <ActionCard
             iconName={{ ios: "key", android: "key" }}
