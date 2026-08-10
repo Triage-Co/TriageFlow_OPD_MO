@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { Alert } from "react-native";
-import { doctorService } from "../services/doctor.service";
+import { visitService } from "../services/visit.service";
 import { sortStepsTopologically } from "@/shared/utils/flow.utils";
 
 export function useClinicalRoute() {
@@ -27,7 +27,7 @@ export function useClinicalRoute() {
     if (!patientId) return;
     if (showIndicator) setIsFetchingServiceOrders(true);
     try {
-      const response = await doctorService.getPendingServiceOrders(patientId);
+      const response = await visitService.getPendingServiceOrders(patientId);
       const data = response?.data || response || [];
       setPendingServiceOrders(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -49,7 +49,7 @@ export function useClinicalRoute() {
     }
     try {
       const todayStr = new Date().toISOString().split("T")[0];
-      const response = await doctorService.getActiveFlow(patientId, todayStr);
+      const response = await visitService.getActiveFlow(patientId, todayStr);
       if (response && response.data && response.data.length > 0) {
         // Tìm flow đang chạy mới nhất của bệnh nhân
         const activeFlow = response.data.find((f: any) => f.status === "IN_PROGRESS");
@@ -58,7 +58,7 @@ export function useClinicalRoute() {
         setCurrentFlow(activeFlow || response.data[0]);
       } else {
         // Thử tìm trong lịch sử flow tổng quát nếu không có active
-        const historyResponse = await doctorService.getPatientFlows(patientId);
+        const historyResponse = await visitService.getPatientFlows(patientId);
         if (historyResponse && historyResponse.data && historyResponse.data.length > 0) {
           // Lấy cái mới nhất trong lịch sử
           const sortedHistory = [...historyResponse.data].sort((a: any, b: any) => {
@@ -101,7 +101,7 @@ export function useClinicalRoute() {
 
     const checkPayment = async () => {
       try {
-        const response = await doctorService.getPendingServiceOrders(patientId);
+        const response = await visitService.getPendingServiceOrders(patientId);
         const data = response?.data || response || [];
         const pendingOrders = Array.isArray(data) ? data : [];
 
@@ -157,7 +157,7 @@ export function useClinicalRoute() {
     if (!selectedStep) return;
     setIsCheckingPayment(true);
     try {
-      const res = await doctorService.getBookingGenerate(selectedStep.step_id);
+      const res = await visitService.getBookingGenerate(selectedStep.step_id);
       
       if (res && (res.code === 200 || res.status === "success" || res.data)) {
         const queueObj = Array.isArray(res.data?.queue) ? res.data.queue[0] : res.data;

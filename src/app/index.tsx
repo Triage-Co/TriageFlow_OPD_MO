@@ -1,13 +1,16 @@
 import { useEffect } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * index.tsx – Entry point của app
  * Kiểm tra session và redirect:
  *   - Đã login → /(patient)/(tabs)/home
- *   - Chưa login → /(auth)/welcome
+ *   - Chưa login:
+ *       + Chưa xem Onboarding → /(auth)/welcome
+ *       + Đã xem Onboarding → /(auth)/login
  */
 export default function Index() {
   const router = useRouter();
@@ -16,11 +19,25 @@ export default function Index() {
   useEffect(() => {
     if (isLoading) return;
 
-    if (isAuthenticated) {
-      router.replace("/(patient)/(tabs)/home");
-    } else {
-      router.replace("/(auth)/welcome");
-    }
+    const checkRedirect = async () => {
+      if (isAuthenticated) {
+        router.replace("/(patient)/(tabs)/home");
+      } else {
+        try {
+          const hasSeen = await AsyncStorage.getItem("HAS_SEEN_ONBOARDING");
+          if (hasSeen === "true") {
+            router.replace("/(auth)/login");
+          } else {
+            router.replace("/welcome");
+          }
+        } catch (err) {
+          console.warn("[Entry] Error checking onboarding state:", err);
+          router.replace("/welcome");
+        }
+      }
+    };
+
+    checkRedirect();
   }, [isAuthenticated, isLoading, router]);
 
   return (
