@@ -203,7 +203,6 @@ export function PendingPaymentsView() {
         />
       )}
 
-      {/* VietQR Payment Modal */}
       <Modal
         visible={!!selectedStep}
         transparent
@@ -230,7 +229,7 @@ export function PendingPaymentsView() {
             <ScrollView showsVerticalScrollIndicator={false} className="space-y-6">
               <View className="items-center space-y-4">
                 <Text className="text-gray-500 text-xs text-center px-4 leading-[18px]">
-                  Mở ứng dụng ngân hàng và quét mã VietQR bên dưới để tự động điền thông tin đóng phí.
+                  Mở ứng dụng ngân hàng và quét mã QR bên dưới để tự động điền thông tin đóng phí.
                 </Text>
 
                 {/* QR Image */}

@@ -41,7 +41,7 @@ export const ServiceOrderPaymentQrModal: React.FC<ServiceOrderPaymentQrModalProp
             <ScrollView showsVerticalScrollIndicator={false} className="space-y-6">
               <View className="items-center space-y-4">
                 <Text className="text-gray-500 text-xs text-center px-4 leading-[18px]">
-                  Quét mã VietQR dưới đây bằng ứng dụng ngân hàng của bạn để thanh toán đơn dịch vụ chỉ định.
+                  Quét mã QR dưới đây bằng ứng dụng ngân hàng của bạn để thanh toán đơn dịch vụ chỉ định.
                 </Text>
 
                 {/* QR Image */}

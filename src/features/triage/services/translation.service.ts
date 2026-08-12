@@ -4,8 +4,6 @@ import type {
   SymptomSearchItem,
   TranslatedSymptomSearchItem,
 } from "../types/triage.types";
-import { ITranslationProvider } from "./translation.provider";
-import { GoogleTranslateProvider } from "./google-translate.provider";
 import { triageCacheService } from "./triage-cache.service";
 
 const STATIC_EN_VI_DICTIONARY: Record<string, string> = {
@@ -19,23 +17,12 @@ const STATIC_EN_VI_DICTIONARY: Record<string, string> = {
 };
 
 class TranslationService {
-  private provider: ITranslationProvider;
-
-  constructor(provider: ITranslationProvider = new GoogleTranslateProvider()) {
-    this.provider = provider;
-  }
-
-  setProvider(provider: ITranslationProvider) {
-    this.provider = provider;
-  }
-
   async translateEnToVi(text?: string | null, symptomId?: string): Promise<string> {
     if (!text) return "";
 
     const normalizedText = text.trim();
     if (!normalizedText) return "";
 
-    
     if (symptomId) {
       const cached = triageCacheService.getTranslationCache(symptomId);
       if (cached && cached.vi) {
@@ -43,11 +30,9 @@ class TranslationService {
       }
     }
 
-    
     let staticTranslated = STATIC_EN_VI_DICTIONARY[normalizedText];
     if (staticTranslated) return staticTranslated;
 
-    
     const lowerNormalized = normalizedText.toLowerCase();
     for (const key of Object.keys(STATIC_EN_VI_DICTIONARY)) {
       if (key.toLowerCase() === lowerNormalized) {
@@ -55,16 +40,45 @@ class TranslationService {
       }
     }
 
-    
     try {
-      const translated = await this.provider.translate(normalizedText, "en", "vi");
-      
-      
+      const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        console.warn("[TranslationService] Missing EXPO_PUBLIC_DEEPSEEK_API_KEY. Fallback to original.");
+        return normalizedText;
+      }
+
+      const response = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an expert medical translator. Translate the given medical term or phrase from English to natural, accurate Vietnamese suitable for a patient app. Return ONLY the translated text, with no markdown, quotes, or explanations.",
+            },
+            { role: "user", content: normalizedText },
+          ],
+          temperature: 0.2,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const resData = await response.json();
+      const translated = resData.choices?.[0]?.message?.content?.trim() || normalizedText;
+
       if (symptomId && translated) {
         triageCacheService.setTranslationCache(symptomId, { en: normalizedText, vi: translated });
       }
-      
-      return translated || normalizedText;
+
+      return translated;
     } catch (error) {
       console.warn(`[TranslationService] Translate failed for "${text}", fallback to original:`, error);
       return normalizedText;
@@ -86,21 +100,92 @@ class TranslationService {
   async translateSymptomItems(
     items: SymptomSearchItem[]
   ): Promise<TranslatedSymptomSearchItem[]> {
-    if (!Array.isArray(items)) return [];
+    if (!Array.isArray(items) || items.length === 0) return [];
 
     try {
-      const labelsEn = items.map((item) => item.label);
-      const symptomIds = items.map((item) => item.id);
-      const labelsVi = await this.translateManyEnToVi(labelsEn, symptomIds);
+      const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        console.warn("[TranslationService] Missing EXPO_PUBLIC_DEEPSEEK_API_KEY for translateSymptomItems.");
+        return items.map((item) => ({
+          id: item.id,
+          labelEn: item.label,
+          labelVi: item.label,
+        }));
+      }
 
-      return items.map((item, index) => ({
+      const uncachedItems: SymptomSearchItem[] = [];
+      const cachedTranslations = new Map<string, string>();
+
+      items.forEach((item) => {
+        const cached = triageCacheService.getTranslationCache(item.id);
+        if (cached && cached.vi) {
+          cachedTranslations.set(item.id, cached.vi);
+        } else {
+          uncachedItems.push(item);
+        }
+      });
+
+      if (uncachedItems.length > 0) {
+        const systemPrompt = `You are an expert medical translator.
+Translate the following medical symptom names from English to accurate, natural Vietnamese suitable for patient displays.
+Return ONLY a raw JSON object (no markdown, no backticks, no extra text) matching this JSON structure:
+{
+  "translatedSymptoms": [
+    { "id": "symptom_id", "labelVi": "Tên triệu chứng tiếng Việt" }
+  ]
+}`;
+
+        const userPayload = {
+          symptoms: uncachedItems.map((item) => ({ id: item.id, label: item.label })),
+        };
+
+        const response = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: JSON.stringify(userPayload) },
+            ],
+            temperature: 0.2,
+            response_format: { type: "json_object" },
+          }),
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          const content = resData.choices?.[0]?.message?.content;
+          if (content) {
+            const cleanedContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsedData = JSON.parse(cleanedContent);
+            const translatedSymptoms = parsedData.translatedSymptoms || [];
+            if (Array.isArray(translatedSymptoms)) {
+              translatedSymptoms.forEach((it: { id: string; labelVi: string }) => {
+                if (it.id && it.labelVi) {
+                  cachedTranslations.set(it.id, it.labelVi);
+                  const originalItem = uncachedItems.find((x) => x.id === it.id);
+                  triageCacheService.setTranslationCache(it.id, {
+                    en: originalItem?.label || "",
+                    vi: it.labelVi,
+                  });
+                }
+              });
+            }
+          }
+        }
+      }
+
+      return items.map((item) => ({
         id: item.id,
         labelEn: item.label,
-        labelVi: labelsVi[index] || item.label,
+        labelVi: cachedTranslations.get(item.id) || item.label,
       }));
     } catch (error) {
-      console.warn("Translate symptom items failed:", error);
-
+      console.warn("[TranslationService] translateSymptomItems failed:", error);
       return items.map((item) => ({
         id: item.id,
         labelEn: item.label,
@@ -115,34 +200,91 @@ class TranslationService {
     if (!question) return null;
 
     try {
-      const textVi = await this.translateEnToVi(question.text);
+      const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        console.warn("[TranslationService] Missing EXPO_PUBLIC_DEEPSEEK_API_KEY for translateQuestion.");
+        return question;
+      }
 
-      const translatedItems = await Promise.all(
-        question.items.map(async (item) => {
-          const nameVi = await this.translateEnToVi(item.name, item.id);
+      const systemPrompt = `You are an expert medical translator for hospital triage systems.
+Translate the following medical question and symptom names from English to accurate, natural Vietnamese suitable for patient displays.
+Maintain exact IDs for items.
+IMPORTANT: Return ONLY a raw JSON object (no markdown, no backticks, no extra text) matching this JSON structure:
+{
+  "translatedText": "Tiêu đề câu hỏi tiếng Việt",
+  "translatedItems": [
+    { "id": "item_id", "name": "Tên triệu chứng tiếng Việt" }
+  ]
+}`;
 
-          const translatedChoices = await Promise.all(
-            item.choices.map(async (choice) => ({
-              ...choice,
-              labelVi: await this.translateEnToVi(choice.label || choice.id),
-            }))
-          );
+      const userPayload = {
+        text: question.text || "",
+        items: (question.items || []).map((it) => ({
+          id: it.id,
+          name: it.name,
+        })),
+      };
 
-          return {
-            ...item,
-            nameVi,
-            choices: translatedChoices,
-          };
-        })
-      );
+      const response = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: JSON.stringify(userPayload) },
+          ],
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const resData = await response.json();
+      const content = resData.choices?.[0]?.message?.content;
+      if (!content) return question;
+
+      const cleanedContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+      const parsedData = JSON.parse(cleanedContent);
+
+      const { translatedText, translatedItems } = parsedData || {};
+
+      const itemMap = new Map<string, string>();
+      if (Array.isArray(translatedItems)) {
+        translatedItems.forEach((it: { id: string; name: string }) => {
+          if (it.id && it.name) {
+            itemMap.set(it.id, it.name);
+          }
+        });
+      }
+
+      const translatedItemsList = question.items.map((item) => {
+        const nameVi = itemMap.get(item.id) || item.name;
+        const translatedChoices = item.choices.map((choice) => ({
+          ...choice,
+          labelVi: STATIC_EN_VI_DICTIONARY[choice.label] || STATIC_EN_VI_DICTIONARY[choice.id] || choice.label,
+        }));
+
+        return {
+          ...item,
+          nameVi,
+          choices: translatedChoices,
+        };
+      });
 
       return {
         ...question,
-        textVi,
-        items: translatedItems,
+        textVi: translatedText || question.text,
+        items: translatedItemsList,
       };
     } catch (error) {
-      console.warn("Translate question failed:", error);
+      console.warn("[TranslationService] translateQuestion failed:", error);
       return question;
     }
   }
@@ -161,10 +303,10 @@ class TranslationService {
           recommended_specialist: {
             id: "general_practice",
             name: "General Practice",
-            nameVi: "Khoa Nội tổng quát"
+            nameVi: "Khoa Nội tổng quát",
           },
           recommended_channel: channel || "personal_visit",
-          recommended_channel_vi: "Khám trực tiếp"
+          recommended_channel_vi: "Khám trực tiếp",
         };
       }
 
@@ -191,9 +333,9 @@ class TranslationService {
         recommended_specialist: {
           id: specialist?.id || "general_practice",
           name: specialist?.name || "General Practice",
-          nameVi: specialist?.nameVi || "Khoa Nội tổng quát"
+          nameVi: specialist?.nameVi || "Khoa Nội tổng quát",
         },
-        recommended_channel_vi: result?.recommended_channel_vi || "Khám trực tiếp"
+        recommended_channel_vi: result?.recommended_channel_vi || "Khám trực tiếp",
       };
     }
   }

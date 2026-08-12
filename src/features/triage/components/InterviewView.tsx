@@ -30,6 +30,9 @@ export function InterviewView() {
 
   const [answers, setAnswers] = useState<Record<string, EvidenceChoiceId>>({});
 
+  const isGroupSingle = currentQuestion?.type === "group_single";
+  const isGroupMultiple = currentQuestion?.type === "group_multiple";
+
   useEffect(() => {
     setAnswers({});
   }, [currentQuestion]);
@@ -42,10 +45,31 @@ export function InterviewView() {
   };
 
   const handleNext = async () => {
-    const selectedAnswers = Object.entries(answers).map(([id, choice_id]) => ({
-      id,
-      choice_id,
-    }));
+    let selectedAnswers;
+    if (isGroupSingle && currentQuestion) {
+      const selectedItem = currentQuestion.items.find((item) => answers[item.id] === "present");
+      if (selectedItem) {
+        selectedAnswers = [{
+          id: selectedItem.id,
+          choice_id: "present" as EvidenceChoiceId,
+        }];
+      } else {
+        selectedAnswers = currentQuestion.items.map((item) => ({
+          id: item.id,
+          choice_id: "absent" as EvidenceChoiceId,
+        }));
+      }
+    } else if (isGroupMultiple && currentQuestion) {
+      selectedAnswers = currentQuestion.items.map((item) => ({
+        id: item.id,
+        choice_id: answers[item.id] === "present" ? ("present" as EvidenceChoiceId) : ("absent" as EvidenceChoiceId),
+      }));
+    } else {
+      selectedAnswers = Object.entries(answers).map(([id, choice_id]) => ({
+        id,
+        choice_id,
+      }));
+    }
 
     if (selectedAnswers.length > 0) {
       await answerQuestion(selectedAnswers);
@@ -61,7 +85,15 @@ export function InterviewView() {
     router.replace("/(patient)/triage/body-map");
   };
 
-  const hasSelectedAny = Object.keys(answers).length > 0;
+  const isAllAnswered = currentQuestion
+    ? (isGroupSingle
+      ? currentQuestion.items.some((item) => answers[item.id] === "present") ||
+        currentQuestion.items.every((item) => answers[item.id] === "absent")
+      : isGroupMultiple
+        ? true
+        : currentQuestion.items.every((item) => answers[item.id])
+    )
+    : false;
 
   if (!currentQuestion && !shouldStop && isLoading) {
     return (
@@ -175,67 +207,162 @@ export function InterviewView() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
               >
-                <View className="gap-4">
-                  {currentQuestion.items.map((item) => {
-                    const selectedChoice = answers[item.id];
-                    const showItemLabel =
-                      currentQuestion.items.length > 1 ||
-                      (item.nameVi && item.nameVi !== currentQuestion.textVi) ||
-                      (item.name && item.name !== currentQuestion.text);
+                {isGroupSingle || isGroupMultiple ? (
+                  <View className="gap-3">
+                    {currentQuestion.items.map((item) => {
+                      const isSelected = answers[item.id] === "present";
+                      
+                      const handlePress = () => {
+                        if (isGroupSingle) {
+                          const newAnswers: Record<string, EvidenceChoiceId> = {};
+                          currentQuestion.items.forEach((it) => {
+                            newAnswers[it.id] = it.id === item.id ? "present" : "absent";
+                          });
+                          setAnswers(newAnswers);
+                        } else {
+                          setAnswers((prev) => ({
+                            ...prev,
+                            [item.id]: prev[item.id] === "present" ? "absent" : "present",
+                          }));
+                        }
+                      };
 
-                    return (
-                      <View
-                        key={item.id}
-                        className="bg-white rounded-[20px] p-4 border border-gray-100 shadow-sm"
-                      >
-                        {showItemLabel && (
-                          <Text className="text-gray-700 text-[14px] font-semibold mb-3">
+                      return (
+                        <Pressable
+                          key={item.id}
+                          onPress={handlePress}
+                          className={`bg-white rounded-[20px] p-5 border flex-row items-center justify-between gap-4 ${
+                            isSelected ? "border-primary bg-blue-50/20" : "border-gray-100"
+                          }`}
+                          style={({ pressed }) => pressed && { opacity: 0.9 }}
+                        >
+                          <Text className={`flex-1 text-[15px] font-semibold ${
+                            isSelected ? "text-primary font-bold" : "text-gray-700"
+                          }`}>
                             {item.nameVi || item.name}
                           </Text>
-                        )}
+                          
+                          <View className={`w-5 h-5 items-center justify-center shrink-0 border ${
+                            isGroupSingle ? "rounded-full" : "rounded-[6px]"
+                          } ${
+                            isSelected ? "border-primary bg-primary" : "border-gray-300 bg-white"
+                          }`}>
+                            {isSelected && (
+                              isGroupSingle ? (
+                                <View className="w-2 h-2 rounded-full bg-white" />
+                              ) : (
+                                <Text className="text-[10px] text-white font-black">✓</Text>
+                              )
+                            )}
+                          </View>
+                        </Pressable>
+                      );
+                    })}
 
-                        {/* 3 Nút lựa chọn: Có, Không, Không biết */}
-                        <View className="flex-row gap-2">
-                          {[
-                            { id: "present" as EvidenceChoiceId, label: "Có" },
-                            { id: "absent" as EvidenceChoiceId, label: "Không" },
-                            { id: "unknown" as EvidenceChoiceId, label: "Không biết" },
-                          ].map((choice) => {
-                            const isChosen = selectedChoice === choice.id;
-                            let btnBgStyle = "bg-[#F8FAFC] border-gray-200";
-                            let textStyle = "text-gray-600";
+                    {/* Nút "Không có triệu chứng nào nêu trên" */}
+                    {(() => {
+                      const isNoneSelected = currentQuestion.items.every((it) => answers[it.id] === "absent");
+                      
+                      const handleSelectNone = () => {
+                        const newAnswers: Record<string, EvidenceChoiceId> = {};
+                        currentQuestion.items.forEach((it) => {
+                          newAnswers[it.id] = "absent";
+                        });
+                        setAnswers(newAnswers);
+                      };
 
-                            if (isChosen) {
-                              if (choice.id === "present") {
-                                btnBgStyle = "bg-green-50 border-green-200";
-                                textStyle = "text-green-700 font-bold";
-                              } else if (choice.id === "absent") {
-                                btnBgStyle = "bg-red-50 border-red-200";
-                                textStyle = "text-red-700 font-bold";
-                              } else {
-                                btnBgStyle = "bg-gray-100 border-gray-300";
-                                textStyle = "text-gray-800 font-bold";
+                      return (
+                        <Pressable
+                          onPress={handleSelectNone}
+                          className={`bg-white rounded-[20px] p-5 border flex-row items-center justify-between gap-4 ${
+                            isNoneSelected ? "border-gray-800 bg-gray-50" : "border-gray-100"
+                          }`}
+                          style={({ pressed }) => pressed && { opacity: 0.9 }}
+                        >
+                          <Text className={`flex-1 text-[15px] font-semibold ${
+                            isNoneSelected ? "text-gray-900 font-bold" : "text-gray-700"
+                          }`}>
+                            Không có triệu chứng nào nêu trên
+                          </Text>
+                          <View className={`w-5 h-5 items-center justify-center shrink-0 border ${
+                            isGroupSingle ? "rounded-full" : "rounded-[6px]"
+                          } ${
+                            isNoneSelected ? "border-gray-800 bg-gray-800" : "border-gray-300 bg-white"
+                          }`}>
+                            {isNoneSelected && (
+                              isGroupSingle ? (
+                                <View className="w-2 h-2 rounded-full bg-white" />
+                              ) : (
+                                <Text className="text-[10px] text-white font-black">✓</Text>
+                              )
+                            )}
+                          </View>
+                        </Pressable>
+                      );
+                    })()}
+                  </View>
+                ) : (
+                  <View className="gap-4">
+                    {currentQuestion.items.map((item) => {
+                      const selectedChoice = answers[item.id];
+                      const showItemLabel =
+                        currentQuestion.items.length > 1 ||
+                        (item.nameVi && item.nameVi !== currentQuestion.textVi) ||
+                        (item.name && item.name !== currentQuestion.text);
+
+                      return (
+                        <View
+                          key={item.id}
+                          className="bg-white rounded-[20px] p-4 border border-gray-100 shadow-sm"
+                        >
+                          {showItemLabel && (
+                            <Text className="text-gray-700 text-[14px] font-semibold mb-3">
+                              {item.nameVi || item.name}
+                            </Text>
+                          )}
+
+                          <View className="flex-row gap-2">
+                            {[
+                              { id: "present" as EvidenceChoiceId, label: "Có" },
+                              { id: "absent" as EvidenceChoiceId, label: "Không" },
+                              { id: "unknown" as EvidenceChoiceId, label: "Không biết" },
+                            ].map((choice) => {
+                              const isChosen = selectedChoice === choice.id;
+                              let btnBgStyle = "bg-[#F8FAFC] border-gray-200";
+                              let textStyle = "text-gray-600";
+
+                              if (isChosen) {
+                                if (choice.id === "present") {
+                                  btnBgStyle = "bg-green-50 border-green-200";
+                                  textStyle = "text-green-700 font-bold";
+                                } else if (choice.id === "absent") {
+                                  btnBgStyle = "bg-red-50 border-red-200";
+                                  textStyle = "text-red-700 font-bold";
+                                } else {
+                                  btnBgStyle = "bg-gray-100 border-gray-300";
+                                  textStyle = "text-gray-800 font-bold";
+                                }
                               }
-                            }
 
-                            return (
-                              <Pressable
-                                key={choice.id}
-                                onPress={() => handleSelectChoice(item.id, choice.id)}
-                                className={`flex-1 py-3 rounded-[12px] border items-center justify-center ${btnBgStyle}`}
-                                style={({ pressed }) => pressed && { opacity: 0.8 }}
-                              >
-                                <Text className={`text-[12px] ${textStyle}`}>
-                                  {choice.label}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
+                              return (
+                                <Pressable
+                                  key={choice.id}
+                                  onPress={() => handleSelectChoice(item.id, choice.id)}
+                                  className={`flex-1 py-3 rounded-[12px] border items-center justify-center ${btnBgStyle}`}
+                                  style={({ pressed }) => pressed && { opacity: 0.8 }}
+                                >
+                                  <Text className={`text-[12px] ${textStyle}`}>
+                                    {choice.label}
+                                  </Text>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
                         </View>
-                      </View>
-                    );
-                  })}
-                </View>
+                      );
+                    })}
+                  </View>
+                )}
               </ScrollView>
             </>
           )}
@@ -252,7 +379,7 @@ export function InterviewView() {
           ) : (
             <AppButton
               title="Tiếp theo"
-              disabled={!hasSelectedAny || isLoading}
+              disabled={!isAllAnswered || isLoading}
               isLoading={isLoading}
               onPress={handleNext}
             />
