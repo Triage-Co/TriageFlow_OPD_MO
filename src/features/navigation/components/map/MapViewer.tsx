@@ -8,22 +8,22 @@ import { useNavigationStore } from "../../store/useNavigationStore";
 import { FloorRenderer } from "./FloorRenderer";
 import { useBuildingMap } from "../../hooks/useBuildingMap";
 
-function CameraController() {
+function CameraController({ activeFloor }: { activeFloor: number }) {
   const { camera, controls } = useThree();
 
   const lastValidPosition = useRef(new THREE.Vector3());
   const lastValidTarget = useRef(new THREE.Vector3());
   const isInitialized = useRef(false);
 
-  useEffect(() => {
+  const resetToTopDown = () => {
     const ctrl = controls as any;
     if (ctrl) {
       ctrl.target.set(0, 0, 0);
-      ctrl.reset();
     }
 
-    camera.position.set(0, 45, 65);
-    camera.up.set(0, 1, 0);
+    // Góc chiếu thẳng đứng 90 độ từ trên đỉnh xuống bao quát toàn bộ bản đồ (zoom rộng)
+    camera.position.set(0, 200, 0.001);
+    camera.up.set(0, 0, -1);
     camera.lookAt(0, 0, 0);
 
     if (ctrl) {
@@ -31,8 +31,12 @@ function CameraController() {
       lastValidTarget.current.copy(ctrl.target);
     }
     lastValidPosition.current.copy(camera.position);
+  };
+
+  useEffect(() => {
+    resetToTopDown();
     isInitialized.current = true;
-  }, [camera, controls]);
+  }, [camera, controls, activeFloor]);
 
   useFrame(() => {
     if (!isInitialized.current) return;
@@ -110,7 +114,7 @@ export function MapViewer() {
       onTouchCancel={handleTouchReset}
     >
       <Canvas
-        camera={{ position: [0, 45, 65], fov: 45 }}
+        camera={{ position: [0, 150, 0.001], fov: 50, up: [0, 0, -1] }}
         style={styles.canvas}
         frameloop="demand"
         gl={{ antialias: false, powerPreference: "high-performance" }}
@@ -126,7 +130,7 @@ export function MapViewer() {
             <FloorRenderer floorLevel={activeFloor} activeFloor={activeFloor} />
           </group>
 
-          <CameraController />
+          <CameraController activeFloor={activeFloor} />
         </Suspense>
 
         <OrbitControls
@@ -137,8 +141,8 @@ export function MapViewer() {
           enableRotate={controlMode === "rotate"}
           enableZoom={true}
           enablePan={controlMode === "pan"}
-          maxDistance={200}
-          minDistance={15}
+          maxDistance={400}
+          minDistance={10}
           zoomSpeed={1.8}
           rotateSpeed={1.1}
           panSpeed={1.3}

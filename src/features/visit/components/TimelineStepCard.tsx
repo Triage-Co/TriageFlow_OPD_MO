@@ -3,6 +3,7 @@ import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
 import { useRouter } from "expo-router";
+import { stripRoomName } from "@/shared/utils/string.utils";
 
 interface TimelineStepCardProps {
   step: any;
@@ -159,7 +160,12 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                             onPress={() =>
                               router.push({
                                 pathname: "/(patient)/(tabs)/navigation",
-                                params: { targetRoomName: subRoomName }
+                                params: {
+                                  targetRoomName: stripRoomName(subRoomName),
+                                  targetRoomId: subStep.room_info?.room_id || subStep.room_id || "",
+                                  targetRoomCode: subStep.room_info?.room_code || "",
+                                  _t: String(Date.now()),
+                                },
                               })
                             }
                             className="bg-primary/10 px-2.5 py-1 rounded-full flex-row items-center gap-1 active:opacity-75"
@@ -298,7 +304,12 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                 onPress={() =>
                   router.push({
                     pathname: "/(patient)/(tabs)/navigation",
-                    params: { targetRoomName: roomName }
+                    params: {
+                      targetRoomName: stripRoomName(roomName),
+                      targetRoomId: step.room_info?.room_id || step.room_id || "",
+                      targetRoomCode: step.room_info?.room_code || "",
+                      _t: String(Date.now()),
+                    },
                   })
                 }
                 className="bg-primary/10 px-3 py-1.5 rounded-full flex-row items-center gap-1 active:opacity-75"

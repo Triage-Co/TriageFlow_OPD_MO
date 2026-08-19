@@ -12,9 +12,22 @@ import { RoomOption } from "@/features/navigation/types/map.types";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
 import { useLocalSearchParams } from "expo-router";
+import { stripRoomName } from "@/shared/utils/string.utils";
+import { showGlobalToast } from "@/shared/components/ToastProvider";
 
 export default function NavigationScreen() {
-  const { targetRoomName } = useLocalSearchParams<{ targetRoomName?: string }>();
+  const params = useLocalSearchParams<{
+    targetRoomName?: string;
+    targetRoomId?: string;
+    targetRoomCode?: string;
+    _t?: string;
+  }>();
+
+  const targetRoomName = params.targetRoomName;
+  const targetRoomId = params.targetRoomId;
+  const targetRoomCode = params.targetRoomCode;
+  const triggerTime = params._t;
+
   const {
     activeFloor,
     setActiveFloor,
@@ -35,14 +48,13 @@ export default function NavigationScreen() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  
   useEffect(() => {
     async function initAutoRouting() {
       try {
         let resolvedTargetRoomName = targetRoomName;
         let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c"; // Default building
 
-        if (resolvedTargetRoomName) {
+        if (resolvedTargetRoomName || targetRoomId) {
           const activeBooking = await bookingStorageService.getActiveBookingStep();
           if (activeBooking) {
             const stepDetail = await fetchStepDetail(activeBooking.stepId, { skipGlobalToast: true });
@@ -66,10 +78,9 @@ export default function NavigationScreen() {
             (stepDetail.flow?.booking?.slot?.shift?.room as any)?.floor?.buildingId ||
             resolvedBuildingId;
         }
-        
+
         setActiveBuildingId(resolvedBuildingId);
 
-        
         const { fetchBuildingMap } = require("@/features/navigation/services/map.service");
         const mapData = await fetchBuildingMap(resolvedBuildingId);
         if (!mapData || !mapData.floors) return;
@@ -77,23 +88,58 @@ export default function NavigationScreen() {
         let foundTarget: RoomOption | null = null;
         let foundStart: RoomOption | null = null;
 
-        
-        const normTargetName = resolvedTargetRoomName
+        const cleanTargetName = stripRoomName(resolvedTargetRoomName);
+        const normTargetName = cleanTargetName
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
           .trim();
+        const targetCodeLower = targetRoomCode?.toLowerCase().trim();
 
+        // 3-tier room matching algorithm matching Kiosk
         for (const floor of mapData.floors) {
           const room = floor.rooms.find((r: any) => {
-            const normLabel = r.roomLabel
+            // 1. Match by ID if provided
+            if (targetRoomId && (r.id === targetRoomId || r.roomId === targetRoomId)) {
+              return true;
+            }
+
+            const rCode = (r.roomCode || "").toLowerCase().trim();
+            const rLabel = r.roomLabel || "";
+            const rLabelStripped = stripRoomName(rLabel);
+            const normLabel = rLabel
               .toLowerCase()
               .normalize("NFD")
               .replace(/[\u0300-\u036f]/g, "")
               .trim();
-            const normCode = r.roomCode.toLowerCase().trim();
-            return normLabel.includes(normTargetName) || normCode.includes(normTargetName);
+            const normLabelStripped = rLabelStripped
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .trim();
+
+            // 2. Match by Room Code (e.g. "P101", "XQ01")
+            if (targetCodeLower && rCode === targetCodeLower) {
+              return true;
+            }
+
+            // 3. Match by Normalized & Stripped Room Label
+            if (normTargetName) {
+              if (rCode === normTargetName) return true;
+              if (normLabel === normTargetName) return true;
+              if (normLabelStripped === normTargetName) return true;
+              if (normLabel.includes(normTargetName) || normTargetName.includes(normLabel)) return true;
+              if (
+                normLabelStripped.includes(normTargetName) ||
+                normTargetName.includes(normLabelStripped)
+              ) {
+                return true;
+              }
+            }
+
+            return false;
           });
+
           if (room) {
             foundTarget = {
               id: room.id,
@@ -106,11 +152,13 @@ export default function NavigationScreen() {
           }
         }
 
-        // Only search for default start point if targetRoomName was NOT passed
-        if (!targetRoomName) {
+        // Only search for default start point if target was NOT explicitly requested via step click
+        const isExplicitTarget = Boolean(targetRoomName || targetRoomId || targetRoomCode);
+
+        if (!isExplicitTarget) {
           for (const floor of mapData.floors) {
             const room = floor.rooms.find((r: any) => {
-              const l = r.roomLabel.toLowerCase();
+              const l = (r.roomLabel || "").toLowerCase();
               return l.includes("sảnh") || l.includes("tiếp nhận") || l.includes("nhà thuốc");
             });
             if (room) {
@@ -144,13 +192,20 @@ export default function NavigationScreen() {
         if (foundTarget) {
           setTargetRoom(foundTarget);
           setActiveFloor(foundTarget.floorNumber);
+          if (isExplicitTarget) {
+            // Explicitly clear start room so user can choose origin or scan QR
+            setStartRoom(null);
+            setRouteData(null);
+          }
+        } else if (isExplicitTarget) {
+          showGlobalToast(
+            `Không tìm thấy phòng "${cleanTargetName || targetRoomName}" trên bản đồ. Vui lòng chọn thủ công!`,
+            "error"
+          );
         }
 
         if (foundStart) {
           setStartRoom(foundStart);
-        } else if (targetRoomName) {
-          // Explicitly clear start room to let the user select it
-          setStartRoom(null);
         }
       } catch (err) {
         console.warn("[NavigationScreen] Auto-routing error:", err);
@@ -158,7 +213,7 @@ export default function NavigationScreen() {
     }
 
     initAutoRouting();
-  }, [targetRoomName]);
+  }, [targetRoomName, targetRoomId, targetRoomCode, triggerTime]);
 
   
   useEffect(() => {
