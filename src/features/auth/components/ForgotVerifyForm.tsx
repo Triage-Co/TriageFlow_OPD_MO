@@ -9,6 +9,10 @@ import { AuthHeader } from "@/shared/components/AuthHeader";
 import { FormErrorBanner } from "@/shared/components/FormErrorBanner";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
 import { AppAlert } from "@/shared/utils/alert.utils";
+import {
+  validateConfirmPasswordField,
+  validatePasswordField,
+} from "@/shared/utils/validation.utils";
 
 const RESEND_COUNTDOWN = 60;
 
@@ -27,6 +31,11 @@ export function ForgotVerifyForm() {
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    otp?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const [countdown, setCountdown] = useState(RESEND_COUNTDOWN);
   const canResend = countdown <= 0;
 
@@ -47,8 +56,30 @@ export function ForgotVerifyForm() {
       showGlobalToast("Mã OTP mới đã được gửi thành công.", "success");
       setCountdown(RESEND_COUNTDOWN);
       setOtp("");
+      setFieldErrors({});
     }
   }, [canResend, email, sendForgotPasswordOtp, clearError]);
+
+  const handleOtpBlur = () => {
+    let err: string | undefined;
+    if (!otp.trim()) {
+      err = "Vui lòng nhập mã OTP.";
+    } else if (otp.trim().length !== 8) {
+      err = "Mã OTP phải có độ dài đúng 8 chữ số.";
+    }
+    setFieldErrors((p) => ({ ...p, otp: err }));
+  };
+
+  const handlePasswordBlur = () => {
+    setFieldErrors((p) => ({ ...p, password: validatePasswordField(password, 6) }));
+  };
+
+  const handleConfirmPasswordBlur = () => {
+    setFieldErrors((p) => ({
+      ...p,
+      confirmPassword: validateConfirmPasswordField(password, confirmPassword),
+    }));
+  };
 
   const handleVerifyAndReset = async () => {
     if (!email) {
@@ -56,23 +87,26 @@ export function ForgotVerifyForm() {
       return;
     }
 
-    if (!otp.trim() || !password.trim() || !confirmPassword.trim()) {
-      showGlobalToast("Vui lòng điền đầy đủ các thông tin.", "error");
-      return;
+    const nextErrors: {
+      otp?: string;
+      password?: string;
+      confirmPassword?: string;
+    } = {};
+
+    if (!otp.trim()) {
+      nextErrors.otp = "Vui lòng nhập mã OTP.";
+    } else if (otp.trim().length !== 8) {
+      nextErrors.otp = "Mã OTP phải có độ dài đúng 8 chữ số.";
     }
 
-    if (otp.trim().length !== 8) {
-      showGlobalToast("Mã OTP phải có độ dài đúng 8 chữ số.", "error");
-      return;
-    }
+    const passErr = validatePasswordField(password, 6);
+    if (passErr) nextErrors.password = passErr;
 
-    if (password.length < 6) {
-      showGlobalToast("Mật khẩu mới phải có ít nhất 6 ký tự.", "error");
-      return;
-    }
+    const confirmErr = validateConfirmPasswordField(password, confirmPassword);
+    if (confirmErr) nextErrors.confirmPassword = confirmErr;
 
-    if (password !== confirmPassword) {
-      showGlobalToast("Mật khẩu xác nhận không khớp.", "error");
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
 
@@ -106,8 +140,11 @@ export function ForgotVerifyForm() {
           value={otp}
           onChangeText={(v) => {
             setOtp(v.replace(/[^0-9]/g, "").slice(0, 8));
+            if (fieldErrors.otp) setFieldErrors((p) => ({ ...p, otp: undefined }));
             if (error) clearError();
           }}
+          onBlur={handleOtpBlur}
+          error={fieldErrors.otp}
           keyboardType="number-pad"
           maxLength={8}
         />
@@ -118,8 +155,12 @@ export function ForgotVerifyForm() {
           value={password}
           onChangeText={(v) => {
             setPassword(v);
+            if (fieldErrors.password)
+              setFieldErrors((p) => ({ ...p, password: undefined }));
             if (error) clearError();
           }}
+          onBlur={handlePasswordBlur}
+          error={fieldErrors.password}
           secureTextEntry
         />
 
@@ -129,8 +170,12 @@ export function ForgotVerifyForm() {
           value={confirmPassword}
           onChangeText={(v) => {
             setConfirmPassword(v);
+            if (fieldErrors.confirmPassword)
+              setFieldErrors((p) => ({ ...p, confirmPassword: undefined }));
             if (error) clearError();
           }}
+          onBlur={handleConfirmPasswordBlur}
+          error={fieldErrors.confirmPassword}
           secureTextEntry
         />
 

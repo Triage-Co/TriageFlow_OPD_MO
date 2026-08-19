@@ -11,8 +11,10 @@ import { RoomPickerModal } from "@/features/navigation/components/RoomPickerModa
 import { RoomOption } from "@/features/navigation/types/map.types";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
+import { useLocalSearchParams } from "expo-router";
 
 export default function NavigationScreen() {
+  const { targetRoomName } = useLocalSearchParams<{ targetRoomName?: string }>();
   const {
     activeFloor,
     setActiveFloor,
@@ -37,19 +39,33 @@ export default function NavigationScreen() {
   useEffect(() => {
     async function initAutoRouting() {
       try {
-        const activeBooking = await bookingStorageService.getActiveBookingStep();
-        if (!activeBooking) return;
+        let resolvedTargetRoomName = targetRoomName;
+        let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c"; // Default building
 
-        const stepDetail = await fetchStepDetail(activeBooking.stepId, { skipGlobalToast: true });
-        if (!stepDetail) return;
+        if (resolvedTargetRoomName) {
+          const activeBooking = await bookingStorageService.getActiveBookingStep();
+          if (activeBooking) {
+            const stepDetail = await fetchStepDetail(activeBooking.stepId, { skipGlobalToast: true });
+            if (stepDetail) {
+              resolvedBuildingId =
+                (stepDetail.flow?.booking?.slot?.shift?.room as any)?.floor?.buildingId ||
+                resolvedBuildingId;
+            }
+          }
+        } else {
+          const activeBooking = await bookingStorageService.getActiveBookingStep();
+          if (!activeBooking) return;
 
-        const targetRoomName = stepDetail.flow?.booking?.slot?.shift?.room?.room_name;
-        if (!targetRoomName) return;
+          const stepDetail = await fetchStepDetail(activeBooking.stepId, { skipGlobalToast: true });
+          if (!stepDetail) return;
 
-        
-        const resolvedBuildingId =
-          (stepDetail.flow?.booking?.slot?.shift?.room as any)?.floor?.buildingId ||
-          "00b03ef8-7702-4b08-a07e-ec887432453c";
+          resolvedTargetRoomName = stepDetail.flow?.booking?.slot?.shift?.room?.room_name;
+          if (!resolvedTargetRoomName) return;
+
+          resolvedBuildingId =
+            (stepDetail.flow?.booking?.slot?.shift?.room as any)?.floor?.buildingId ||
+            resolvedBuildingId;
+        }
         
         setActiveBuildingId(resolvedBuildingId);
 
@@ -62,7 +78,7 @@ export default function NavigationScreen() {
         let foundStart: RoomOption | null = null;
 
         
-        const normTargetName = targetRoomName
+        const normTargetName = resolvedTargetRoomName
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
@@ -90,46 +106,51 @@ export default function NavigationScreen() {
           }
         }
 
-        
-        for (const floor of mapData.floors) {
-          const room = floor.rooms.find((r: any) => {
-            const l = r.roomLabel.toLowerCase();
-            return l.includes("sảnh") || l.includes("tiếp nhận") || l.includes("nhà thuốc");
-          });
-          if (room) {
-            foundStart = {
-              id: room.id,
-              roomCode: room.roomCode,
-              roomLabel: room.roomLabel,
-              floorNumber: floor.floorNumber,
-              type: room.type,
-            };
-            break;
+        // Only search for default start point if targetRoomName was NOT passed
+        if (!targetRoomName) {
+          for (const floor of mapData.floors) {
+            const room = floor.rooms.find((r: any) => {
+              const l = r.roomLabel.toLowerCase();
+              return l.includes("sảnh") || l.includes("tiếp nhận") || l.includes("nhà thuốc");
+            });
+            if (room) {
+              foundStart = {
+                id: room.id,
+                roomCode: room.roomCode,
+                roomLabel: room.roomLabel,
+                floorNumber: floor.floorNumber,
+                type: room.type,
+              };
+              break;
+            }
+          }
+
+          if (!foundStart && mapData.floors.length > 0) {
+            const firstFloor =
+              mapData.floors.find((f: any) => f.floorNumber === 1) || mapData.floors[0];
+            if (firstFloor && firstFloor.rooms.length > 0) {
+              const room = firstFloor.rooms[0];
+              foundStart = {
+                id: room.id,
+                roomCode: room.roomCode,
+                roomLabel: room.roomLabel,
+                floorNumber: firstFloor.floorNumber,
+                type: room.type,
+              };
+            }
           }
         }
 
-        
-        if (!foundStart && mapData.floors.length > 0) {
-          const firstFloor =
-            mapData.floors.find((f: any) => f.floorNumber === 1) || mapData.floors[0];
-          if (firstFloor && firstFloor.rooms.length > 0) {
-            const room = firstFloor.rooms[0];
-            foundStart = {
-              id: room.id,
-              roomCode: room.roomCode,
-              roomLabel: room.roomLabel,
-              floorNumber: firstFloor.floorNumber,
-              type: room.type,
-            };
-          }
+        if (foundTarget) {
+          setTargetRoom(foundTarget);
+          setActiveFloor(foundTarget.floorNumber);
         }
 
         if (foundStart) {
           setStartRoom(foundStart);
-        }
-        if (foundTarget) {
-          setTargetRoom(foundTarget);
-          setActiveFloor(foundTarget.floorNumber);
+        } else if (targetRoomName) {
+          // Explicitly clear start room to let the user select it
+          setStartRoom(null);
         }
       } catch (err) {
         console.warn("[NavigationScreen] Auto-routing error:", err);
@@ -137,7 +158,7 @@ export default function NavigationScreen() {
     }
 
     initAutoRouting();
-  }, []);
+  }, [targetRoomName]);
 
   
   useEffect(() => {

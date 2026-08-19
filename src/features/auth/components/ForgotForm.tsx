@@ -7,23 +7,29 @@ import { useForgotPassword } from "@/features/auth/hooks/useForgotPassword";
 import { FormScrollContainer } from "@/shared/components/FormScrollContainer";
 import { AuthHeader } from "@/shared/components/AuthHeader";
 import { FormErrorBanner } from "@/shared/components/FormErrorBanner";
-import { showGlobalToast } from "@/shared/components/ToastProvider";
 import { AppAlert } from "@/shared/utils/alert.utils";
+import { validateEmailField } from "@/shared/utils/validation.utils";
 
 export function ForgotForm() {
   const router = useRouter();
   const { sendForgotPasswordOtp, isLoading, error, clearError } = useForgotPassword();
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | undefined>();
+
+  const handleEmailChange = (v: string) => {
+    setEmail(v);
+    if (emailError) setEmailError(undefined);
+    if (error) clearError();
+  };
+
+  const handleEmailBlur = () => {
+    setEmailError(validateEmailField(email));
+  };
 
   const handleSendOtp = async () => {
-    if (!email.trim()) {
-      showGlobalToast("Vui lòng nhập email.", "error");
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      showGlobalToast("Định dạng email không hợp lệ.", "error");
+    const err = validateEmailField(email);
+    if (err) {
+      setEmailError(err);
       return;
     }
 
@@ -57,10 +63,9 @@ export function ForgotForm() {
         <AppInput
           placeholder="Nhập email của bạn"
           value={email}
-          onChangeText={(v) => {
-            setEmail(v);
-            if (error) clearError();
-          }}
+          onChangeText={handleEmailChange}
+          onBlur={handleEmailBlur}
+          error={emailError}
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"

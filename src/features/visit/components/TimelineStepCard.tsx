@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
@@ -10,6 +10,7 @@ interface TimelineStepCardProps {
   isLast: boolean;
   isActive: boolean;
   onPayPress: (step: any) => void;
+  activeStepId: string | null;
 }
 
 export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
@@ -18,12 +19,171 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
   isLast,
   isActive,
   onPayPress,
+  activeStepId,
 }) => {
   const router = useRouter();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Grouped Steps Rendering
+  if (step.isGrouped) {
+    const isGroupCompleted = step.subSteps.every((s: any) => s.step_status === "COMPLETED");
+    const isGroupActive = isActive;
+
+    let gText = "Chờ thực hiện";
+    let gBg = "bg-gray-100";
+    let gTextColor = "text-gray-500";
+    let gIcon: any = "ellipse-outline";
+    let gIconColor = "#9CA3AF";
+    let gBorder = "border-gray-200";
+
+    if (isGroupCompleted) {
+      gText = "Hoàn thành";
+      gBg = "bg-green-50";
+      gTextColor = "text-green-600";
+      gIcon = "checkmark-circle";
+      gIconColor = "#10B981";
+      gBorder = "border-green-100";
+    } else if (isGroupActive) {
+      gText = "Đang thực hiện";
+      gBg = "bg-blue-50";
+      gTextColor = "text-primary";
+      gIcon = "play-circle";
+      gIconColor = Colors.primary;
+      gBorder = "border-[#84AFEB]/30";
+    }
+
+    return (
+      <View className="flex-row">
+        {/* Left Column timeline connector */}
+        <View className="items-center mr-4 w-8 text-center">
+          <View
+            className={`w-8 h-8 rounded-full items-center justify-center z-10 bg-white border border-gray-100 ${
+              isGroupActive ? "bg-primary/20" : isGroupCompleted ? "bg-green-100" : "bg-gray-100"
+            }`}
+          >
+            <Ionicons name={gIcon} size={isGroupActive ? 20 : 16} color={gIconColor} />
+          </View>
+          {!isLast && (
+            <View className={`w-[2px] flex-grow my-1 ${isGroupCompleted ? "bg-green-400" : "bg-gray-200"}`} />
+          )}
+        </View>
+
+        {/* Right Column: Group Card */}
+        <View className="flex-1 pb-6">
+          <View className={`bg-white rounded-[20px] border p-4 shadow-sm ${gBorder} ${isGroupActive ? "shadow-[#84AFEB]/10 border-primary" : ""}`}>
+            {/* Clickable Header */}
+            <Pressable 
+              onPress={() => setIsExpanded(!isExpanded)}
+              className="flex-row justify-between items-center select-none"
+            >
+              <View className="flex-1 mr-2 space-y-0.5">
+                <Text className={`text-[15px] font-bold ${isGroupActive ? "text-primary" : "text-gray-800"}`}>
+                  Bước {index + 1}. Thực hiện chỉ định dịch vụ
+                </Text>
+                <Text className="text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+                  Tổng cộng {step.subSteps.length} dịch vụ
+                </Text>
+              </View>
+              <View className={`${gBg} px-2.5 py-0.5 rounded-full border border-transparent`}>
+                <Text className={`${gTextColor} text-[10px] font-bold`}>
+                  {gText}
+                </Text>
+              </View>
+            </Pressable>
+
+            {/* List of sub steps */}
+            {isExpanded && (
+              <View className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                {step.subSteps.map((subStep: any, subIdx: number) => {
+                  const isSubCompleted = subStep.step_status === "COMPLETED";
+                  const isSubActive = subStep.step_id === activeStepId;
+                  
+                  let subText = "Chờ khám";
+                  let subBg = "bg-gray-50";
+                  let subTextColor = "text-gray-500";
+                  if (isSubCompleted) {
+                    subText = "Đã xong";
+                    subBg = "bg-green-50";
+                    subTextColor = "text-green-600";
+                  } else if (subStep.queues?.[0]?.status === "SERVING") {
+                    subText = "Đang gọi";
+                    subBg = "bg-blue-50";
+                    subTextColor = "text-primary";
+                  } else if (subStep.queues?.[0]?.status === "QUEUED") {
+                    subText = "Đang chờ";
+                    subBg = "bg-amber-50";
+                    subTextColor = "text-amber-600";
+                  }
+
+                  const subRoomName = subStep.room_info?.room_name || "Đang xếp phòng";
+                  const subQueueNo = subStep.queues?.[0]?.queue_number;
+
+                  return (
+                    <View 
+                      key={subStep.step_id} 
+                      className={`p-3 rounded-[16px] border border-gray-100 bg-white ${
+                        isSubActive ? "border-primary/50 bg-blue-50/10" : ""
+                      }`}
+                    >
+                      <View className="flex-row justify-between items-start mb-2">
+                        <Text className={`text-[13px] font-bold flex-1 mr-2 ${isSubActive ? "text-primary" : "text-gray-800"}`}>
+                          {subIdx + 1}. {subStep.step_name}
+                        </Text>
+                        <View className={`${subBg} px-2 py-0.5 rounded-full border border-transparent`}>
+                          <Text className={`${subTextColor} text-[9px] font-bold`}>
+                            {subText}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View className="flex-row justify-between items-center mt-1">
+                        <View className="flex-row items-center gap-3">
+                          <View className="flex-row items-center gap-1">
+                            <Ionicons name="location" size={11} color="#9CA3AF" />
+                            <Text className="text-gray-500 text-[11px] font-semibold">
+                              {subRoomName}
+                            </Text>
+                          </View>
+                          {subQueueNo && (
+                            <View className="flex-row items-center gap-1">
+                              <Ionicons name="list" size={11} color="#9CA3AF" />
+                              <Text className="text-gray-500 text-[11px] font-semibold">
+                                Số: <Text className="text-gray-800 font-bold">{subQueueNo}</Text>
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {isSubActive && (
+                          <Pressable
+                            onPress={() =>
+                              router.push({
+                                pathname: "/(patient)/(tabs)/navigation",
+                                params: { targetRoomName: subRoomName }
+                              })
+                            }
+                            className="bg-primary/10 px-2.5 py-1 rounded-full flex-row items-center gap-1 active:opacity-75"
+                          >
+                            <Ionicons name="navigate-outline" size={10} color={Colors.primary} />
+                            <Text className="text-primary text-[10px] font-bold">Đường đi</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Single Step Rendering (Default)
   const isCompleted = step.step_status === "COMPLETED";
   const isPendingPayment = step.payment_status === "PENDING";
 
-  // Xác định màu sắc/icon trạng thái
   let statusText = "Chờ thực hiện";
   let statusBg = "bg-gray-100";
   let statusTextColor = "text-gray-500";
@@ -60,7 +220,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
 
   return (
     <View className="flex-row">
-      {/* Cột trái: Nối đường vẽ timeline */}
+      {/* Left Column: Nối đường vẽ timeline */}
       <View className="items-center mr-4 w-8">
         <View
           className={`w-8 h-8 rounded-full items-center justify-center z-10 ${
@@ -78,7 +238,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
         )}
       </View>
 
-      {/* Cột phải: Thông tin Card */}
+      {/* Right Column: Thông tin Card */}
       <View className="flex-1 pb-6">
         <View
           className={`bg-white rounded-[20px] border p-4 shadow-sm active:opacity-95 ${borderStyle} ${
@@ -87,7 +247,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
         >
           <View className="flex-row justify-between items-start mb-2">
             <Text className="text-gray-800 text-[15px] font-bold flex-1 mr-2">
-              {step.step_name || specialtyName}
+              Bước {index + 1}. {step.step_name || specialtyName}
             </Text>
             <View className={`${statusBg} px-2.5 py-0.5 rounded-full border border-transparent`}>
               <Text className={`${statusTextColor} text-[10px] font-bold`}>
@@ -138,6 +298,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                 onPress={() =>
                   router.push({
                     pathname: "/(patient)/(tabs)/navigation",
+                    params: { targetRoomName: roomName }
                   })
                 }
                 className="bg-primary/10 px-3 py-1.5 rounded-full flex-row items-center gap-1 active:opacity-75"

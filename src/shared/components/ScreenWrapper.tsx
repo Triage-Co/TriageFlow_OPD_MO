@@ -1,4 +1,5 @@
 import { Colors } from "@/config/colors";
+import { useResponsive } from "@/shared/hooks/useResponsive";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
@@ -14,13 +15,22 @@ type ScreenWrapperProps = {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   edges?: Edge[];
+  maxWidth?: number;
+  disableMaxConstraint?: boolean;
 };
 
 export function ScreenWrapper({
   children,
   style,
   edges,
+  maxWidth,
+  disableMaxConstraint = false,
 }: ScreenWrapperProps) {
+  const { isTablet, contentMaxWidth } = useResponsive();
+
+  const shouldConstrain = isTablet && !disableMaxConstraint;
+  const effectiveMaxWidth = maxWidth ?? contentMaxWidth;
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -34,7 +44,18 @@ export function ScreenWrapper({
         style={[styles.safeArea, style]}
         edges={edges}
       >
-        {children}
+        <View
+          style={[
+            styles.responsiveContent,
+            shouldConstrain && {
+              maxWidth: effectiveMaxWidth,
+              alignSelf: "center",
+              width: "100%",
+            },
+          ]}
+        >
+          {children}
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -52,5 +73,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  responsiveContent: {
+    flex: 1,
+    width: "100%",
   },
 });

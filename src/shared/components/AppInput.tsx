@@ -55,10 +55,16 @@ export function AppInput({
           placeholderTextColor="#9CA3AF"
           secureTextEntry={isPassword ? actualSecure : secureTextEntry}
           autoCapitalize="none"
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
           style={{ fontSize: 14 }}
           {...props}
+          onFocus={(e) => {
+            setIsFocused(true);
+            props.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            props.onBlur?.(e);
+          }}
         />
 
         {isPassword ? (

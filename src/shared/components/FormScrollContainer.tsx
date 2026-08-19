@@ -9,6 +9,8 @@ type FormScrollContainerProps = {
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
   showsVerticalScrollIndicator?: boolean;
+  maxWidth?: number;
+  disableMaxConstraint?: boolean;
 };
 
 export function FormScrollContainer({
@@ -17,9 +19,16 @@ export function FormScrollContainer({
   style,
   contentContainerStyle,
   showsVerticalScrollIndicator = false,
+  maxWidth,
+  disableMaxConstraint = false,
 }: FormScrollContainerProps) {
   return (
-    <ScreenWrapper edges={edges} style={style}>
+    <ScreenWrapper
+      edges={edges}
+      style={style}
+      maxWidth={maxWidth}
+      disableMaxConstraint={disableMaxConstraint}
+    >
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}

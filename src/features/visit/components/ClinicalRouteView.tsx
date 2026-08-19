@@ -36,6 +36,55 @@ export function ClinicalRouteView() {
     handleConfirmPayment,
   } = useClinicalRoute();
 
+
+  // Grouping steps belonging to the same service order for display
+  const displaySteps = React.useMemo(() => {
+    const result: any[] = [];
+    const processedServiceOrderIds = new Set<string>();
+
+    for (let i = 0; i < visibleSteps.length; i++) {
+      const step = visibleSteps[i];
+      const isPayment = step.step_name?.toLowerCase().trim().startsWith("thanh toán") || step.step_type === "PAYMENT";
+      const serviceOrderId = step.service_order_id;
+
+      if (!isPayment && serviceOrderId) {
+        if (processedServiceOrderIds.has(serviceOrderId)) {
+          continue; // Skip already grouped
+        }
+        processedServiceOrderIds.add(serviceOrderId);
+
+        // Find all sibling test steps of the same service order
+        const siblingSteps = visibleSteps.filter(s => {
+          const sIsPayment = s.step_name?.toLowerCase().trim().startsWith("thanh toán") || s.step_type === "PAYMENT";
+          return s.service_order_id === serviceOrderId && !sIsPayment;
+        });
+
+        // Determine grouped status:
+        // - COMPLETED if all are completed
+        // - IN_PROGRESS if any is active (matching activeStepId)
+        // - WAITING otherwise
+        const isGroupCompleted = siblingSteps.every(s => s.step_status === "COMPLETED");
+        const isGroupActive = siblingSteps.some(s => s.step_id === activeStepId);
+
+        result.push({
+          isGrouped: true,
+          serviceOrderId,
+          step_status: isGroupCompleted ? "COMPLETED" : "IN_PROGRESS",
+          step_name: "Thực hiện chỉ định dịch vụ",
+          subSteps: siblingSteps,
+          step_id: step.step_id,
+        });
+      } else {
+        result.push({
+          ...step,
+          isGrouped: false,
+        });
+      }
+    }
+
+    return result;
+  }, [visibleSteps, activeStepId]);
+
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
@@ -75,7 +124,7 @@ export function ClinicalRouteView() {
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text className="text-gray-400 text-xs mt-3">Đang tải lộ trình khám...</Text>
         </View>
-      ) : visibleSteps.length === 0 ? (
+      ) : displaySteps.length === 0 ? (
         <View className="flex-1 items-center justify-center p-6">
           <Ionicons name="trail-sign-outline" size={48} color="#D1D5DB" />
           <Text className="text-gray-400 text-sm mt-3 text-center">
@@ -95,9 +144,11 @@ export function ClinicalRouteView() {
             />
           }
         >
-          {visibleSteps.map((step: any, index: number) => {
-            const isActive = step.step_id === activeStepId;
-            const isLast = index === visibleSteps.length - 1;
+          {displaySteps.map((step: any, index: number) => {
+            const isActive = step.isGrouped
+              ? step.subSteps.some((s: any) => s.step_id === activeStepId)
+              : step.step_id === activeStepId;
+            const isLast = index === displaySteps.length - 1;
 
             return (
               <TimelineStepCard
@@ -107,6 +158,7 @@ export function ClinicalRouteView() {
                 isLast={isLast}
                 isActive={isActive}
                 onPayPress={setSelectedStep}
+                activeStepId={activeStepId}
               />
             );
           })}

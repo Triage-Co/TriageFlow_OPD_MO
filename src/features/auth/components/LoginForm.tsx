@@ -4,7 +4,10 @@ import { AppInput } from "@/shared/components/AppInput";
 import { FormScrollContainer } from "@/shared/components/FormScrollContainer";
 import { AuthHeader } from "@/shared/components/AuthHeader";
 import { FormErrorBanner } from "@/shared/components/FormErrorBanner";
-import { showGlobalToast } from "@/shared/components/ToastProvider";
+import {
+  validateEmailField,
+  validatePasswordField,
+} from "@/shared/utils/validation.utils";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -15,12 +18,43 @@ export function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+
+  const handleEmailChange = (v: string) => {
+    setEmail(v);
+    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+    if (error) clearError();
+  };
+
+  const handlePasswordChange = (v: string) => {
+    setPassword(v);
+    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+    if (error) clearError();
+  };
+
+  const handleEmailBlur = () => {
+    const err = validateEmailField(email);
+    setFieldErrors((prev) => ({ ...prev, email: err }));
+  };
+
+  const handlePasswordBlur = () => {
+    const err = !password.trim() ? "Vui lòng nhập mật khẩu." : undefined;
+    setFieldErrors((prev) => ({ ...prev, password: err }));
+  };
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      showGlobalToast("Vui lòng nhập đầy đủ thông tin.", "error");
+    const emailErr = validateEmailField(email);
+    const passwordErr = !password.trim() ? "Vui lòng nhập mật khẩu." : undefined;
+
+    const nextErrors: { email?: string; password?: string } = {};
+    if (emailErr) nextErrors.email = emailErr;
+    if (passwordErr) nextErrors.password = passwordErr;
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
       return;
     }
+
     clearError();
     const success = await login({ email: email.trim(), password });
     if (success) {
@@ -42,10 +76,9 @@ export function LoginForm() {
         <AppInput
           placeholder="Email của bạn"
           value={email}
-          onChangeText={(v) => {
-            setEmail(v);
-            if (error) clearError();
-          }}
+          onChangeText={handleEmailChange}
+          onBlur={handleEmailBlur}
+          error={fieldErrors.email}
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
@@ -54,10 +87,9 @@ export function LoginForm() {
         <AppInput
           placeholder="Mật khẩu"
           value={password}
-          onChangeText={(v) => {
-            setPassword(v);
-            if (error) clearError();
-          }}
+          onChangeText={handlePasswordChange}
+          onBlur={handlePasswordBlur}
+          error={fieldErrors.password}
           secureTextEntry
         />
 
