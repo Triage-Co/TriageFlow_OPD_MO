@@ -28,3 +28,16 @@ export interface EkycOcrObject {
   gender: string;     
   id: string;         
 }
+
+export interface VnptKeyData {
+  access_token: string;
+  token_id: string;
+  token_key: string;
+}
+
+export interface VnptKeyResponse {
+  code: number;
+  message: string;
+  status: string;
+  data: VnptKeyData;
+}

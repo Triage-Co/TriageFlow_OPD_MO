@@ -1,13 +1,14 @@
 import { useEkyc } from "@/features/ekyc/hooks/useEkyc";
 import type { EkycOcrObject } from "@/features/ekyc/types/ekyc.types";
 import { usePatient } from "@/features/patient/hooks/usePatient";
-import { Patient } from "@/features/patient/types/patient.types";
+import { Patient, UpdatePatientRequest } from "@/features/patient/types/patient.types";
 import { AppButton } from "@/shared/components/AppButton";
 import { AppInput } from "@/shared/components/AppInput";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
 import { LoadingView } from "@/shared/components/LoadingView";
 import { GenderToggle } from "@/shared/components/GenderToggle";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
@@ -16,6 +17,7 @@ import {
   Alert,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -46,6 +48,7 @@ export function PatientListView() {
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [editForm, setEditForm] = useState({
     fullName: "",
@@ -116,21 +119,40 @@ export function PatientListView() {
     }
   };
 
+  const onChangeDob = (_: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const y = selectedDate.getFullYear();
+      const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const d = String(selectedDate.getDate()).padStart(2, "0");
+      setEditForm((prev) => ({ ...prev, dob: `${y}-${m}-${d}` }));
+    }
+  };
+
   const validateAndUpdate = async () => {
     if (!selectedPatient) return;
     const { fullName, gender, dob } = editForm;
 
-    if (!fullName.trim() || !gender || !dob) {
-      Alert.alert("Thông báo", "Vui lòng nhập đầy đủ tất cả các trường.");
+    if (!fullName.trim()) {
+      Alert.alert("Thông báo", "Vui lòng nhập họ và tên bệnh nhân.");
       return;
     }
 
-    const success = await updatePatient(selectedPatient.patient_id, {
+    if (!gender) {
+      Alert.alert("Thông báo", "Vui lòng chọn giới tính.");
+      return;
+    }
+
+    const payload: UpdatePatientRequest = {
       full_name: fullName.trim(),
       gender: gender as "MALE" | "FEMALE",
-      dob,
-      medical_coverage_id: editForm.medicalCoverageId,
-    });
+    };
+
+    if (dob) {
+      payload.dob = dob;
+    }
+
+    const success = await updatePatient(selectedPatient.patient_id, payload);
 
     if (success) {
       showGlobalToast("Cập nhật bệnh nhân thành công.", "success");
@@ -455,32 +477,61 @@ export function PatientListView() {
               </View>
 
               {/* Họ và tên */}
-              <View className="border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 justify-center">
-                <Text
-                  className={editForm.fullName ? "text-sm text-neutral-700" : "text-sm text-neutral-400"}
+              <AppInput
+                label="Họ và tên"
+                placeholder="Nhập họ và tên bệnh nhân"
+                value={editForm.fullName}
+                onChangeText={(v) => setEditForm((p) => ({ ...p, fullName: v }))}
+              />
+
+              {/* Ngày sinh */}
+              <View className="mb-3.5">
+                <Text className="text-sm text-gray-600 mb-1.5 font-medium">Ngày sinh</Text>
+                <Pressable
+                  onPress={() => setShowDatePicker(true)}
+                  className="border border-neutral-200 rounded-xl px-4 h-[52px] flex-row items-center justify-between bg-white active:opacity-75"
                 >
-                  {editForm.fullName || "Họ và tên bệnh nhân"}
-                </Text>
+                  <Text
+                    className={editForm.dob ? "text-sm text-neutral-800 font-medium" : "text-sm text-neutral-400"}
+                  >
+                    {editForm.dob ? formatDisplayDate(editForm.dob) : "Chọn ngày sinh"}
+                  </Text>
+                  <SymbolView
+                    name={{ ios: "calendar", android: "calendar_today" }}
+                    size={20}
+                    tintColor="#9CA3AF"
+                  />
+                </Pressable>
               </View>
 
-              {/* Ngày sinh trigger (Hiện không hỗ trợ date picker inline, sửa thủ công qua Text hoặc giữ nguyên field) */}
-              <View className="border border-neutral-200 rounded-xl px-4 h-[52px] mb-3.5 justify-center">
-                <Text className="text-sm text-neutral-700">
-                  Ngày sinh: {editForm.dob ? formatDisplayDate(editForm.dob) : ""}
-                </Text>
-              </View>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={editForm.dob ? new Date(editForm.dob) : new Date(2000, 0, 1)}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  maximumDate={new Date()}
+                  onChange={onChangeDob}
+                />
+              )}
 
               {/* Giới tính toggle */}
-              <GenderToggle
-                value={editForm.gender}
-                onChange={(g) => setEditForm((p) => ({ ...p, gender: g }))}
-                className="mb-6"
-              />
-              <AppInput
-                placeholder="Mã bảo hiểm y tế"
-                value={editForm.medicalCoverageId}
-                onChangeText={(v) => setEditForm((p) => ({ ...p, medicalCoverageId: v }))}
-              />
+              <View className="mb-3.5">
+                <Text className="text-sm text-gray-600 mb-1.5 font-medium">Giới tính</Text>
+                <GenderToggle
+                  value={editForm.gender}
+                  onChange={(g) => setEditForm((p) => ({ ...p, gender: g }))}
+                />
+              </View>
+
+              {/* Mã bảo hiểm y tế */}
+              <View className="mb-6">
+                <Text className="text-sm text-gray-600 mb-1.5 font-medium">Mã bảo hiểm y tế</Text>
+                <View className="border border-neutral-200 rounded-xl px-4 h-[52px] justify-center bg-gray-50/70">
+                  <Text className={editForm.medicalCoverageId ? "text-sm text-neutral-700" : "text-sm text-neutral-400"}>
+                    {editForm.medicalCoverageId || "Chưa cập nhật"}
+                  </Text>
+                </View>
+              </View>
 
               {/* Actions */}
               <View className="gap-2">

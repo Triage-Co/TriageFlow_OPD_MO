@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
-import { startVnptEkyc } from '../services/ekyc.service';
+import { startVnptEkyc, getVnptKey } from '../services/ekyc.service';
 import type { EkycOcrObject } from '../types/ekyc.types';
 
 /**
@@ -105,10 +105,20 @@ export const useEkyc = (onSuccess?: (data: EkycOcrObject) => void) => {
 
     setIsLoading(true);
     try {
+      const keyData = await getVnptKey();
+
+      if (!keyData || !keyData.access_token || !keyData.token_id || !keyData.token_key) {
+        Alert.alert(
+          'Lỗi xác thực',
+          'Không thể lấy thông tin cấu hình eKYC từ máy chủ. Vui lòng kiểm tra lại kết nối mạng và thử lại.'
+        );
+        return;
+      }
+
       const ekycConfig = {
-        accessToken: process.env.EXPO_PUBLIC_VNPT_EKYC_ACCESS_TOKEN || "",
-        tokenId: process.env.EXPO_PUBLIC_VNPT_EKYC_TOKEN_ID || "",
-        tokenKey: process.env.EXPO_PUBLIC_VNPT_EKYC_TOKEN_KEY || "",
+        accessToken: keyData.access_token,
+        tokenId: keyData.token_id,
+        tokenKey: keyData.token_key,
         documentType: 1, 
         versionSdk: 1,   
         isShowTutorial: false,

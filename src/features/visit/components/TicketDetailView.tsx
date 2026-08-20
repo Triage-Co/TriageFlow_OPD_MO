@@ -19,6 +19,7 @@ import { useBooking } from "@/features/booking/hooks/useBooking";
 
 interface TicketData {
   queueNumber: string;
+  ticketCode: string;
   specialtyName: string;
   roomName: string;
   startTime: string;
@@ -40,9 +41,16 @@ export function TicketDetailView() {
     let active = true;
 
     const loadTicketDetails = async () => {
+      const defaultTicketCode =
+        (params.ticketCode as string) ||
+        (params.ticket_code as string) ||
+        (params.qrText as string) ||
+        "";
+
       if (!stepId) {
         setTicketData({
           queueNumber: (params.queueNumber as string) || "--",
+          ticketCode: defaultTicketCode,
           specialtyName: (params.specialtyName as string) || "Tổng quát",
           roomName: (params.roomName as string) || "Đang xếp phòng",
           startTime: (params.startTime as string) || "Đang xếp ca",
@@ -59,10 +67,17 @@ export function TicketDetailView() {
 
         if (stepDetail) {
           let qNum: string | undefined = stepDetail.queues?.[0]?.queue_number;
-          if (!qNum) {
+          let tCode: string | undefined =
+            stepDetail.flow?.ticket_code ||
+            stepDetail.queues?.[0]?.ticket_code ||
+            stepDetail.ticket_code ||
+            stepDetail.qr_text;
+
+          if (!qNum || !tCode) {
             const bookingResult = await fetchBookingResult(stepId);
             if (bookingResult && active) {
-              qNum = bookingResult.queue?.queue_number || bookingResult.queue_number;
+              qNum = qNum || bookingResult.queue?.queue_number || bookingResult.queue_number;
+              tCode = tCode || (bookingResult as any)?.ticket_code || (bookingResult as any)?.ticketCode;
             }
           }
 
@@ -73,6 +88,7 @@ export function TicketDetailView() {
             }
             setTicketData({
               queueNumber: qNum || "--",
+              ticketCode: tCode || defaultTicketCode || stepDetail.step_id || "",
               specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || (params.specialtyName as string) || "Tổng quát",
               roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || (params.roomName as string) || "Đang xếp phòng",
               startTime: stepDetail.flow?.booking?.slot?.start_time || (params.startTime as string) || "Đang xếp ca",
@@ -82,6 +98,7 @@ export function TicketDetailView() {
         } else if (active) {
           setTicketData({
             queueNumber: (params.queueNumber as string) || "--",
+            ticketCode: defaultTicketCode,
             specialtyName: (params.specialtyName as string) || "Tổng quát",
             roomName: (params.roomName as string) || "Đang xếp phòng",
             startTime: (params.startTime as string) || "Đang xếp ca",
@@ -155,9 +172,13 @@ export function TicketDetailView() {
     });
   };
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-    queueNumber || "0"
-  )}`;
+  const ticketCode = ticketData?.ticketCode || (params.ticketCode as string) || (params.ticket_code as string) || "";
+
+  const qrImageUrl = ticketCode
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+      ticketCode
+    )}`
+    : "";
 
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>

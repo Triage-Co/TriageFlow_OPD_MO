@@ -24,6 +24,7 @@ interface ActiveTicket {
   stepId: string;
   patientName: string;
   queueNumber: string;
+  ticketCode: string;
   specialtyName: string;
   roomName: string;
   startTime: string;
@@ -100,6 +101,14 @@ export function ActiveTicketView() {
 
     if (finalActiveStep) {
       const queueNumber = examStep?.queues?.[0]?.queue_number || "--";
+      const ticketCode =
+        flow.ticket_code ||
+        examStep?.queues?.[0]?.ticket_code ||
+        finalActiveStep?.ticket_code ||
+        examStep?.ticket_code ||
+        finalActiveStep?.qr_text ||
+        flow.flow_id ||
+        "";
       const specialtyName = examStep?.specialty_info?.specialty_name || examStep?.step_name || "Khám bệnh";
       const roomName = examStep?.room_info?.room_name || "Đang xếp phòng";
 
@@ -115,6 +124,7 @@ export function ActiveTicketView() {
         stepId: finalActiveStep.step_id,
         patientName: patientName,
         queueNumber: queueNumber,
+        ticketCode: ticketCode,
         specialtyName: specialtyName,
         roomName: roomName,
         startTime: startTimeStr,
@@ -185,12 +195,10 @@ export function ActiveTicketView() {
     }
   }, [currentFlows, selectedPatientName, selectFlow]);
 
-  // Tự động kích hoạt Modal chọn bệnh nhân nếu chưa chọn
+  // Tự động kích hoạt Modal chọn bệnh nhân 1 lần khi mới vào
   useEffect(() => {
-    if (!selectedPatientId) {
-      setIsPatientModalVisible(true);
-    }
-  }, [selectedPatientId]);
+    setIsPatientModalVisible(true);
+  }, []);
 
   const handleConfirmPatient = (patientId: string, patientName: string) => {
     setSelectedPatientId(patientId);
@@ -222,9 +230,9 @@ export function ActiveTicketView() {
     });
   };
 
-  const qrImageUrl = activeTicket
+  const qrImageUrl = activeTicket?.ticketCode
     ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-      activeTicket.queueNumber || "0"
+      activeTicket.ticketCode
     )}`
     : "";
 
@@ -235,13 +243,7 @@ export function ActiveTicketView() {
       {/* Patient selector modal */}
       <PatientPickerModal
         visible={isPatientModalVisible}
-        onClose={() => {
-          if (!selectedPatientId) {
-            Alert.alert("Yêu cầu", "Vui lòng chọn hồ sơ bệnh nhân để tiếp tục.");
-          } else {
-            setIsPatientModalVisible(false);
-          }
-        }}
+        onClose={() => setIsPatientModalVisible(false)}
         onConfirm={handleConfirmPatient}
         selectedPatientId={selectedPatientId}
       />
@@ -549,23 +551,36 @@ export function ActiveTicketView() {
             <View className="flex-1 items-center justify-center">
               <View className="w-24 h-24 rounded-full bg-[#84AFEB]/10 items-center justify-center mb-6">
                 <Ionicons
-                  name="calendar-outline"
+                  name={!selectedPatientId ? "person-outline" : "calendar-outline"}
                   size={36}
                   color={Colors.primary}
                 />
               </View>
               <Text className="text-gray-800 text-[18px] font-extrabold mb-2 text-center">
-                {selectedTab === "today" ? "Không có phiếu khám hôm nay" : "Không có lịch hẹn sắp tới"}
+                {!selectedPatientId
+                  ? "Chưa chọn hồ sơ bệnh nhân"
+                  : selectedTab === "today"
+                  ? "Không có phiếu khám hôm nay"
+                  : "Không có lịch hẹn sắp tới"}
               </Text>
               <Text className="text-gray-400 text-[13px] font-medium text-center px-4 leading-[20px]">
                 {selectedPatientName
                   ? selectedTab === "today"
                     ? `Hồ sơ ${selectedPatientName} chưa có lịch hẹn khám bệnh nào trong ngày hôm nay.`
                     : `Hồ sơ ${selectedPatientName} chưa có lịch hẹn khám bệnh nào sắp tới.`
-                  : selectedTab === "today"
-                    ? "Bạn chưa chọn bệnh nhân hoặc chưa có lịch hẹn khám nào trong hôm nay."
-                    : "Bạn chưa chọn bệnh nhân hoặc chưa có lịch hẹn khám nào sắp tới."}
+                  : "Vui lòng chọn hồ sơ bệnh nhân để xem phiếu khám và lịch hẹn."}
               </Text>
+
+              {!selectedPatientId && (
+                <TouchableOpacity
+                  onPress={() => setIsPatientModalVisible(true)}
+                  activeOpacity={0.8}
+                  className="mt-6 bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2 shadow-sm shadow-primary/30"
+                >
+                  <Ionicons name="people" size={18} color="white" />
+                  <Text className="text-white font-bold text-sm">Chọn hồ sơ bệnh nhân</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}

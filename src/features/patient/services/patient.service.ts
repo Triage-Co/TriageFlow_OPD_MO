@@ -51,7 +51,22 @@ export const patientService = {
    * DELETE /api/patient/me/{patient_id}
    */
   async deletePatient(patientId: string): Promise<DeletePatientResponse> {
-    const response = await apiClient.delete<DeletePatientResponse>(`/api/patient/me/${patientId}`);
-    return response.data;
+    console.log(`\n================== [API DELETE PATIENT] ==================`);
+    console.log(`[PatientService] Request: DELETE /api/patient/me/${patientId}`);
+    try {
+      const response = await apiClient.delete<DeletePatientResponse>(`/api/patient/me/${patientId}`);
+      console.log(`[PatientService] Response status:`, response.status);
+      console.log(`[PatientService] Response data:`, JSON.stringify(response.data, null, 2));
+      console.log(`==========================================================\n`);
+      return response.data;
+    } catch (error: any) {
+      console.error(`[PatientService] DELETE /api/patient/me/${patientId} ERROR:`, {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: error?.message,
+      });
+      console.log(`==========================================================\n`);
+      throw error;
+    }
   },
 };

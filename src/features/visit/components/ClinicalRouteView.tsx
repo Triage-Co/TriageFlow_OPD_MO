@@ -159,6 +159,7 @@ export function ClinicalRouteView() {
                 isActive={isActive}
                 onPayPress={setSelectedStep}
                 activeStepId={activeStepId}
+                allSteps={visibleSteps}
               />
             );
           })}

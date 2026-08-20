@@ -15,17 +15,95 @@ import { useLocalSearchParams } from "expo-router";
 import { stripRoomName } from "@/shared/utils/string.utils";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
 
+// Helper to match a room across floors in building map
+function findRoomInFloors(
+  floors: any[],
+  roomId?: string,
+  roomCode?: string,
+  roomName?: string
+): RoomOption | null {
+  if (!roomId && !roomCode && !roomName) return null;
+  const cleanName = roomName ? stripRoomName(roomName) : "";
+  const normName = cleanName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  const targetCodeLower = roomCode?.toLowerCase().trim();
+
+  for (const floor of floors) {
+    const room = floor.rooms?.find((r: any) => {
+      // 1. Match by ID if provided
+      if (roomId && (r.id === roomId || r.roomId === roomId)) {
+        return true;
+      }
+
+      const rCode = (r.roomCode || "").toLowerCase().trim();
+      const rLabel = r.roomLabel || "";
+      const rLabelStripped = stripRoomName(rLabel);
+      const normLabel = rLabel
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+      const normLabelStripped = rLabelStripped
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+
+      // 2. Match by Room Code (e.g. "P101", "XQ01")
+      if (targetCodeLower && rCode === targetCodeLower) {
+        return true;
+      }
+
+      // 3. Match by Normalized & Stripped Room Label
+      if (normName) {
+        if (rCode === normName) return true;
+        if (normLabel === normName) return true;
+        if (normLabelStripped === normName) return true;
+        if (normLabel.includes(normName) || normName.includes(normLabel)) return true;
+        if (
+          normLabelStripped.includes(normName) ||
+          normName.includes(normLabelStripped)
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    if (room) {
+      return {
+        id: room.id,
+        roomCode: room.roomCode,
+        roomLabel: room.roomLabel,
+        floorNumber: floor.floorNumber,
+        type: room.type,
+      };
+    }
+  }
+  return null;
+}
+
 export default function NavigationScreen() {
   const params = useLocalSearchParams<{
     targetRoomName?: string;
     targetRoomId?: string;
     targetRoomCode?: string;
+    startRoomName?: string;
+    startRoomId?: string;
+    startRoomCode?: string;
     _t?: string;
   }>();
 
   const targetRoomName = params.targetRoomName;
   const targetRoomId = params.targetRoomId;
   const targetRoomCode = params.targetRoomCode;
+  const startRoomName = params.startRoomName;
+  const startRoomId = params.startRoomId;
+  const startRoomCode = params.startRoomCode;
   const triggerTime = params._t;
 
   const {
@@ -88,76 +166,31 @@ export default function NavigationScreen() {
         let foundTarget: RoomOption | null = null;
         let foundStart: RoomOption | null = null;
 
-        const cleanTargetName = stripRoomName(resolvedTargetRoomName);
-        const normTargetName = cleanTargetName
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim();
-        const targetCodeLower = targetRoomCode?.toLowerCase().trim();
+        // 1. Match Target Room
+        foundTarget = findRoomInFloors(
+          mapData.floors,
+          targetRoomId,
+          targetRoomCode,
+          resolvedTargetRoomName
+        );
 
-        // 3-tier room matching algorithm matching Kiosk
-        for (const floor of mapData.floors) {
-          const room = floor.rooms.find((r: any) => {
-            // 1. Match by ID if provided
-            if (targetRoomId && (r.id === targetRoomId || r.roomId === targetRoomId)) {
-              return true;
-            }
-
-            const rCode = (r.roomCode || "").toLowerCase().trim();
-            const rLabel = r.roomLabel || "";
-            const rLabelStripped = stripRoomName(rLabel);
-            const normLabel = rLabel
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .trim();
-            const normLabelStripped = rLabelStripped
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .trim();
-
-            // 2. Match by Room Code (e.g. "P101", "XQ01")
-            if (targetCodeLower && rCode === targetCodeLower) {
-              return true;
-            }
-
-            // 3. Match by Normalized & Stripped Room Label
-            if (normTargetName) {
-              if (rCode === normTargetName) return true;
-              if (normLabel === normTargetName) return true;
-              if (normLabelStripped === normTargetName) return true;
-              if (normLabel.includes(normTargetName) || normTargetName.includes(normLabel)) return true;
-              if (
-                normLabelStripped.includes(normTargetName) ||
-                normTargetName.includes(normLabelStripped)
-              ) {
-                return true;
-              }
-            }
-
-            return false;
-          });
-
-          if (room) {
-            foundTarget = {
-              id: room.id,
-              roomCode: room.roomCode,
-              roomLabel: room.roomLabel,
-              floorNumber: floor.floorNumber,
-              type: room.type,
-            };
-            break;
-          }
+        // 2. Match Start Room if explicitly passed from previous step
+        const hasExplicitStart = Boolean(startRoomName || startRoomId || startRoomCode);
+        if (hasExplicitStart) {
+          foundStart = findRoomInFloors(
+            mapData.floors,
+            startRoomId,
+            startRoomCode,
+            startRoomName
+          );
         }
 
-        // Only search for default start point if target was NOT explicitly requested via step click
         const isExplicitTarget = Boolean(targetRoomName || targetRoomId || targetRoomCode);
 
-        if (!isExplicitTarget) {
+        // Only search for default start point if target was NOT explicitly requested via step click AND no explicit start room
+        if (!isExplicitTarget && !hasExplicitStart) {
           for (const floor of mapData.floors) {
-            const room = floor.rooms.find((r: any) => {
+            const room = floor.rooms?.find((r: any) => {
               const l = (r.roomLabel || "").toLowerCase();
               return l.includes("sảnh") || l.includes("tiếp nhận") || l.includes("nhà thuốc");
             });
@@ -176,7 +209,7 @@ export default function NavigationScreen() {
           if (!foundStart && mapData.floors.length > 0) {
             const firstFloor =
               mapData.floors.find((f: any) => f.floorNumber === 1) || mapData.floors[0];
-            if (firstFloor && firstFloor.rooms.length > 0) {
+            if (firstFloor && firstFloor.rooms?.length > 0) {
               const room = firstFloor.rooms[0];
               foundStart = {
                 id: room.id,
@@ -191,20 +224,24 @@ export default function NavigationScreen() {
 
         if (foundTarget) {
           setTargetRoom(foundTarget);
-          setActiveFloor(foundTarget.floorNumber);
-          if (isExplicitTarget) {
-            // Explicitly clear start room so user can choose origin or scan QR
+          if (foundStart) {
+            // Set start room from previous step
+            setStartRoom(foundStart);
+            setActiveFloor(foundStart.floorNumber);
+          } else if (isExplicitTarget) {
+            // Step 1: No previous room, user can choose origin or scan QR
             setStartRoom(null);
             setRouteData(null);
+            setActiveFloor(foundTarget.floorNumber);
           }
         } else if (isExplicitTarget) {
           showGlobalToast(
-            `Không tìm thấy phòng "${cleanTargetName || targetRoomName}" trên bản đồ. Vui lòng chọn thủ công!`,
+            `Không tìm thấy phòng "${stripRoomName(resolvedTargetRoomName || targetRoomName || "")}" trên bản đồ. Vui lòng chọn thủ công!`,
             "error"
           );
         }
 
-        if (foundStart) {
+        if (foundStart && !foundTarget) {
           setStartRoom(foundStart);
         }
       } catch (err) {
@@ -213,7 +250,7 @@ export default function NavigationScreen() {
     }
 
     initAutoRouting();
-  }, [targetRoomName, targetRoomId, targetRoomCode, triggerTime]);
+  }, [targetRoomName, targetRoomId, targetRoomCode, startRoomName, startRoomId, startRoomCode, triggerTime]);
 
   
   useEffect(() => {

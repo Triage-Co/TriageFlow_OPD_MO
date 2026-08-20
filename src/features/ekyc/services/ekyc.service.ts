@@ -1,7 +1,24 @@
 import { NativeModules } from 'react-native';
-import type { EkycConfig, EkycResult } from '../types/ekyc.types';
+import apiClient from '@/shared/services/api-client';
+import type { EkycConfig, EkycResult, VnptKeyData, VnptKeyResponse } from '../types/ekyc.types';
 
 const { VnptEkycModule } = NativeModules;
+
+/**
+ * Lấy cấu hình xác thực VNPT eKYC từ Backend
+ * GET /api/vnpt/key
+ */
+export const getVnptKey = async (): Promise<VnptKeyData | null> => {
+  try {
+    const response = await apiClient.get<VnptKeyResponse>('/api/vnpt/key');
+    if (response.data?.data) {
+      return response.data.data;
+    }
+  } catch (err) {
+    console.error('Lỗi khi gọi API GET /api/vnpt/key:', err);
+  }
+  return null;
+};
 
 export const startVnptEkyc = (config: EkycConfig): Promise<EkycResult> => {
   return VnptEkycModule.startEkycFullFlow({

@@ -12,6 +12,7 @@ interface TimelineStepCardProps {
   isActive: boolean;
   onPayPress: (step: any) => void;
   activeStepId: string | null;
+  allSteps?: any[];
 }
 
 export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
@@ -21,9 +22,40 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
   isActive,
   onPayPress,
   activeStepId,
+  allSteps,
 }) => {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Helper to find the physical room of the most recent completed/previous step before the given step ID
+  const getPreviousPhysicalRoom = (targetStepId: string) => {
+    if (!allSteps || allSteps.length === 0) return null;
+    const targetIndex = allSteps.findIndex(
+      (s: any) => (s.step_id || s.id) === targetStepId
+    );
+    if (targetIndex <= 0) return null;
+
+    for (let i = targetIndex - 1; i >= 0; i--) {
+      const prev = allSteps[i];
+      const prevRoomName = prev.room_info?.room_name || prev.room_name;
+      const prevRoomId = prev.room_info?.room_id || prev.room_id;
+      const prevRoomCode = prev.room_info?.room_code || prev.room_code;
+
+      if (
+        prevRoomName &&
+        prevRoomName.trim() !== "" &&
+        prevRoomName !== "Đang xếp phòng" &&
+        !prevRoomName.toLowerCase().includes("chờ xếp")
+      ) {
+        return {
+          roomId: prevRoomId || "",
+          roomName: stripRoomName(prevRoomName),
+          roomCode: prevRoomCode || "",
+        };
+      }
+    }
+    return null;
+  };
 
   // Grouped Steps Rendering
   if (step.isGrouped) {
@@ -157,17 +189,21 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
 
                         {isSubActive && (
                           <Pressable
-                            onPress={() =>
+                            onPress={() => {
+                              const prevRoom = getPreviousPhysicalRoom(subStep.step_id || subStep.id);
                               router.push({
                                 pathname: "/(patient)/(tabs)/navigation",
                                 params: {
                                   targetRoomName: stripRoomName(subRoomName),
                                   targetRoomId: subStep.room_info?.room_id || subStep.room_id || "",
                                   targetRoomCode: subStep.room_info?.room_code || "",
+                                  startRoomName: prevRoom?.roomName || "",
+                                  startRoomId: prevRoom?.roomId || "",
+                                  startRoomCode: prevRoom?.roomCode || "",
                                   _t: String(Date.now()),
                                 },
-                              })
-                            }
+                              });
+                            }}
                             className="bg-primary/10 px-2.5 py-1 rounded-full flex-row items-center gap-1 active:opacity-75"
                           >
                             <Ionicons name="navigate-outline" size={10} color={Colors.primary} />
@@ -301,17 +337,21 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                 </Text>
               </View>
               <Pressable
-                onPress={() =>
+                onPress={() => {
+                  const prevRoom = getPreviousPhysicalRoom(step.step_id || step.id);
                   router.push({
                     pathname: "/(patient)/(tabs)/navigation",
                     params: {
                       targetRoomName: stripRoomName(roomName),
                       targetRoomId: step.room_info?.room_id || step.room_id || "",
                       targetRoomCode: step.room_info?.room_code || "",
+                      startRoomName: prevRoom?.roomName || "",
+                      startRoomId: prevRoom?.roomId || "",
+                      startRoomCode: prevRoom?.roomCode || "",
                       _t: String(Date.now()),
                     },
-                  })
-                }
+                  });
+                }}
                 className="bg-primary/10 px-3 py-1.5 rounded-full flex-row items-center gap-1 active:opacity-75"
               >
                 <Ionicons name="navigate-outline" size={12} color={Colors.primary} />

@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
@@ -51,12 +51,15 @@ export function AuthHeader({
 
       {/* Logo row */}
       {showLogo && (
-        <View className="flex-row items-center gap-2 mb-7">
-          <View className="w-8 h-8 bg-white/25 rounded-lg items-center justify-center relative">
-            <View className="absolute w-3.5 h-[3px] bg-white rounded-sm" />
-            <View className="absolute w-[3px] h-3.5 bg-white rounded-sm" />
+        <View className="flex-row items-center gap-2.5 mb-6">
+          <View className="w-10 h-10 bg-white rounded-xl items-center justify-center p-1 shadow-sm">
+            <Image
+              source={require("../../../assets/images/logo.png")}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="contain"
+            />
           </View>
-          <Text className="text-white text-sm font-semibold">TriageFlowOPD</Text>
+          <Text className="text-white text-base font-bold tracking-wide">TriageFlow OPD</Text>
         </View>
       )}
 

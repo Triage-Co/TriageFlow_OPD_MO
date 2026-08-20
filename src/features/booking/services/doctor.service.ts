@@ -9,7 +9,7 @@ import {
 
 class DoctorService {
   async getDoctorsBySpecialty(specialtyCode: string, dateTime: string): Promise<Doctor[]> {
-    const response = await apiClient.get(`/api/doctor/specialty`, {
+    const response = await apiClient.get(`/api/doctor/specialty/clinical`, {
       params: { specialty_code: specialtyCode, date_time: dateTime },
     });
     return response.data?.data || response.data || [];

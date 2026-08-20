@@ -156,6 +156,7 @@ export interface StepDetailQueue {
   step_id: string;
   queue_number: string;
   status: string;
+  ticket_code?: string;
 }
 
 export interface StepDetailStaff {
@@ -170,11 +171,15 @@ export interface StepDetailData {
   step_status: string;
   docNo: number;
   payment_status: string;
+  ticket_code?: string;
+  qr_text?: string;
   queues: StepDetailQueue[];
   staff: StepDetailStaff;
   flow: {
-    booking: {
-      slot: StepDetailSlot;
+    ticket_code?: string;
+    flow_id?: string;
+    booking?: {
+      slot?: StepDetailSlot;
     };
   };
 }

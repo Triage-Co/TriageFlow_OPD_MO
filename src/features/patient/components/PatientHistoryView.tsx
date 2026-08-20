@@ -55,12 +55,10 @@ export function PatientHistoryView() {
     }
   }, []);
 
-  // Tự động mở Modal chọn bệnh nhân khi mới vào
+  // Tự động mở Modal chọn bệnh nhân 1 lần khi mới vào màn hình
   useEffect(() => {
-    if (!selectedPatientId) {
-      setIsPatientModalVisible(true);
-    }
-  }, [selectedPatientId]);
+    setIsPatientModalVisible(true);
+  }, []);
 
   const handleConfirmPatient = (patientId: string, patientName: string) => {
     setSelectedPatientId(patientId);
@@ -97,13 +95,7 @@ export function PatientHistoryView() {
       {/* Patient Picker Modal */}
       <PatientPickerModal
         visible={isPatientModalVisible}
-        onClose={() => {
-          if (!selectedPatientId) {
-            Alert.alert("Yêu cầu", "Vui lòng chọn hồ sơ bệnh nhân để tiếp tục.");
-          } else {
-            setIsPatientModalVisible(false);
-          }
-        }}
+        onClose={() => setIsPatientModalVisible(false)}
         onConfirm={handleConfirmPatient}
         selectedPatientId={selectedPatientId}
       />
@@ -152,13 +144,31 @@ export function PatientHistoryView() {
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text className="text-gray-400 text-xs mt-3 font-semibold">Đang tải lịch sử khám...</Text>
           </View>
+        ) : !selectedPatientId ? (
+          <View className="flex-1 items-center justify-center p-6 bg-gray-50">
+            <View className="w-16 h-16 rounded-full bg-primary/10 items-center justify-center mb-4">
+              <Ionicons name="person-outline" size={32} color={Colors.primary} />
+            </View>
+            <Text className="text-gray-800 text-base font-bold text-center">
+              Chưa chọn hồ sơ bệnh nhân
+            </Text>
+            <Text className="text-gray-400 text-xs mt-1.5 text-center font-medium max-w-[260px] leading-relaxed">
+              Vui lòng chọn hồ sơ bệnh nhân để xem danh sách lịch sử các lần khám bệnh.
+            </Text>
+            <TouchableOpacity
+              onPress={() => setIsPatientModalVisible(true)}
+              activeOpacity={0.8}
+              className="mt-6 bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2 shadow-sm shadow-primary/30"
+            >
+              <Ionicons name="people" size={18} color="white" />
+              <Text className="text-white font-bold text-sm">Chọn hồ sơ bệnh nhân</Text>
+            </TouchableOpacity>
+          </View>
         ) : visitSessions.length === 0 ? (
           <View className="flex-1 items-center justify-center p-6 bg-gray-50">
             <Ionicons name="folder-open-outline" size={48} color="#D1D5DB" />
             <Text className="text-gray-400 text-sm mt-3 text-center font-medium">
-              {selectedPatientId
-                ? "Bệnh nhân này chưa có dữ liệu lịch sử khám bệnh nào."
-                : "Vui lòng chọn bệnh nhân để xem lịch sử."}
+              Bệnh nhân này chưa có dữ liệu lịch sử khám bệnh nào.
             </Text>
           </View>
         ) : (

@@ -5,6 +5,7 @@ import type {
   TranslatedSymptomSearchItem,
 } from "../types/triage.types";
 import { triageCacheService } from "./triage-cache.service";
+import { googleTranslationService } from "./google-translation.service";
 
 const STATIC_EN_VI_DICTIONARY: Record<string, string> = {
   Yes: "Có",
@@ -43,8 +44,8 @@ class TranslationService {
     try {
       const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
       if (!apiKey) {
-        console.warn("[TranslationService] Missing EXPO_PUBLIC_DEEPSEEK_API_KEY. Fallback to original.");
-        return normalizedText;
+        // Fallback to Google Translation Service if DeepSeek key is not available
+        return await googleTranslationService.translateEnToVi(normalizedText, symptomId);
       }
 
       const response = await fetch("https://api.deepseek.com/chat/completions", {
@@ -80,8 +81,8 @@ class TranslationService {
 
       return translated;
     } catch (error) {
-      console.warn(`[TranslationService] Translate failed for "${text}", fallback to original:`, error);
-      return normalizedText;
+      console.warn(`[TranslationService] DeepSeek failed for "${text}", fallback to Google Translate:`, error);
+      return await googleTranslationService.translateEnToVi(normalizedText, symptomId);
     }
   }
 
@@ -105,12 +106,7 @@ class TranslationService {
     try {
       const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
       if (!apiKey) {
-        console.warn("[TranslationService] Missing EXPO_PUBLIC_DEEPSEEK_API_KEY for translateSymptomItems.");
-        return items.map((item) => ({
-          id: item.id,
-          labelEn: item.label,
-          labelVi: item.label,
-        }));
+        return await googleTranslationService.translateSymptomItems(items);
       }
 
       const uncachedItems: SymptomSearchItem[] = [];
@@ -185,12 +181,8 @@ Return ONLY a raw JSON object (no markdown, no backticks, no extra text) matchin
         labelVi: cachedTranslations.get(item.id) || item.label,
       }));
     } catch (error) {
-      console.warn("[TranslationService] translateSymptomItems failed:", error);
-      return items.map((item) => ({
-        id: item.id,
-        labelEn: item.label,
-        labelVi: item.label,
-      }));
+      console.warn("[TranslationService] translateSymptomItems DeepSeek failed, fallback to Google Translate:", error);
+      return await googleTranslationService.translateSymptomItems(items);
     }
   }
 
@@ -202,8 +194,7 @@ Return ONLY a raw JSON object (no markdown, no backticks, no extra text) matchin
     try {
       const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
       if (!apiKey) {
-        console.warn("[TranslationService] Missing EXPO_PUBLIC_DEEPSEEK_API_KEY for translateQuestion.");
-        return question;
+        return await googleTranslationService.translateQuestion(question);
       }
 
       const systemPrompt = `You are an expert medical translator for hospital triage systems.
@@ -248,7 +239,7 @@ IMPORTANT: Return ONLY a raw JSON object (no markdown, no backticks, no extra te
 
       const resData = await response.json();
       const content = resData.choices?.[0]?.message?.content;
-      if (!content) return question;
+      if (!content) return await googleTranslationService.translateQuestion(question);
 
       const cleanedContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
       const parsedData = JSON.parse(cleanedContent);
@@ -284,8 +275,8 @@ IMPORTANT: Return ONLY a raw JSON object (no markdown, no backticks, no extra te
         items: translatedItemsList,
       };
     } catch (error) {
-      console.warn("[TranslationService] translateQuestion failed:", error);
-      return question;
+      console.warn("[TranslationService] translateQuestion DeepSeek failed, fallback to Google Translate:", error);
+      return await googleTranslationService.translateQuestion(question);
     }
   }
 

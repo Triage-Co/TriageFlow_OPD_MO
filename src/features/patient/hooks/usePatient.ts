@@ -102,14 +102,17 @@ export function usePatient() {
     setIsDeleting(true);
     setError(null);
     try {
+      console.log(`[usePatient] Starting deletePatient for ID: ${patientId}`);
       const response = await patientService.deletePatient(patientId);
+      console.log(`[usePatient] deletePatient completed with status:`, response?.status || response?.code);
       if (response.status === "success" || response.code === 200) {
         await fetchPatients();
         return true;
       }
       setError(response.message || "Không thể xóa bệnh nhân.");
       return false;
-    } catch (err) {
+    } catch (err: any) {
+      console.error(`[usePatient] deletePatient catch block:`, err?.response?.data || err?.message || err);
       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi xóa bệnh nhân.");
       return false;
     } finally {
