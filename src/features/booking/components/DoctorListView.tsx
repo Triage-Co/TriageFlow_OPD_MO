@@ -177,8 +177,7 @@ export function DoctorListView() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
-            className="flex-row"
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 10, flexDirection: "row" }}
           >
             {dateOptions.map((date) => {
               const isSelected = selectedDate === date.fullDate;

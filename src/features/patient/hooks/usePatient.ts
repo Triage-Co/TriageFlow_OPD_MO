@@ -68,12 +68,15 @@ export function usePatient() {
       
       const gender: Gender = ocrData.gender.trim().toLowerCase() === "nam" ? "MALE" : "FEMALE";
 
+      // Tạo mã BHYT ngẫu nhiên 15 ký tự (chuẩn VN: DN479 + 10 chữ số) để tránh trùng lặp Unique Index
+      const randomMedicalCoverageId = `DN479${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+
       return createPatient({
         full_name: ocrData.name,
         dob,
         gender,
         citizen_id: ocrData.id,
-        medical_coverage_id: "",
+        medical_coverage_id: randomMedicalCoverageId,
       });
     },
     [createPatient]

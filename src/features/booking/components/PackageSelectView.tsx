@@ -3,6 +3,7 @@ import {
   View,
   Text,
   Pressable,
+  TouchableOpacity,
   FlatList,
   ActivityIndicator,
   TextInput,
@@ -19,6 +20,7 @@ export function PackageSelectView() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const patientId = (params.patientId as string) || "";
+  const patientName = (params.patientName as string) || "";
 
   const [packages, setPackages] = useState<ExamPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +59,7 @@ export function PackageSelectView() {
       params: {
         packageId: pkg.package_id,
         patientId: patientId,
+        patientName: patientName,
       },
     });
   };
@@ -67,9 +70,10 @@ export function PackageSelectView() {
 
   const renderPackageItem = ({ item }: { item: ExamPackage }) => {
     return (
-      <Pressable
+      <TouchableOpacity
         onPress={() => handleSelectPackage(item)}
-        className="mx-4 my-2 p-5 rounded-3xl bg-white border border-gray-100 shadow-sm shadow-black/5 active:opacity-90 active:scale-[0.99] flex-row items-center justify-between"
+        activeOpacity={0.8}
+        className="mx-4 my-2 p-5 rounded-3xl bg-white border border-gray-100 flex-row items-center justify-between"
       >
         <View className="flex-1 pr-4">
           {/* Badge */}
@@ -101,22 +105,23 @@ export function PackageSelectView() {
         <View className="w-10 h-10 rounded-2xl bg-gray-50 items-center justify-center">
           <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
         </View>
-      </Pressable>
+      </TouchableOpacity>
     );
   };
 
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View className="flex-1 bg-gray-50/50">
+      <View className="flex-1 bg-gray-50">
         {/* ── 1. HEADER ── */}
         <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
-          <Pressable
+          <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm active:opacity-75"
+            activeOpacity={0.7}
+            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100"
           >
             <Ionicons name="chevron-back" size={20} color={Colors.neutral700} />
-          </Pressable>
+          </TouchableOpacity>
           <Text className="text-gray-800 text-[17px] font-bold">
             Gói khám sức khỏe
           </Text>
@@ -125,7 +130,7 @@ export function PackageSelectView() {
 
         {/* ── 2. SEARCH BAR ── */}
         <View className="px-5 mb-3">
-          <View className="flex-row items-center bg-white border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm shadow-black/[0.02]">
+          <View className="flex-row items-center bg-white border border-gray-100 rounded-2xl px-4 py-2.5">
             <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
             <TextInput
               value={searchQuery}
@@ -135,9 +140,9 @@ export function PackageSelectView() {
               className="flex-1 text-gray-800 text-[13px] font-semibold p-0 h-7"
             />
             {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery("")}>
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
                 <Ionicons name="close-circle" size={16} color="#9CA3AF" />
-              </Pressable>
+              </TouchableOpacity>
             )}
           </View>
         </View>

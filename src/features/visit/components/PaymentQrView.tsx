@@ -5,7 +5,6 @@ import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SymbolView } from "expo-symbols";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -41,6 +40,7 @@ export function PaymentQrView() {
   const specialtyName = params.specialtyName as string;
   const selectedDate = params.selectedDate as string;
   const slotTime = params.slotTime as string;
+  const isPackageBooking = params.isPackageBooking === "true";
 
   const [paymentChecked, setPaymentChecked] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -96,7 +96,23 @@ export function PaymentQrView() {
   };
 
   const handleConfirmPayment = async () => {
-    if (!stepId) return;
+    if (isPackageBooking || !stepId) {
+      if (stepId) {
+        await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
+      }
+      setConfirmedData({
+        queueNumber: (params.queueNumber as string) || "GÓI KHÁM",
+        specialtyName: specialtyName || "Gói khám sức khỏe",
+        roomName: "Phòng Tiếp Nhận Ban Đầu",
+        startTime: slotTime || "Theo ca đã chọn",
+        patientName: patientName || "",
+        bookingId: bookingId || "",
+        stepId: stepId || "",
+        patientId: (params.patientId as string) || "",
+      });
+      setShowSuccessModal(true);
+      return;
+    }
 
     const bookingResult = await fetchBookingResult(stepId);
     if (!bookingResult) {
@@ -139,10 +155,10 @@ export function PaymentQrView() {
               onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm active:opacity-75"
             >
-              <SymbolView
-                name="chevron.left"
-                size={18}
-                tintColor={Colors.neutral700}
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={Colors.neutral700}
               />
             </Pressable>
             <Text className="text-gray-800 text-[17px] font-bold">Thanh toán đặt lịch</Text>
@@ -157,10 +173,10 @@ export function PaymentQrView() {
 
             <View className="flex-row items-center pb-4 border-b border-gray-50 mb-4">
               <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center mr-3">
-                <SymbolView name="person.fill" size={18} tintColor={Colors.primary} />
+                <Ionicons name="person" size={18} color={Colors.primary} />
               </View>
               <View className="flex-1">
-                <Text className="text-gray-800 text-[14px] font-bold">{doctorName}</Text>
+                <Text className="text-gray-800 text-[14px] font-bold">{doctorName || "Khám theo gói dịch vụ"}</Text>
                 <Text className="text-gray-500 text-[11px] font-medium">{specialtyName}</Text>
               </View>
             </View>
@@ -205,7 +221,7 @@ export function PaymentQrView() {
                   className="flex-row items-center gap-1 active:opacity-60"
                 >
                   <Text className="text-gray-700 text-[12px] font-bold mr-1">{accountName}</Text>
-                  <SymbolView name="doc.on.doc" size={12} tintColor={Colors.textMuted} />
+                  <Ionicons name="copy-outline" size={14} color={Colors.textMuted} />
                 </Pressable>
               </View>
 
@@ -216,7 +232,7 @@ export function PaymentQrView() {
                   className="flex-row items-center gap-1 active:opacity-60"
                 >
                   <Text className="text-gray-700 text-[12px] font-bold mr-1">{accountNumber}</Text>
-                  <SymbolView name="doc.on.doc" size={12} tintColor={Colors.textMuted} />
+                  <Ionicons name="copy-outline" size={14} color={Colors.textMuted} />
                 </Pressable>
               </View>
 
@@ -227,7 +243,7 @@ export function PaymentQrView() {
                   className="flex-row items-center gap-1 active:opacity-60"
                 >
                   <Text className="text-gray-700 text-[12px] font-bold mr-1">{description}</Text>
-                  <SymbolView name="doc.on.doc" size={12} tintColor={Colors.textMuted} />
+                  <Ionicons name="copy-outline" size={14} color={Colors.textMuted} />
                 </Pressable>
               </View>
             </View>
@@ -238,7 +254,7 @@ export function PaymentQrView() {
                 onPress={handleOpenCheckoutUrl}
                 className="mt-5 flex-row items-center gap-1.5 py-2 px-4 rounded-[12px] bg-blue-50 active:opacity-75"
               >
-                <SymbolView name="safari" size={14} tintColor={Colors.primary} />
+                <Ionicons name="globe-outline" size={14} color={Colors.primary} />
                 <Text className="text-primary text-[12px] font-bold">Mở trang thanh toán PayOS</Text>
               </Pressable>
             ) : null}

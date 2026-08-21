@@ -62,28 +62,17 @@ export function decodeSupabaseJwt(token: string): UserProfile | null {
 }
 
 export const loginService = {
-  /**
-   * Đăng nhập bằng Email + Mật khẩu
-   * POST /api/auth/login
-   */
+
   async loginWithEmail(data: LoginEmailRequest): Promise<LoginResponse> {
     const response = await apiClient.post<LoginResponse>("/api/auth/login", data);
     return response.data;
   },
 
-  /**
-   * Đăng nhập bằng CCCD + Mật khẩu
-   * POST /api/auth/login/citizen
-   */
   async loginWithCitizen(data: LoginCitizenRequest): Promise<LoginResponse> {
     const response = await apiClient.post<LoginResponse>("/api/auth/login/citizen", data);
     return response.data;
   },
 
-  /**
-   * Refresh Token
-   * POST /api/auth/refresh
-   */
   async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
     const response = await apiClient.post<RefreshTokenResponse>("/api/auth/refresh", {
       refreshToken,
@@ -91,15 +80,12 @@ export const loginService = {
     return response.data;
   },
 
-  /**
-   * Đăng xuất
-   * POST /api/auth/logout hoặc /auth/logout
-   */
-  async logout(): Promise<void> {
+
+  async logout(token: string): Promise<void> {
     try {
-      await apiClient.post("/api/auth/logout");
+      await apiClient.post("/api/auth/logout", { token });
     } catch {
-      await apiClient.post("/auth/logout");
+      await apiClient.post("/auth/logout", { token });
     }
   },
 };

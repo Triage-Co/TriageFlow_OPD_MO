@@ -1,7 +1,13 @@
 import { decodeSupabaseJwt, loginService } from "@/features/auth/services/login.service";
 import { LoginRequest, UserProfile } from "@/features/auth/types/auth.types";
-import { REFRESH_TOKEN_KEY, TOKEN_KEY } from "@/shared/services/api-client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setOnSessionExpired } from "@/shared/services/api-client";
+import {
+  getAccessToken,
+  setAuthTokens,
+  clearTokens,
+} from "@/shared/utils/token-storage";
+import { showGlobalToast } from "@/shared/components/ToastProvider";
+import { useRouter } from "expo-router";
 import React, {
   createContext,
   useCallback,
@@ -24,15 +30,33 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  
+  // Lắng nghe sự kiện phiên hết hạn từ api-client
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      setToken(null);
+      setUser(null);
+      showGlobalToast("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.", "info");
+      try {
+        router.replace("/(auth)/login");
+      } catch (err) {
+        console.warn("[AuthContext] Navigation on session expired failed:", err);
+      }
+    });
+
+    return () => {
+      setOnSessionExpired(null);
+    };
+  }, [router]);
+
   useEffect(() => {
     const loadSession = async () => {
       try {
-        const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        const savedToken = await getAccessToken();
         if (savedToken) {
           const profile = decodeSupabaseJwt(savedToken);
           if (profile) {
@@ -43,9 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch {
-        
-        await AsyncStorage.removeItem(TOKEN_KEY);
-        await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+        await clearTokens();
         setToken(null);
         setUser(null);
       } finally {
@@ -58,22 +80,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithToken = useCallback(
     async (newToken: string, newRefreshToken: string) => {
-      await AsyncStorage.setItem(TOKEN_KEY, newToken);
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+      await setAuthTokens(newToken, newRefreshToken);
       try {
         const profile = decodeSupabaseJwt(newToken);
         if (profile) {
           setToken(newToken);
           setUser(profile);
         } else {
-          
           throw new Error(
             "Tài khoản này không có quyền truy cập ứng dụng bệnh nhân."
           );
         }
       } catch (error) {
-        await AsyncStorage.removeItem(TOKEN_KEY);
-        await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+        await clearTokens();
         throw error;
       }
     },
@@ -99,16 +118,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await loginService.logout();
+      const currentToken = token || (await getAccessToken());
+      if (currentToken) {
+        await loginService.logout(currentToken);
+      }
     } catch {
-      
+      // Bỏ qua lỗi server/mạng để user vẫn đăng xuất local thành công
     } finally {
-      await AsyncStorage.removeItem(TOKEN_KEY);
-      await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+      await clearTokens();
       setToken(null);
       setUser(null);
     }
-  }, []);
+  }, [token]);
 
   const updateUser = useCallback((updatedFields: Partial<UserProfile>) => {
     setUser((prev) => (prev ? { ...prev, ...updatedFields } : null));

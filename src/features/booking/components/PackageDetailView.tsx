@@ -3,6 +3,7 @@ import {
   View,
   Text,
   Pressable,
+  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
 } from "react-native";
@@ -19,6 +20,7 @@ export function PackageDetailView() {
   const params = useLocalSearchParams();
   const packageId = (params.packageId as string) || "";
   const patientId = (params.patientId as string) || "";
+  const patientName = (params.patientName as string) || "";
 
   const [packageDetail, setPackageDetail] = useState<ExamPackageDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +54,7 @@ export function PackageDetailView() {
       params: {
         packageId: packageDetail.package_id,
         patientId: patientId,
+        patientName: patientName,
         packageName: packageDetail.package_name,
         packagePrice: packageDetail.price,
       },
@@ -91,15 +94,16 @@ export function PackageDetailView() {
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View className="flex-1 bg-gray-50/50">
+      <View className="flex-1 bg-gray-50">
         {/* ── 1. HEADER ── */}
         <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
-          <Pressable
+          <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm active:opacity-75"
+            activeOpacity={0.7}
+            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100"
           >
             <Ionicons name="chevron-back" size={20} color={Colors.neutral700} />
-          </Pressable>
+          </TouchableOpacity>
           <Text className="text-gray-800 text-[17px] font-bold">
             Chi tiết gói dịch vụ
           </Text>
@@ -119,12 +123,13 @@ export function PackageDetailView() {
             <Text className="text-gray-800 text-[14px] font-bold text-center">
               {error || "Không tìm thấy dữ liệu gói khám."}
             </Text>
-            <Pressable
+            <TouchableOpacity
               onPress={fetchPackageDetail}
-              className="bg-primary px-5 py-2.5 rounded-xl shadow active:opacity-90 mt-2"
+              activeOpacity={0.8}
+              className="bg-primary px-5 py-2.5 rounded-xl mt-2"
             >
               <Text className="text-white text-xs font-bold">Thử lại</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         ) : (
           <View className="flex-1">
@@ -134,7 +139,7 @@ export function PackageDetailView() {
               className="flex-1"
             >
               {/* Package Card */}
-              <View className="bg-white rounded-[32px] m-4 p-6 border border-gray-100 shadow-sm shadow-black/5">
+              <View className="bg-white rounded-[32px] m-4 p-6 border border-gray-100">
                 <View className="w-12 h-12 rounded-2xl bg-teal-50 items-center justify-center mb-4">
                   <Ionicons name="briefcase" size={24} color="#0D9488" />
                 </View>
@@ -177,7 +182,7 @@ export function PackageDetailView() {
                         <View className="items-center mr-4">
                           <View
                             style={{ backgroundColor: iconColor + "20" }}
-                            className="w-10 h-10 rounded-full items-center justify-center z-10 shadow-sm border border-white"
+                            className="w-10 h-10 rounded-full items-center justify-center z-10 border border-white"
                           >
                             <Ionicons name={iconName} size={18} color={iconColor} />
                           </View>
@@ -187,7 +192,7 @@ export function PackageDetailView() {
                         </View>
 
                         {/* Step detail card */}
-                        <View className="flex-1 bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm shadow-black/[0.01]">
+                        <View className="flex-1 bg-white rounded-2xl p-4 border border-gray-100 mb-4">
                           <Text className="text-gray-800 text-[14px] font-extrabold">
                             {idx + 1}. {step.step_name}
                           </Text>
@@ -215,7 +220,7 @@ export function PackageDetailView() {
             </ScrollView>
 
             {/* Sticky register button */}
-            <View className="absolute bottom-0 left-0 right-0 p-5 bg-white/90 border-t border-gray-100 flex-row justify-between items-center shadow-lg">
+            <View className="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 flex-row justify-between items-center">
               <View>
                 <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">
                   Tổng chi phí
@@ -224,14 +229,15 @@ export function PackageDetailView() {
                   {formatPrice(packageDetail.price)}
                 </Text>
               </View>
-              <Pressable
+              <TouchableOpacity
                 onPress={handleContinue}
-                className="bg-teal-600 px-6 py-3.5 rounded-2xl shadow-md active:scale-95 transition-transform"
+                activeOpacity={0.8}
+                className="bg-teal-600 px-6 py-3.5 rounded-2xl"
               >
                 <Text className="text-white text-sm font-black">
                   Đăng ký ngay
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         )}

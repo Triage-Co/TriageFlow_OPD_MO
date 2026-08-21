@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, Image, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -41,8 +41,13 @@ export default function Index() {
   }, [isAuthenticated, isLoading, router]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-blue-50">
-      <ActivityIndicator size="large" color="#5B9BD5" />
+    <View className="flex-1 items-center justify-center bg-white">
+      <Image
+        source={require("../../assets/images/splash-icon.png")}
+        style={{ width: 160, height: 160 }}
+        resizeMode="contain"
+      />
+      <ActivityIndicator size="small" color="#208AEF" className="mt-6" />
     </View>
   );
 }

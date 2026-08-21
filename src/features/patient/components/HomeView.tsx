@@ -96,10 +96,14 @@ export function HomeView() {
       });
     } else if (bookingFlowType === "package") {
       console.log("[HomeScreen] Navigating to package-select");
+      const selected = patients.find(p => p.patient_id === patientId);
       try {
         router.push({
           pathname: "/(patient)/package/package-select",
-          params: { patientId }
+          params: { 
+            patientId,
+            patientName: selected?.full_name || "Bệnh nhân"
+          }
         });
       } catch (err) {
         console.error("[HomeScreen] router.push error:", err);

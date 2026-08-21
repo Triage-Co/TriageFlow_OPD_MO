@@ -3,6 +3,7 @@ import {
   View,
   Text,
   Pressable,
+  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -27,6 +28,7 @@ export function PackageBookingView() {
   const params = useLocalSearchParams();
   const packageId = (params.packageId as string) || "";
   const patientId = (params.patientId as string) || "";
+  const patientName = (params.patientName as string) || "";
   const packageName = (params.packageName as string) || "Gói khám sức khỏe";
   const packagePrice = Number(params.packagePrice || 0);
 
@@ -41,7 +43,7 @@ export function PackageBookingView() {
   const datesList = useMemo((): DateItem[] => {
     const list: DateItem[] = [];
     const today = new Date();
-    
+
     for (let i = 0; i < 7; i++) {
       const targetDate = new Date();
       targetDate.setDate(today.getDate() + i);
@@ -121,9 +123,42 @@ export function PackageBookingView() {
         packageId
       );
 
-      const code = res?.data?.booking_id || res?.booking_id || "";
-      setCreatedBookingCode(code);
-      setIsSuccessModalVisible(true);
+      console.log("[PackageBooking] createBookingWithPackage response:", JSON.stringify(res));
+
+      const rawData = (res as any)?.data || res || {};
+      const bookingId = rawData?.booking_id || "";
+      const paymentObj = rawData?.payment?.data || rawData?.payment || {};
+
+      if (paymentObj && (paymentObj.qrCode || paymentObj.checkoutUrl || paymentObj.accountNumber)) {
+        router.push({
+          pathname: "/(patient)/visit/payment-qr",
+          params: {
+            stepId: rawData?.step_id || "",
+            bookingId: bookingId,
+            bin: paymentObj.bin || "",
+            accountNumber: paymentObj.accountNumber || "",
+            accountName: paymentObj.accountName || "",
+            amount: (paymentObj.amount || packagePrice || 0).toString(),
+            description: paymentObj.description || `Thanh toán ${packageName}`,
+            checkoutUrl: paymentObj.checkoutUrl || "",
+            qrCode: paymentObj.qrCode || "",
+            orderCode: (paymentObj.orderCode || "").toString(),
+            ordercode: (paymentObj.orderCode || "").toString(),
+            specialtyName: packageName,
+            doctorName: "Gói khám sức khỏe",
+            selectedDate: selectedDate,
+            slotTime: selectedSlot.start_time,
+            patientName: patientName || "Bệnh nhân",
+            patientId: patientId,
+            isPackageBooking: "true",
+            queueNumber: "GÓI KHÁM",
+          },
+        });
+      } else {
+        const code = bookingId || rawData?.service_order_id || "";
+        setCreatedBookingCode(code);
+        setIsSuccessModalVisible(true);
+      }
     } catch (err: any) {
       console.error("[PackageBooking] Error registering package:", err);
       Alert.alert(
@@ -149,15 +184,16 @@ export function PackageBookingView() {
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View className="flex-1 bg-gray-50/50">
+      <View className="flex-1 bg-gray-50">
         {/* ── 1. HEADER ── */}
         <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
-          <Pressable
+          <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm active:opacity-75"
+            activeOpacity={0.7}
+            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100"
           >
             <Ionicons name="chevron-back" size={20} color={Colors.neutral700} />
-          </Pressable>
+          </TouchableOpacity>
           <Text className="text-gray-800 text-[17px] font-bold">
             Chọn lịch khám gói
           </Text>
@@ -166,7 +202,7 @@ export function PackageBookingView() {
 
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
           {/* ── 2. TỔNG QUAN GÓI ĐÃ CHỌN ── */}
-          <View className="mx-5 bg-white rounded-[24px] p-4 border border-gray-100 shadow-sm flex-row items-center justify-between">
+          <View className="mx-5 bg-white rounded-[24px] p-4 border border-gray-100 flex-row items-center justify-between">
             <View className="flex-1 pr-4">
               <Text className="text-gray-800 text-[15px] font-extrabold" numberOfLines={1}>
                 {packageName}
@@ -190,36 +226,33 @@ export function PackageBookingView() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
-              className="flex-row"
+              contentContainerStyle={{ paddingHorizontal: 16, flexDirection: "row" }}
             >
               {datesList.map((item) => {
                 const isSelected = item.dateStr === selectedDate;
                 return (
-                  <Pressable
+                  <TouchableOpacity
                     key={item.dateStr}
                     onPress={() => handleSelectDate(item.dateStr)}
-                    className={`mx-1 py-3 px-4 rounded-2xl items-center justify-center min-w-[70px] border ${
-                      isSelected
-                        ? "bg-teal-600 border-teal-600 shadow-sm"
+                    activeOpacity={0.7}
+                    className={`mx-1 py-3 px-4 rounded-2xl items-center justify-center min-w-[70px] border ${isSelected
+                        ? "bg-teal-600 border-teal-600"
                         : "bg-white border-gray-100"
-                    }`}
+                      }`}
                   >
                     <Text
-                      className={`text-[10px] font-bold ${
-                        isSelected ? "text-white/80" : "text-gray-400"
-                      }`}
+                      className="text-[10px] font-bold"
+                      style={{ color: isSelected ? "#FFFFFF" : "#9CA3AF" }}
                     >
                       {item.dayLabel}
                     </Text>
                     <Text
-                      className={`text-[18px] font-black mt-0.5 ${
-                        isSelected ? "text-white" : "text-gray-800"
-                      }`}
+                      className="text-[18px] font-black mt-0.5"
+                      style={{ color: isSelected ? "#FFFFFF" : "#1F2937" }}
                     >
                       {item.dayNum}
                     </Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>
@@ -257,34 +290,26 @@ export function PackageBookingView() {
                   const isFull = item.status === "FULL" || item.capacity <= 0;
 
                   return (
-                    <Pressable
+                    <TouchableOpacity
                       key={item.slot_id}
                       onPress={() => !isFull && handleSelectSlot(item)}
                       disabled={isFull}
+                      activeOpacity={0.7}
                       style={{ width: "31%" }}
-                      className={`py-3 px-1 rounded-xl items-center justify-center border ${
-                        isSelected
+                      className={`py-3 px-1 rounded-xl items-center justify-center border ${isSelected
                           ? "bg-teal-600 border-teal-600"
                           : isFull
-                          ? "bg-gray-100 border-gray-200 opacity-60"
-                          : "bg-white border-gray-200 active:bg-gray-50"
-                      }`}
+                            ? "bg-gray-100 border-gray-200"
+                            : "bg-white border-gray-200"
+                        }`}
                     >
                       <Text
-                        className={`text-[12px] font-black ${
-                          isSelected ? "text-white" : isFull ? "text-gray-400" : "text-gray-700"
-                        }`}
+                        className="text-[12px] font-black"
+                        style={{ color: isSelected ? "#FFFFFF" : isFull ? "#9CA3AF" : "#374151" }}
                       >
                         {item.start_time}
                       </Text>
-                      <Text
-                        className={`text-[9px] font-semibold mt-0.5 ${
-                          isSelected ? "text-white/80" : isFull ? "text-red-500" : "text-teal-600"
-                        }`}
-                      >
-                        {isFull ? "Đầy" : `Trống: ${item.capacity}`}
-                      </Text>
-                    </Pressable>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -293,7 +318,7 @@ export function PackageBookingView() {
         </ScrollView>
 
         {/* ── 5. CONFIRM STICKY BAR ── */}
-        <View className="p-5 bg-white border-t border-gray-100 shadow-lg flex-row justify-between items-center">
+        <View className="p-5 bg-white border-t border-gray-100 flex-row justify-between items-center">
           <View className="flex-1 pr-4">
             <Text className="text-gray-400 text-[10px] font-bold uppercase">
               Ca khám đã chọn
@@ -304,19 +329,19 @@ export function PackageBookingView() {
                 : "Chưa chọn khung giờ"}
             </Text>
           </View>
-          <Pressable
+          <TouchableOpacity
             onPress={handleRegisterPackage}
             disabled={!selectedSlot || isBooking}
-            className={`px-8 py-3.5 rounded-2xl shadow-md flex-row items-center justify-center ${
-              selectedSlot && !isBooking ? "bg-teal-600 active:scale-95" : "bg-gray-300"
-            }`}
+            activeOpacity={0.8}
+            className={`px-8 py-3.5 rounded-2xl flex-row items-center justify-center ${selectedSlot && !isBooking ? "bg-teal-600" : "bg-gray-300"
+              }`}
           >
             {isBooking ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
               <Text className="text-white text-sm font-black">Xác nhận đăng ký</Text>
             )}
-          </Pressable>
+          </TouchableOpacity>
         </View>
 
         {/* ── 6. SUCCESS DIALOG ── */}
@@ -325,9 +350,12 @@ export function PackageBookingView() {
           transparent
           animationType="fade"
         >
-          <View className="flex-1 bg-black/60 items-center justify-center p-6">
-            <View className="bg-white rounded-[32px] p-6 items-center text-center shadow-2xl max-w-sm w-full">
-              <View className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 items-center justify-center mb-4">
+          <View
+            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            className="flex-1 items-center justify-center p-6"
+          >
+            <View className="bg-white rounded-[32px] p-6 items-center text-center max-w-sm w-full">
+              <View className="w-16 h-16 rounded-full bg-emerald-50 items-center justify-center mb-4">
                 <Ionicons name="checkmark-circle" size={48} color="#10B981" />
               </View>
               <Text className="text-gray-800 text-[18px] font-black text-center">
@@ -344,18 +372,19 @@ export function PackageBookingView() {
                 </View>
               ) : null}
 
-              <Pressable
+              <TouchableOpacity
                 onPress={() => {
                   setIsSuccessModalVisible(false);
                   router.dismissAll();
                   router.replace("/(patient)/(tabs)/home");
                 }}
-                className="bg-primary w-full py-3.5 rounded-2xl shadow active:scale-95 mt-2"
+                activeOpacity={0.8}
+                className="bg-primary w-full py-3.5 rounded-2xl mt-2"
               >
                 <Text className="text-white text-center text-sm font-black">
                   Về trang chủ
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
