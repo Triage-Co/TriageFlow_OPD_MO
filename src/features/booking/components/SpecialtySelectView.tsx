@@ -73,11 +73,6 @@ export function SpecialtySelectView() {
         >
           {item.specialty_name}
         </Text>
-
-        {/* Specialty Code (Subtle indicator) */}
-        <Text className="text-[10px] text-gray-400 font-semibold mt-1">
-          {item.specialty_code}
-        </Text>
       </Pressable>
     );
   };

@@ -21,9 +21,9 @@ function CameraController({ activeFloor }: { activeFloor: number }) {
       ctrl.target.set(0, 0, 0);
     }
 
-    // Góc chiếu thẳng đứng 90 độ từ trên đỉnh xuống bao quát toàn bộ bản đồ (zoom rộng)
-    camera.position.set(0, 200, 0.001);
-    camera.up.set(0, 0, -1);
+    // Góc chiếu thẳng đứng từ trên cao nhìn xuống (chuẩn trục Y-up)
+    camera.position.set(0, 180, 0.001);
+    camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
 
     if (ctrl) {
@@ -94,27 +94,12 @@ export function MapViewer() {
     );
   }
 
-  const handleTouchReset = () => {
-    const ctrl = controlsRef.current;
-    if (ctrl) {
-      if (ctrl.pointers) {
-        ctrl.pointers = [];
-      }
-      ctrl.state = -1;
-      ctrl.update();
-    }
-  };
-
   const hasMultipleFloors = !!(rawMap?.floors && rawMap.floors.length > 1);
 
   return (
-    <View
-      style={styles.container}
-      onTouchEnd={handleTouchReset}
-      onTouchCancel={handleTouchReset}
-    >
+    <View style={styles.container}>
       <Canvas
-        camera={{ position: [0, 150, 0.001], fov: 50, up: [0, 0, -1] }}
+        camera={{ position: [0, 180, 0.001], fov: 50, up: [0, 1, 0] }}
         style={styles.canvas}
         frameloop="demand"
         gl={{ antialias: false, powerPreference: "high-performance" }}
@@ -137,12 +122,12 @@ export function MapViewer() {
           ref={controlsRef}
           makeDefault
           minPolarAngle={0}
-          maxPolarAngle={Math.PI / 2.1}
+          maxPolarAngle={Math.PI / 2.4}
           enableRotate={controlMode === "rotate"}
           enableZoom={true}
           enablePan={controlMode === "pan"}
-          maxDistance={400}
-          minDistance={10}
+          maxDistance={350}
+          minDistance={15}
           zoomSpeed={1.8}
           rotateSpeed={1.1}
           panSpeed={1.3}

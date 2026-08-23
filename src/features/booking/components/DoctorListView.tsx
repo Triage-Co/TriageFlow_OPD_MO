@@ -53,7 +53,6 @@ export function DoctorListView() {
   }, []);
 
   const [selectedDate, setSelectedDate] = useState(dateOptions[0].fullDate);
-  const [selectedFilter, setSelectedFilter] = useState("all");
 
   const { doctors, isLoading, error } = useDoctorList(specialtyCode, selectedDate);
 
@@ -148,7 +147,7 @@ export function DoctorListView() {
         </View>
 
         {/* ── Chuyên khoa hiện tại ── */}
-        <View className="bg-primary/10 mx-5 my-2 p-3 rounded-[16px] border border-primary/20 flex-row items-center justify-between">
+        <View className="bg-primary/10 mx-5 my-2 p-3 rounded-[16px] border border-primary/20 flex-row items-center">
           <View className="flex-row items-center gap-2">
             <View className="w-8 h-8 rounded-full bg-primary/20 items-center justify-center">
               <Ionicons
@@ -159,15 +158,12 @@ export function DoctorListView() {
             </View>
             <View>
               <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">
-                Chuyên khoa chẩn đoán
+                Chuyên khoa
               </Text>
               <Text className="text-gray-800 text-[14px] font-extrabold">
                 {specialtyName}
               </Text>
             </View>
-          </View>
-          <View className="bg-primary/25 px-2.5 py-1 rounded-full">
-            <Text className="text-primary text-[10px] font-bold">{specialtyCode}</Text>
           </View>
         </View>
 
@@ -215,38 +211,6 @@ export function DoctorListView() {
           </ScrollView>
         </View>
 
-        {/* ── 3. FILTER PILLS ── */}
-        <View className="flex-row px-5 mt-5 mb-4 gap-2">
-          <Pressable
-            onPress={() => setSelectedFilter("all")}
-            className={`px-4 py-2 rounded-full border ${selectedFilter === "all"
-              ? "bg-primary border-primary"
-              : "bg-white border-gray-100"
-              }`}
-          >
-            <Text
-              className={`text-[12px] font-bold ${selectedFilter === "all" ? "text-white" : "text-gray-500"
-                }`}
-            >
-              Tất cả
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setSelectedFilter("high-rating")}
-            className={`px-4 py-2 rounded-full border ${selectedFilter === "high-rating"
-              ? "bg-primary border-primary"
-              : "bg-white border-gray-100"
-              }`}
-          >
-            <Text
-              className={`text-[12px] font-bold ${selectedFilter === "high-rating" ? "text-white" : "text-gray-500"
-                }`}
-            >
-              Đánh giá cao
-            </Text>
-          </Pressable>
-        </View>
-
         {/* ── 4. DANH SÁCH BÁC SĨ ── */}
         {isLoading ? (
           <View className="flex-1 items-center justify-center">
@@ -285,14 +249,10 @@ export function DoctorListView() {
           </View>
         ) : (
           <FlatList
-            data={
-              selectedFilter === "high-rating"
-                ? doctors.filter((doc) => doc.experience_years >= 10)
-                : doctors
-            }
+            data={doctors}
             keyExtractor={(item) => item.staff_id}
             renderItem={renderDoctorItem}
-            contentContainerStyle={{ paddingBottom: 30 }}
+            contentContainerStyle={{ paddingBottom: 30, paddingTop: 12 }}
             showsVerticalScrollIndicator={false}
           />
         )}

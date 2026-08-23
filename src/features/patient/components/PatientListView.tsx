@@ -12,6 +12,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
+import { maskCitizenId } from "@/shared/utils/string.utils";
 import {
   ActivityIndicator,
   Alert,
@@ -46,6 +47,7 @@ export function PatientListView() {
   const [isEkycVisible, setIsEkycVisible] = useState(false);
   const [isEditVisible, setIsEditVisible] = useState(false);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
+  const [showCccdDetail, setShowCccdDetail] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -80,6 +82,7 @@ export function PatientListView() {
 
   const handleSelectPatient = async (patientId: string) => {
     setIsFetchingDetail(true);
+    setShowCccdDetail(false);
     try {
       const detail = await getPatientDetail(patientId);
       if (detail) {
@@ -313,7 +316,9 @@ export function PatientListView() {
                   <View className="flex-1">
                     <Text className="text-gray-800 font-bold text-[15px]">{item.full_name}</Text>
                     <View className="flex-row items-center gap-2 mt-1.5">
-                      <Text className="text-gray-400 text-xs">CCCD: {item.citizen_id}</Text>
+                      <Text className="text-gray-400 text-xs">
+                        CCCD: {maskCitizenId(item.citizen_id)}
+                      </Text>
                       <View className="w-1.5 h-1.5 rounded-full bg-neutral-200" />
                       <Text className="text-gray-400 text-xs">
                         {getGenderText(item.gender)}
@@ -585,11 +590,29 @@ export function PatientListView() {
                 </Text>
               </View>
 
-              <View className="flex-row justify-between">
+              <View className="flex-row justify-between items-center">
                 <Text className="text-gray-400 text-xs">Số CCCD / CMND</Text>
-                <Text className="text-gray-700 text-xs font-bold">
-                  {selectedPatient?.citizen_id}
-                </Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-gray-700 text-xs font-bold font-mono">
+                    {showCccdDetail
+                      ? selectedPatient?.citizen_id
+                      : maskCitizenId(selectedPatient?.citizen_id)}
+                  </Text>
+                  <Pressable
+                    onPress={() => setShowCccdDetail((prev) => !prev)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="p-1 rounded-md bg-neutral-200/60 active:opacity-60"
+                  >
+                    <SymbolView
+                      name={{
+                        ios: showCccdDetail ? "eye.slash" : "eye",
+                        android: showCccdDetail ? "visibility_off" : "visibility",
+                      }}
+                      size={14}
+                      tintColor="#4B5563"
+                    />
+                  </Pressable>
+                </View>
               </View>
 
               <View className="flex-row justify-between">

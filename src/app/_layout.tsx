@@ -1,11 +1,18 @@
 import { LogBox } from "react-native";
+import { configureReanimatedLogger, ReanimatedLogLevel } from "react-native-reanimated";
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
+
 LogBox.ignoreLogs([
   "Multiple instances of Three.js being imported",
   "THREE.Clock: This module has been deprecated",
   "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
+  "[Reanimated] Reading from `value` during component render",
 ]);
 
-// Chặn các log không hỗ trợ tham số pixelStorei của Expo GL gây loãng console
 const originalLog = console.log;
 console.log = (...args) => {
   if (

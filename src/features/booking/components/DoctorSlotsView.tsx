@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -44,6 +44,26 @@ export function DoctorSlotsView() {
 
   const { slots, isLoading, error } = useDoctorSlots(doctorId, initialDate);
 
+  const morningSlots = useMemo(() => {
+    return slots.filter((slot) => {
+      if (!slot.start_time) return false;
+      const parts = slot.start_time.split(":");
+      if (parts.length < 2) return true;
+      const slotHours = parseInt(parts[0], 10);
+      return slotHours < 12;
+    });
+  }, [slots]);
+
+  const afternoonSlots = useMemo(() => {
+    return slots.filter((slot) => {
+      if (!slot.start_time) return false;
+      const parts = slot.start_time.split(":");
+      if (parts.length < 2) return false;
+      const slotHours = parseInt(parts[0], 10);
+      return slotHours >= 12;
+    });
+  }, [slots]);
+
   const getInitials = (name: string): string => {
     const cleanName = name.replace(/^(BS\.|BS|PGS\.|PGS|TS\.|TS|ThS\.|ThS)\s+/i, "");
     const parts = cleanName.trim().split(/\s+/);
@@ -57,6 +77,69 @@ export function DoctorSlotsView() {
   const handleSlotSelect = (slot: Slot) => {
     if (slot.status !== "AVAILABLE" || slot.capacity <= 0) return;
     setSelectedSlot(slot);
+  };
+
+  const renderSlotItem = (slot: Slot) => {
+    let isPastSlot = false;
+    if (isToday) {
+      const parts = slot.start_time.split(":");
+      if (parts.length >= 2) {
+        const slotHours = parseInt(parts[0], 10);
+        const slotMinutes = parseInt(parts[1], 10);
+        if (
+          slotHours < currentHours ||
+          (slotHours === currentHours && slotMinutes <= currentMinutes)
+        ) {
+          isPastSlot = true;
+        }
+      }
+    }
+
+    const isAvailable = slot.status === "AVAILABLE" && slot.capacity > 0 && !isPastSlot;
+    const isSelected = selectedSlot?.slot_id === slot.slot_id;
+
+    return (
+      <TouchableOpacity
+        key={`${isSelected ? "selected" : "unselected"}-${slot.slot_id}`}
+        disabled={!isAvailable}
+        onPress={() => handleSlotSelect(slot)}
+        activeOpacity={0.7}
+        style={{ width: "22.5%" }}
+        className={`py-3 rounded-[18px] items-center justify-center border ${isSelected
+          ? "bg-primary border-primary shadow-md shadow-primary/20"
+          : !isAvailable
+            ? "bg-gray-50 border-gray-100 opacity-50"
+            : "bg-white border-gray-100 shadow-sm shadow-black/5"
+          }`}
+      >
+        <Text
+          className={`text-[14px] font-extrabold ${isSelected
+            ? "text-white"
+            : !isAvailable
+              ? "text-gray-300"
+              : "text-gray-700"
+            }`}
+        >
+          {slot.start_time}
+        </Text>
+
+        <View
+          className={`w-5 h-[1.5px] my-1 ${isSelected ? "bg-white/30" : "bg-gray-100"
+            }`}
+        />
+
+        <Text
+          className={`text-[10px] font-bold ${isSelected
+            ? "text-white/80"
+            : !isAvailable
+              ? "text-gray-300"
+              : "text-gray-400"
+            }`}
+        >
+          {slot.end_time}
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   const handleConfirmBooking = async () => {
@@ -88,7 +171,7 @@ export function DoctorSlotsView() {
       const patientName = targetPatient.full_name;
 
       const bookingResult = await submitBooking(patientId, selectedSlot.slot_id);
-      
+
       if (bookingResult && !("error" in bookingResult)) {
         router.push({
           pathname: "/(patient)/visit/payment-qr",
@@ -201,68 +284,43 @@ export function DoctorSlotsView() {
                 </Text>
               </View>
             ) : (
-              <View className="flex-row flex-wrap gap-2.5">
-                {slots.map((slot) => {
-                  let isPastSlot = false;
-                  if (isToday) {
-                    const parts = slot.start_time.split(":");
-                    if (parts.length >= 2) {
-                      const slotHours = parseInt(parts[0], 10);
-                      const slotMinutes = parseInt(parts[1], 10);
-                      if (slotHours < currentHours ||
-                        (slotHours === currentHours && slotMinutes < currentMinutes)
-                      ) {
-                        isPastSlot = true;
-                      }
-                    }
-                  }
+              <View className="gap-6">
+                {/* ── BUỔI SÁNG ── */}
+                {morningSlots.length > 0 && (
+                  <View>
+                    <View className="flex-row items-center gap-2 mb-3">
+                      <View className="w-6 h-6 rounded-full bg-amber-50 items-center justify-center border border-amber-100">
+                        <Ionicons name="sunny-outline" size={13} color="#D97706" />
+                      </View>
+                      <Text className="text-gray-800 text-[13px] font-bold">
+                        Buổi sáng
+                      </Text>
+                    </View>
 
-                  const isAvailable = slot.status === "AVAILABLE" && slot.capacity > 0 && !isPastSlot;
-                  const isSelected = selectedSlot?.slot_id === slot.slot_id;
+                    <View className="flex-row flex-wrap gap-2.5">
+                      {morningSlots.map((slot: Slot) => renderSlotItem(slot))}
+                    </View>
+                  </View>
+                )}
 
-                  return (
-                    <TouchableOpacity
-                      key={`${isSelected ? "selected" : "unselected"}-${slot.slot_id}`}
-                      disabled={!isAvailable}
-                      onPress={() => handleSlotSelect(slot)}
-                      activeOpacity={0.7}
-                      style={{ width: "22.5%" }}
-                      className={`py-3 rounded-[18px] items-center justify-center border ${isSelected
-                        ? "bg-primary border-primary shadow-md shadow-primary/20"
-                        : !isAvailable
-                          ? "bg-gray-50 border-gray-100 opacity-50"
-                          : "bg-white border-gray-100 shadow-sm shadow-black/5"
-                        }`}
-                    >
-                      <Text
-                        className={`text-[14px] font-extrabold ${isSelected
-                          ? "text-white"
-                          : !isAvailable
-                            ? "text-gray-300"
-                            : "text-gray-700"
-                          }`}
-                      >
-                        {slot.start_time}
+                {/* ── BUỔI CHIỀU ── */}
+                {afternoonSlots.length > 0 && (
+                  <View>
+                    <View className="flex-row items-center gap-2 mb-3">
+                      <View className="w-6 h-6 rounded-full bg-blue-50 items-center justify-center border border-blue-100">
+                        <Ionicons name="partly-sunny-outline" size={13} color={Colors.primary} />
+                      </View>
+                      <Text className="text-gray-800 text-[13px] font-bold">
+                        Buổi chiều
                       </Text>
 
-                      <View
-                        className={`w-5 h-[1.5px] my-1 ${isSelected ? "bg-white/30" : "bg-gray-100"
-                          }`}
-                      />
+                    </View>
 
-                      <Text
-                        className={`text-[10px] font-bold ${isSelected
-                          ? "text-white/80"
-                          : !isAvailable
-                            ? "text-gray-300"
-                            : "text-gray-400"
-                          }`}
-                      >
-                        {slot.end_time}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                    <View className="flex-row flex-wrap gap-2.5">
+                      {afternoonSlots.map((slot: Slot) => renderSlotItem(slot))}
+                    </View>
+                  </View>
+                )}
               </View>
             )}
           </View>
