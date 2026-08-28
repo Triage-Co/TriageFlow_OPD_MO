@@ -20,12 +20,22 @@ export function usePatient() {
     try {
       const response = await patientService.getPatients();
       if (response.status === "success" || response.code === 200) {
-        setPatients(response.data || []);
+        setPatients(Array.isArray(response.data) ? response.data : []);
       } else {
-        setError(response.message || "Không thể tải danh sách bệnh nhân.");
+        const msg = response.message || "";
+        if (msg.toLowerCase().includes("rỗng") || msg.toLowerCase().includes("empty")) {
+          setPatients([]);
+        } else {
+          setError(msg || "Không thể tải danh sách bệnh nhân.");
+        }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải danh sách.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "";
+      if (msg.toLowerCase().includes("rỗng") || msg.toLowerCase().includes("empty")) {
+        setPatients([]);
+      } else {
+        setError(msg || "Đã xảy ra lỗi khi tải danh sách.");
+      }
     } finally {
       setIsLoading(false);
     }

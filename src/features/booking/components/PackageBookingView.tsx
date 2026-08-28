@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  Pressable,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -12,10 +11,12 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
 import { packageService } from "@/features/booking/services/package.service";
 import { RoomSlot } from "@/features/booking/types/package.types";
+import { AppButton } from "@/shared/components/AppButton";
 
 interface DateItem {
   dateStr: string; // YYYY-MM-DD
@@ -25,6 +26,7 @@ interface DateItem {
 
 export function PackageBookingView() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const packageId = (params.packageId as string) || "";
   const patientId = (params.patientId as string) || "";
@@ -184,35 +186,45 @@ export function PackageBookingView() {
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View className="flex-1 bg-gray-50">
+      <View className="flex-1 bg-gray-50/50">
         {/* ── 1. HEADER ── */}
-        <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
+        <View
+          style={{ paddingTop: Math.max(insets.top, 16) + 8 }}
+          className="flex-row items-center justify-between px-5 pb-3 bg-white border-b border-gray-100/80"
+        >
           <TouchableOpacity
             onPress={() => router.back()}
             activeOpacity={0.7}
-            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100"
+            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm"
           >
             <Ionicons name="chevron-back" size={20} color={Colors.neutral700} />
           </TouchableOpacity>
-          <Text className="text-gray-800 text-[17px] font-bold">
-            Chọn lịch khám gói
-          </Text>
+          <View className="items-center">
+            <Text className="text-gray-800 text-[17px] font-bold">
+              Chọn lịch khám gói
+            </Text>
+            {patientName ? (
+              <Text className="text-primary text-[11px] font-semibold mt-0.5">
+                Bệnh nhân: {patientName}
+              </Text>
+            ) : null}
+          </View>
           <View className="w-10" />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
           {/* ── 2. TỔNG QUAN GÓI ĐÃ CHỌN ── */}
-          <View className="mx-5 bg-white rounded-[24px] p-4 border border-gray-100 flex-row items-center justify-between">
+          <View className="mx-5 mt-5 bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex-row items-center justify-between">
             <View className="flex-1 pr-4">
               <Text className="text-gray-800 text-[15px] font-extrabold" numberOfLines={1}>
                 {packageName}
               </Text>
-              <Text className="text-teal-600 text-[13px] font-bold mt-1">
+              <Text className="text-primary text-[13px] font-bold mt-1">
                 Đơn giá: {formatPrice(packagePrice)}
               </Text>
             </View>
-            <View className="bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-100">
-              <Text className="text-teal-700 text-[10px] font-black uppercase">
+            <View className="bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/60">
+              <Text className="text-primary text-[10px] font-extrabold uppercase">
                 Khám Trọn Gói
               </Text>
             </View>
@@ -235,20 +247,21 @@ export function PackageBookingView() {
                     key={item.dateStr}
                     onPress={() => handleSelectDate(item.dateStr)}
                     activeOpacity={0.7}
-                    className={`mx-1 py-3 px-4 rounded-2xl items-center justify-center min-w-[70px] border ${isSelected
-                        ? "bg-teal-600 border-teal-600"
-                        : "bg-white border-gray-100"
-                      }`}
+                    className={`mx-1.5 py-3 px-4 rounded-2xl items-center justify-center min-w-[72px] border ${
+                      isSelected
+                        ? "bg-primary border-primary shadow-sm"
+                        : "bg-white border-slate-100 shadow-sm"
+                    }`}
                   >
                     <Text
-                      className="text-[10px] font-bold"
-                      style={{ color: isSelected ? "#FFFFFF" : "#9CA3AF" }}
+                      className="text-[11px] font-bold"
+                      style={{ color: isSelected ? "#FFFFFF" : "#94A3B8" }}
                     >
                       {item.dayLabel}
                     </Text>
                     <Text
-                      className="text-[18px] font-black mt-0.5"
-                      style={{ color: isSelected ? "#FFFFFF" : "#1F2937" }}
+                      className="text-[17px] font-black mt-0.5"
+                      style={{ color: isSelected ? "#FFFFFF" : "#1E293B" }}
                     >
                       {item.dayNum}
                     </Text>
@@ -259,27 +272,27 @@ export function PackageBookingView() {
           </View>
 
           {/* ── 4. CHỌN KHUNG GIỜ ── */}
-          <View className="mt-6 px-5 mb-10">
+          <View className="mt-6 px-5 mb-28">
             <View className="flex-row justify-between items-center mb-3">
               <Text className="text-gray-800 text-[14px] font-extrabold">
                 Chọn giờ khám
               </Text>
-              <Text className="text-gray-400 text-[11px] font-bold">
+              <Text className="text-primary text-[12px] font-bold">
                 {formatDateDisplay(selectedDate)}
               </Text>
             </View>
 
             {isFetchingSlots ? (
               <View className="py-12 items-center justify-center">
-                <ActivityIndicator size="small" color="#0D9488" />
+                <ActivityIndicator size="small" color={Colors.primary} />
                 <Text className="text-gray-400 text-xs font-bold mt-2">
                   Đang tìm kiếm ca khám trống...
                 </Text>
               </View>
             ) : slots.length === 0 ? (
-              <View className="py-10 bg-white rounded-2xl border border-gray-100 items-center justify-center px-6">
-                <Ionicons name="calendar-outline" size={32} color="#D1D5DB" />
-                <Text className="text-gray-400 text-xs font-bold text-center mt-2.5">
+              <View className="py-10 bg-white rounded-3xl border border-slate-100 shadow-sm items-center justify-center px-6">
+                <Ionicons name="calendar-outline" size={36} color="#CBD5E1" />
+                <Text className="text-gray-400 text-xs font-semibold text-center mt-2.5 leading-5">
                   Không còn ca khám nào trống trong ngày này. Vui lòng chọn ngày khác!
                 </Text>
               </View>
@@ -296,16 +309,19 @@ export function PackageBookingView() {
                       disabled={isFull}
                       activeOpacity={0.7}
                       style={{ width: "31%" }}
-                      className={`py-3 px-1 rounded-xl items-center justify-center border ${isSelected
-                          ? "bg-teal-600 border-teal-600"
+                      className={`py-3 px-1 rounded-2xl items-center justify-center border shadow-sm ${
+                        isSelected
+                          ? "bg-primary border-primary"
                           : isFull
-                            ? "bg-gray-100 border-gray-200"
-                            : "bg-white border-gray-200"
-                        }`}
+                          ? "bg-gray-100 border-gray-200 opacity-50"
+                          : "bg-white border-slate-100"
+                      }`}
                     >
                       <Text
-                        className="text-[12px] font-black"
-                        style={{ color: isSelected ? "#FFFFFF" : isFull ? "#9CA3AF" : "#374151" }}
+                        className="text-[13px] font-bold"
+                        style={{
+                          color: isSelected ? "#FFFFFF" : isFull ? "#94A3B8" : "#1E293B",
+                        }}
                       >
                         {item.start_time}
                       </Text>
@@ -318,9 +334,9 @@ export function PackageBookingView() {
         </ScrollView>
 
         {/* ── 5. CONFIRM STICKY BAR ── */}
-        <View className="p-5 bg-white border-t border-gray-100 flex-row justify-between items-center">
+        <View className="p-5 bg-white border-t border-slate-100 flex-row justify-between items-center shadow-lg">
           <View className="flex-1 pr-4">
-            <Text className="text-gray-400 text-[10px] font-bold uppercase">
+            <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">
               Ca khám đã chọn
             </Text>
             <Text className="text-gray-800 text-[15px] font-black mt-0.5" numberOfLines={1}>
@@ -329,19 +345,15 @@ export function PackageBookingView() {
                 : "Chưa chọn khung giờ"}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={handleRegisterPackage}
-            disabled={!selectedSlot || isBooking}
-            activeOpacity={0.8}
-            className={`px-8 py-3.5 rounded-2xl flex-row items-center justify-center ${selectedSlot && !isBooking ? "bg-teal-600" : "bg-gray-300"
-              }`}
-          >
-            {isBooking ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text className="text-white text-sm font-black">Xác nhận đăng ký</Text>
-            )}
-          </TouchableOpacity>
+          <View className="w-48">
+            <AppButton
+              title="Xác nhận đăng ký"
+              variant="primary"
+              isLoading={isBooking}
+              disabled={!selectedSlot || isBooking}
+              onPress={handleRegisterPackage}
+            />
+          </View>
         </View>
 
         {/* ── 6. SUCCESS DIALOG ── */}
@@ -354,37 +366,35 @@ export function PackageBookingView() {
             style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
             className="flex-1 items-center justify-center p-6"
           >
-            <View className="bg-white rounded-[32px] p-6 items-center text-center max-w-sm w-full">
-              <View className="w-16 h-16 rounded-full bg-emerald-50 items-center justify-center mb-4">
-                <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+            <View className="bg-white rounded-[32px] p-6 items-center text-center max-w-sm w-full shadow-lg">
+              <View className="w-16 h-16 rounded-full bg-emerald-50 items-center justify-center mb-4 border border-emerald-100/50">
+                <Ionicons name="checkmark-circle" size={44} color="#10B981" />
               </View>
-              <Text className="text-gray-800 text-[18px] font-black text-center">
+              <Text className="text-gray-800 text-[18px] font-extrabold text-center">
                 Đăng ký Gói khám thành công!
               </Text>
-              <Text className="text-gray-500 text-xs font-semibold text-center mt-2 leading-5">
+              <Text className="text-gray-500 text-xs font-medium text-center mt-2 leading-5">
                 Bạn đã đăng ký giữ chỗ gói khám thành công. Vui lòng di chuyển đến Quầy Thu ngân của bệnh viện để thanh toán và bắt đầu khám bệnh.
               </Text>
 
               {createdBookingCode ? (
-                <View className="bg-gray-50 rounded-xl p-3 my-4 w-full flex-row justify-between items-center px-4 border border-gray-100">
+                <View className="bg-gray-50 rounded-2xl p-3 my-4 w-full flex-row justify-between items-center px-4 border border-gray-100">
                   <Text className="text-gray-400 text-xs font-bold">Mã Booking</Text>
                   <Text className="text-primary text-[14px] font-extrabold">{createdBookingCode}</Text>
                 </View>
               ) : null}
 
-              <TouchableOpacity
-                onPress={() => {
-                  setIsSuccessModalVisible(false);
-                  router.dismissAll();
-                  router.replace("/(patient)/(tabs)/home");
-                }}
-                activeOpacity={0.8}
-                className="bg-primary w-full py-3.5 rounded-2xl mt-2"
-              >
-                <Text className="text-white text-center text-sm font-black">
-                  Về trang chủ
-                </Text>
-              </TouchableOpacity>
+              <View className="w-full mt-2">
+                <AppButton
+                  title="Về trang chủ"
+                  variant="primary"
+                  onPress={() => {
+                    setIsSuccessModalVisible(false);
+                    router.dismissAll();
+                    router.replace("/(patient)/(tabs)/home");
+                  }}
+                />
+              </View>
             </View>
           </View>
         </Modal>

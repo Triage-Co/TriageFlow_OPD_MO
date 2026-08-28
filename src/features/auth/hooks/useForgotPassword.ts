@@ -36,7 +36,7 @@ export function useForgotPassword() {
       const response = await forgotPasswordService.verifyForgotPassword({
         email,
         otp,
-        password,
+        new_password: password,
       });
       if (response.status === "success" || response.code === 200) {
         return true;

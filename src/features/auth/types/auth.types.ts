@@ -51,8 +51,16 @@ export type LoginResponse = {
   status: string;
   message: string;
   data: {
-    token: string;
+    access_token?: string;
+    token?: string;
     refresh_token: string;
+    avatar?: string;
+    email?: string;
+    email_verified?: boolean;
+    gender?: string;
+    phone?: string;
+    role?: string;
+    user_name?: string;
   };
 };
 
@@ -65,7 +73,8 @@ export type RefreshTokenResponse = {
   status: string;
   message: string;
   data: {
-    token: string;
+    access_token?: string;
+    token?: string;
     refresh_token: string;
   };
 };
@@ -107,12 +116,15 @@ export type ForgotPasswordResponse = {
 export type ForgotPasswordVerifyRequest = {
   email: string;
   otp: string;
-  password: string;
+  new_password: string;
 };
 
 export type ForgotPasswordVerifyResponse = {
   code: number;
   status: string;
   message: string;
+  data?: {
+    user?: any;
+  };
 };
 

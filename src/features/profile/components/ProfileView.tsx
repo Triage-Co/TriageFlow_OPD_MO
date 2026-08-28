@@ -95,16 +95,11 @@ export function ProfileView() {
         </View>
 
         {/* Các tùy chọn */}
-        <View className="mt-6 px-5 gap-3.5">
+        <View className="mt-6 px-5 gap-3.5 mb-28">
           <ActionCard
             iconName={{ ios: "person", android: "person" }}
             title="Thông tin cá nhân"
             onPress={() => router.push("/(patient)/triage/personal-info")}
-          />
-          <ActionCard
-            iconName={{ ios: "shield", android: "shield" }}
-            title="Thông tin bảo hiểm"
-            onPress={() => { }}
           />
           <ActionCard
             iconName={{ ios: "clock", android: "history" }}
@@ -121,21 +116,12 @@ export function ProfileView() {
             title="Quên mật khẩu"
             onPress={() => router.push("/(auth)/forgot")}
           />
-        </View>
-
-        {/* Nút Đăng xuất */}
-        <Pressable
-          onPress={handleLogout}
-          disabled={isLoggingOut}
-          className="flex-row items-center justify-center py-4 mt-1 mb-28 gap-2 active:opacity-70"
-        >
-          <SymbolView
-            name={{ ios: "rectangle.portrait.and.arrow.right", android: "logout" }}
-            size={18}
-            tintColor="#EF4444"
+          <ActionCard
+            iconName={{ ios: "rectangle.portrait.and.arrow.right", android: "logout" }}
+            title={isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+            onPress={handleLogout}
           />
-          <Text className="text-red-500 text-[15px] font-bold">Đăng xuất</Text>
-        </Pressable>
+        </View>
       </ScrollView>
     </ScreenWrapper>
   );

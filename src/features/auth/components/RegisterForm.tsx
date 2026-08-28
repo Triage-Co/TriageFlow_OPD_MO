@@ -15,11 +15,12 @@ import {
   validateRequiredField,
 } from "@/shared/utils/validation.utils";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 export function RegisterForm() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const { register, isLoading, error, clearError } = useRegister();
 
   const [form, setForm] = useState({
@@ -115,8 +116,14 @@ export function RegisterForm() {
     }
   };
 
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
+
   return (
-    <FormScrollContainer>
+    <FormScrollContainer ref={scrollRef}>
       <AuthHeader
         title="Tạo tài khoản"
         subtitle="Đăng ký để sử dụng đầy đủ tính năng"
@@ -165,6 +172,7 @@ export function RegisterForm() {
           value={form.password}
           onChangeText={update("password")}
           onBlur={() => handleBlur("password")}
+          onFocus={scrollToBottom}
           error={fieldErrors.password}
           secureTextEntry
         />
@@ -174,6 +182,7 @@ export function RegisterForm() {
           value={form.confirmPassword}
           onChangeText={update("confirmPassword")}
           onBlur={() => handleBlur("confirmPassword")}
+          onFocus={scrollToBottom}
           error={fieldErrors.confirmPassword}
           secureTextEntry
         />

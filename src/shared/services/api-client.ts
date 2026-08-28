@@ -92,8 +92,9 @@ apiClient.interceptors.response.use(
           refreshToken,
         });
 
-        const { token: newToken, refreshToken: newRefreshToken } =
-          response.data?.data || response.data || {};
+        const rawData = response.data?.data || response.data || {};
+        const newToken = rawData.access_token || rawData.token;
+        const newRefreshToken = rawData.refresh_token || rawData.refreshToken;
 
         if (newToken) {
           await setAccessToken(newToken);

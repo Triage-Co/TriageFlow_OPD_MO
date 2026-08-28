@@ -107,8 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         response = await loginService.loginWithCitizen(data);
       }
-      if (response && response.data?.token) {
-        await loginWithToken(response.data.token, response.data.refresh_token);
+      const accessToken = response?.data?.access_token || response?.data?.token;
+      const refreshToken = response?.data?.refresh_token || "";
+
+      if (accessToken) {
+        await loginWithToken(accessToken, refreshToken);
       } else {
         throw new Error("Không nhận được mã truy cập hợp lệ từ máy chủ.");
       }

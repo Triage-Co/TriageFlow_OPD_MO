@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Pressable,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -10,13 +9,16 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
 import { packageService } from "@/features/booking/services/package.service";
 import { ExamPackageDetail } from "@/features/booking/types/package.types";
+import { AppButton } from "@/shared/components/AppButton";
 
 export function PackageDetailView() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const packageId = (params.packageId as string) || "";
   const patientId = (params.patientId as string) || "";
@@ -69,19 +71,19 @@ export function PackageDetailView() {
         return "eye-outline";
       case "CLINICAL":
       default:
-        return "git-commit-outline";
+        return "medkit-outline";
     }
   };
 
   const getStepColor = (stepType: string) => {
     switch (stepType) {
       case "LAB_TEST":
-        return "#4F46E5"; // Indigo
+        return "#6366F1"; // Indigo
       case "IMAGING":
-        return "#0D9488"; // Teal
+        return "#0EA5E9"; // Sky blue
       case "CLINICAL":
       default:
-        return "#059669"; // Emerald
+        return Colors.primary;
     }
   };
 
@@ -94,19 +96,29 @@ export function PackageDetailView() {
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View className="flex-1 bg-gray-50">
+      <View className="flex-1 bg-gray-50/50">
         {/* ── 1. HEADER ── */}
-        <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
+        <View
+          style={{ paddingTop: Math.max(insets.top, 16) + 8 }}
+          className="flex-row items-center justify-between px-5 pb-3 bg-white border-b border-gray-100/80"
+        >
           <TouchableOpacity
             onPress={() => router.back()}
             activeOpacity={0.7}
-            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100"
+            className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm"
           >
             <Ionicons name="chevron-back" size={20} color={Colors.neutral700} />
           </TouchableOpacity>
-          <Text className="text-gray-800 text-[17px] font-bold">
-            Chi tiết gói dịch vụ
-          </Text>
+          <View className="items-center">
+            <Text className="text-gray-800 text-[17px] font-bold">
+              Chi tiết gói dịch vụ
+            </Text>
+            {patientName ? (
+              <Text className="text-primary text-[11px] font-semibold mt-0.5">
+                Bệnh nhân: {patientName}
+              </Text>
+            ) : null}
+          </View>
           <View className="w-10" />
         </View>
 
@@ -135,41 +147,43 @@ export function PackageDetailView() {
           <View className="flex-1">
             <ScrollView
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 100 }}
+              contentContainerStyle={{ paddingBottom: 120 }}
               className="flex-1"
             >
               {/* Package Card */}
-              <View className="bg-white rounded-[32px] m-4 p-6 border border-gray-100">
-                <View className="w-12 h-12 rounded-2xl bg-teal-50 items-center justify-center mb-4">
-                  <Ionicons name="briefcase" size={24} color="#0D9488" />
+              <View className="bg-white rounded-3xl m-5 p-6 border border-slate-100 shadow-sm">
+                <View className="w-12 h-12 rounded-2xl bg-blue-50 items-center justify-center mb-4 border border-blue-100/60">
+                  <Ionicons name="briefcase" size={22} color={Colors.primary} />
                 </View>
-                <Text className="text-gray-800 text-[20px] font-black leading-6">
+                <Text className="text-gray-800 text-[19px] font-extrabold leading-6">
                   {packageDetail.package_name}
                 </Text>
                 <Text className="text-gray-500 text-[13px] font-medium leading-5 mt-2">
-                  {packageDetail.description || "Gói kiểm tra sức khỏe định kỳ giúp phát hiện sớm các nguy cơ về sức khỏe."}
+                  {packageDetail.description || "Gói kiểm tra sức khỏe định kỳ giúp tầm soát và phát hiện sớm các nguy cơ sức khỏe."}
                 </Text>
 
-                <View className="border-t border-gray-100 mt-6 pt-5 flex-row justify-between items-center">
+                <View className="border-t border-slate-100 mt-5 pt-4 flex-row justify-between items-center">
                   <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">
                     Đơn giá trọn gói
                   </Text>
-                  <Text className="text-teal-600 text-[22px] font-black">
+                  <Text className="text-primary text-[20px] font-black">
                     {formatPrice(packageDetail.price)}
                   </Text>
                 </View>
               </View>
 
               {/* Steps inside the package */}
-              <View className="px-5 mt-2">
-                <Text className="text-gray-800 text-[15px] font-black mb-4">
+              <View className="px-5 mt-1">
+                <Text className="text-gray-800 text-[15px] font-extrabold mb-4">
                   Danh mục dịch vụ bao gồm ({steps.length})
                 </Text>
 
                 {steps.length === 0 ? (
-                  <Text className="text-gray-400 text-xs italic">
-                    Chưa có danh mục dịch vụ cụ thể.
-                  </Text>
+                  <View className="bg-white rounded-2xl p-5 border border-slate-100 items-center">
+                    <Text className="text-gray-400 text-xs font-medium italic">
+                      Chưa có danh mục dịch vụ cụ thể.
+                    </Text>
+                  </View>
                 ) : (
                   steps.map((step, idx) => {
                     const iconName = getStepIcon(step.step_type);
@@ -179,31 +193,31 @@ export function PackageDetailView() {
                     return (
                       <View key={idx} className="flex-row items-stretch">
                         {/* Timeline bar */}
-                        <View className="items-center mr-4">
+                        <View className="items-center mr-3.5">
                           <View
-                            style={{ backgroundColor: iconColor + "20" }}
-                            className="w-10 h-10 rounded-full items-center justify-center z-10 border border-white"
+                            style={{ backgroundColor: iconColor + "15" }}
+                            className="w-10 h-10 rounded-full items-center justify-center z-10 border border-white shadow-sm"
                           >
                             <Ionicons name={iconName} size={18} color={iconColor} />
                           </View>
                           {!isLast && (
-                            <View className="w-[1.5px] bg-gray-200 flex-1 my-1" />
+                            <View className="w-[1.5px] bg-slate-200 flex-1 my-1" />
                           )}
                         </View>
 
                         {/* Step detail card */}
-                        <View className="flex-1 bg-white rounded-2xl p-4 border border-gray-100 mb-4">
-                          <Text className="text-gray-800 text-[14px] font-extrabold">
+                        <View className="flex-1 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mb-3.5">
+                          <Text className="text-gray-800 text-[14px] font-bold">
                             {idx + 1}. {step.step_name}
                           </Text>
-                          <View className="flex-row items-center mt-2.5">
+                          <View className="flex-row items-center mt-2">
                             <Ionicons
                               name="information-circle-outline"
                               size={13}
                               color="#9CA3AF"
                               style={{ marginRight: 4 }}
                             />
-                            <Text className="text-gray-400 text-[11px] font-semibold">
+                            <Text className="text-gray-400 text-[11px] font-medium">
                               {step.step_type === "LAB_TEST"
                                 ? "Xét nghiệm cận lâm sàng"
                                 : step.step_type === "IMAGING"
@@ -219,25 +233,23 @@ export function PackageDetailView() {
               </View>
             </ScrollView>
 
-            {/* Sticky register button */}
-            <View className="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 flex-row justify-between items-center">
-              <View>
+            {/* Sticky register button bar */}
+            <View className="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-slate-100 flex-row justify-between items-center shadow-lg">
+              <View className="flex-1 pr-4">
                 <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">
                   Tổng chi phí
                 </Text>
-                <Text className="text-gray-800 text-[18px] font-black mt-0.5">
+                <Text className="text-primary text-[18px] font-black mt-0.5">
                   {formatPrice(packageDetail.price)}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={handleContinue}
-                activeOpacity={0.8}
-                className="bg-teal-600 px-6 py-3.5 rounded-2xl"
-              >
-                <Text className="text-white text-sm font-black">
-                  Đăng ký ngay
-                </Text>
-              </TouchableOpacity>
+              <View className="w-44">
+                <AppButton
+                  title="Đăng ký ngay"
+                  variant="primary"
+                  onPress={handleContinue}
+                />
+              </View>
             </View>
           </View>
         )}

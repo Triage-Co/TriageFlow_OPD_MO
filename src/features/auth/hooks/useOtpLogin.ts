@@ -29,8 +29,11 @@ export function useOtpLogin() {
       setError(null);
       try {
         const response = await otpService.verifyLoginOtp({ email, otp });
-        if (response && response.data?.token) {
-          await loginWithToken(response.data.token, response.data.refresh_token);
+        const accessToken = response?.data?.access_token || response?.data?.token;
+        const refreshToken = response?.data?.refresh_token || "";
+
+        if (accessToken) {
+          await loginWithToken(accessToken, refreshToken);
           return true;
         }
         throw new Error("Không nhận được token xác thực.");

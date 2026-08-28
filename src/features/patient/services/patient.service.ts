@@ -15,8 +15,38 @@ export const patientService = {
    * GET /api/patient/me
    */
   async getPatients(): Promise<PatientListResponse> {
-    const response = await apiClient.get<PatientListResponse>("/api/patient/me");
-    return response.data;
+    try {
+      const response = await apiClient.get<PatientListResponse>("/api/patient/me", {
+        skipGlobalToast: true,
+      } as any);
+
+      if (response.data && Array.isArray(response.data.data)) {
+        return response.data;
+      }
+      return {
+        code: 200,
+        status: "success",
+        message: response.data?.message || "Thành công",
+        data: [],
+      };
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || "";
+      if (
+        error?.response?.status === 404 ||
+        error?.response?.status === 400 ||
+        msg.toLowerCase().includes("rỗng") ||
+        msg.toLowerCase().includes("empty") ||
+        msg.toLowerCase().includes("không tìm thấy")
+      ) {
+        return {
+          code: 200,
+          status: "success",
+          message: "Danh sách rỗng",
+          data: [],
+        };
+      }
+      throw error;
+    }
   },
 
   /**

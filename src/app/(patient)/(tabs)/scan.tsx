@@ -140,21 +140,21 @@ export default function ScanScreen() {
     return (first.charAt(0) + last.charAt(0)).toUpperCase();
   };
 
-  const calculateAge = (dobString?: string): number => {
-    if (!dobString) return 39;
+  const calculateAge = (dobString?: string): number | null => {
+    if (!dobString) return null;
     const birthDate = new Date(dobString);
-    if (isNaN(birthDate.getTime())) return 39;
+    if (isNaN(birthDate.getTime())) return null;
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const m = today.getMonth() - birthDate.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    return age;
+    return age >= 0 ? age : null;
   };
 
   const formatDobVi = (dobString?: string): string => {
-    if (!dobString) return "15 tháng 3, 1985";
+    if (!dobString) return "Chưa cập nhật";
     const date = new Date(dobString);
     if (isNaN(date.getTime())) return dobString;
     const monthsVi = [
@@ -164,27 +164,34 @@ export default function ScanScreen() {
     return `${date.getDate()} ${monthsVi[date.getMonth()]} năm ${date.getFullYear()}`;
   };
 
-
-  const patientName = activePatient?.full_name || "Nguyễn Thị Mai";
+  const patientName = activePatient?.full_name || user?.full_name || "Chưa cập nhật";
   const initials = getInitials(patientName);
-  const patientCode = activePatient
+  const patientCode = activePatient?.patient_id
     ? `BN-${activePatient.patient_id.substring(0, 8).toUpperCase()}`
-    : "BN-2024-15738";
-  const patientGender = activePatient?.gender === "MALE" ? "Nam" : "Nữ";
+    : "Chưa có mã hồ sơ";
+  const patientGender =
+    activePatient?.gender === "MALE"
+      ? "Nam"
+      : activePatient?.gender === "FEMALE"
+        ? "Nữ"
+        : "Chưa cập nhật";
   const patientAge = calculateAge(activePatient?.dob);
   const patientDob = formatDobVi(activePatient?.dob);
-  const patientPhone = user?.phone || "+84 (028) 3456-7890";
+  const patientPhone = user?.phone || "Chưa cập nhật";
   const patientInsurance = activePatient?.medical_coverage_id
-    ? "Hoạt động - BHYT liên kết"
-    : "Hoạt động - BHYT Bảo Việt";
-
+    ? `BHYT: ${activePatient.medical_coverage_id}`
+    : "Chưa liên kết BHYT";
 
   const patientCitizenId = activePatient?.citizen_id
     ? maskCitizenId(activePatient.citizen_id)
-    : "Chưa cập nhật";
+    : user?.citizen_id
+      ? maskCitizenId(user.citizen_id)
+      : "Chưa cập nhật";
 
-  const qrData = activePatient?.citizen_id || activePatient?.patient_id || "BN-2024-15738-DEMO";
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
+  const qrData = activePatient?.citizen_id || activePatient?.patient_id || user?.citizen_id || user?.id || "";
+  const qrCodeUrl = qrData
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`
+    : null;
 
 
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 20;
@@ -359,6 +366,26 @@ export default function ScanScreen() {
               <View className="flex-1 items-center justify-center">
                 <ActivityIndicator size="large" color={Colors.primary} />
               </View>
+            ) : !activePatient ? (
+              <View className="flex-1 px-6 pt-10 items-center justify-center">
+                <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm w-full items-center">
+                  <View className="w-16 h-16 rounded-full bg-blue-50 items-center justify-center mb-4">
+                    <Ionicons name="qr-code-outline" size={32} color={Colors.primary} />
+                  </View>
+                  <Text className="text-gray-800 text-[18px] font-bold mb-2 text-center">
+                    Chưa có hồ sơ bệnh nhân
+                  </Text>
+                  <Text className="text-gray-400 text-xs text-center leading-5 mb-6 px-4">
+                    Tài khoản của bạn chưa có hồ sơ bệnh nhân nào. Vui lòng tạo hồ sơ để được cấp mã QR cá nhân và phục vụ khám bệnh.
+                  </Text>
+                  <Pressable
+                    onPress={() => router.push("/(patient)/triage/patient-list")}
+                    className="bg-primary px-6 py-3.5 rounded-2xl active:opacity-90 shadow-sm w-full items-center"
+                  >
+                    <Text className="text-white font-bold text-sm">+ Tạo hồ sơ bệnh nhân</Text>
+                  </Pressable>
+                </View>
+              </View>
             ) : (
               <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -373,15 +400,17 @@ export default function ScanScreen() {
                       <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">
                         Hồ sơ khám bệnh
                       </Text>
-                      <Pressable
-                        onPress={() => setIsPatientModalVisible(true)}
-                        className="flex-row items-center bg-blue-50 px-3 py-1 rounded-full border border-blue-100/60 active:opacity-75"
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons name="people-outline" size={13} color={Colors.primary} style={{ marginRight: 4 }} />
-                        <Text className="text-primary text-xs font-bold mr-1">Đổi hồ sơ</Text>
-                        <Ionicons name="chevron-down" size={12} color={Colors.primary} />
-                      </Pressable>
+                      {patients && patients.length > 1 ? (
+                        <Pressable
+                          onPress={() => setIsPatientModalVisible(true)}
+                          className="flex-row items-center bg-blue-50 px-3 py-1 rounded-full border border-blue-100/60 active:opacity-75"
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Ionicons name="people-outline" size={13} color={Colors.primary} style={{ marginRight: 4 }} />
+                          <Text className="text-primary text-xs font-bold mr-1">Đổi hồ sơ</Text>
+                          <Ionicons name="chevron-down" size={12} color={Colors.primary} />
+                        </Pressable>
+                      ) : null}
                     </View>
 
                     <View className="flex-row items-center">
@@ -409,9 +438,11 @@ export default function ScanScreen() {
                           <View className="bg-blue-50/70 border border-blue-100/30 px-3 py-0.5 rounded-full mr-2">
                             <Text className="text-primary text-[10px] font-extrabold">{patientGender}</Text>
                           </View>
-                          <View className="bg-slate-50 border border-slate-100 px-3 py-0.5 rounded-full">
-                            <Text className="text-gray-400 text-[10px] font-bold">{patientAge} tuổi</Text>
-                          </View>
+                          {patientAge !== null ? (
+                            <View className="bg-slate-50 border border-slate-100 px-3 py-0.5 rounded-full">
+                              <Text className="text-gray-400 text-[10px] font-bold">{patientAge} tuổi</Text>
+                            </View>
+                          ) : null}
                         </View>
                       </View>
                     </View>
@@ -434,22 +465,29 @@ export default function ScanScreen() {
                       </View>
                       <View className="flex-row justify-between items-center">
                         <Text className="text-gray-400 text-[13px] font-medium">Bảo hiểm</Text>
-                        <Text className="text-green-600 text-[13px] font-extrabold">{patientInsurance}</Text>
+                        <Text className={`${activePatient?.medical_coverage_id ? "text-green-600 font-extrabold" : "text-gray-400 font-semibold"} text-[13px]`}>
+                          {patientInsurance}
+                        </Text>
                       </View>
                     </View>
                   </View>
 
                   {/* QR Display Card */}
-                  <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm items-center justify-center py-8">
-                    {/* QR Image Wrapper */}
-                    <View className="p-3 bg-white border border-slate-100 rounded-3xl shadow-sm mb-4">
-                      <Image
-                        source={{ uri: qrCodeUrl }}
-                        style={{ width: 180, height: 180 }}
-                        resizeMode="contain"
-                      />
+                  {qrCodeUrl ? (
+                    <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm items-center justify-center py-8">
+                      {/* QR Image Wrapper */}
+                      <View className="p-3 bg-white border border-slate-100 rounded-3xl shadow-sm mb-4">
+                        <Image
+                          source={{ uri: qrCodeUrl }}
+                          style={{ width: 180, height: 180 }}
+                          resizeMode="contain"
+                        />
+                      </View>
+                      <Text className="text-gray-400 text-xs text-center font-medium">
+                        Mã định danh dùng cho quét tiếp đón tại viện
+                      </Text>
                     </View>
-                  </View>
+                  ) : null}
                 </View>
               </ScrollView>
             )}
