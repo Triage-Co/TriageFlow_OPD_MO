@@ -78,7 +78,8 @@ export function DoctorListView() {
         selectedDate: selectedDate,
         licenseNumber: doctor.license_number || "",
         experienceYears: (doctor.experience_years ?? 0).toString(),
-        patientId: params.patientId as string || "",
+        patientId: (params.patientId as string) || "",
+        patientName: (params.patientName as string) || "",
       },
     });
   };

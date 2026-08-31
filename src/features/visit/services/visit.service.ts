@@ -52,6 +52,19 @@ class VisitService {
     });
     return response.data;
   }
+
+  /**
+   * Lấy đơn thuốc theo ID phiên khám
+   */
+  async getPrescriptionByVisitSession(visitSessionId: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/prescription/visit-session/${encodeURIComponent(visitSessionId)}`);
+      return response.data;
+    } catch {
+      // Khi phiên khám không có đơn thuốc hoặc chưa kê thuốc, trả về null êm đẹp
+      return null;
+    }
+  }
 }
 
 export const visitService = new VisitService();

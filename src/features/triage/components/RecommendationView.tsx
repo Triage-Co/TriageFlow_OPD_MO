@@ -10,7 +10,7 @@ import { Colors } from "@/config/colors";
 
 export function RecommendationView() {
   const router = useRouter();
-  const { recommendation, isLoading, clearSession, interviewToken } = useTriage();
+  const { recommendation, isLoading, clearSession, interviewToken, patientId, patientName } = useTriage();
 
   const handleGoHome = async () => {
     await clearSession();
@@ -32,7 +32,6 @@ export function RecommendationView() {
 
   const specialist = recommendation?.recommended_specialist || (recommendation as any)?.recommendedSpecialist;
   const specialistName = specialist ? (specialist.nameVi || specialist.name) : "Khoa Nội tổng quát";
-  const channelName = recommendation?.recommended_channel_vi || recommendation?.recommended_channel || (recommendation as any)?.recommendedChannelVi || (recommendation as any)?.recommendedChannel || "Khám trực tiếp";
   const specialtyCode = specialist?.specialty_code || (recommendation as any)?.specialty_code || "SP_4";
 
   const handleSelectDoctor = () => {
@@ -41,6 +40,8 @@ export function RecommendationView() {
       params: {
         specialtyCode,
         specialtyName: specialistName,
+        patientId: patientId || "",
+        patientName: patientName || "",
       },
     });
   };
@@ -95,20 +96,8 @@ export function RecommendationView() {
 
             <View className="h-[1px] bg-gray-100 w-full mb-6" />
 
-            {/* Chi tiết kênh đề xuất */}
-            <View className="flex-row items-center gap-2 mb-4 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
-              <SymbolView
-                name={{ ios: "figure.walk", android: "directions_walk" }}
-                size={14}
-                tintColor="#6B7280"
-              />
-              <Text className="text-gray-600 text-[12px] font-semibold">
-                Hình thức: {channelName}
-              </Text>
-            </View>
-
             {/* Lưu ý y tế */}
-            <View className="bg-amber-50/70 border border-amber-100 p-4 rounded-[16px] flex-row gap-2.5 mt-2">
+            <View className="bg-amber-50 border border-amber-100 p-4 rounded-[16px] flex-row gap-2.5">
               <SymbolView
                 name={{ ios: "exclamationmark.triangle.fill", android: "warning" }}
                 size={14}

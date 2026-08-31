@@ -276,6 +276,7 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const initialEvidence: Evidence[] = allSelected.map((s) => ({
         id: s.id,
         choice_id: "present",
+        name: s.labelVi || s.labelEn,
       }));
 
       console.log(`[Triage] Bắt đầu phiên chẩn đoán: ${allSelected.length} triệu chứng, age=${age}, sex=${sex}`);
@@ -374,6 +375,9 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const index = updatedEvidence.findIndex((e) => e.id === ans.id);
         if (index > -1) {
           updatedEvidence[index].choice_id = ans.choice_id;
+          if (ans.name) {
+            updatedEvidence[index].name = ans.name;
+          }
         } else {
           updatedEvidence.push(ans);
         }
@@ -406,7 +410,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const translatedQuestion = isForcedStop ? null : await translationService.translateQuestion(response.question);
       setCurrentQuestion(translatedQuestion);
-      
       setShouldStop(isForcedStop);
 
       const updatedSession: DiagnosisSessionCache = {
@@ -421,6 +424,12 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await triageCacheService.saveDiagnosisSession(updatedSession);
 
       console.log(`[Triage] Kết quả lần này: nextCount=${nextCount}, should_stop=${isForcedStop}, token=${session.interviewToken}`);
+
+      // Tự động gọi API đề xuất chuyên khoa và chuyển trang ngay lập tức
+      if (isForcedStop) {
+        await triggerRecommendation();
+        return;
+      }
     } catch (err: any) {
       console.error("[TriageContext] Lỗi khi trả lời câu hỏi:", err);
       if (err?.response) {

@@ -4,6 +4,7 @@ export type PatientSex = "male" | "female";
 export interface Evidence {
   id: string;
   choice_id: EvidenceChoiceId;
+  name?: string;
 }
 
 export interface SymptomSearchItem {

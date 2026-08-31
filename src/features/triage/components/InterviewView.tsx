@@ -52,23 +52,30 @@ export function InterviewView() {
         selectedAnswers = [{
           id: selectedItem.id,
           choice_id: "present" as EvidenceChoiceId,
+          name: selectedItem.nameVi || selectedItem.name,
         }];
       } else {
         selectedAnswers = currentQuestion.items.map((item) => ({
           id: item.id,
           choice_id: "absent" as EvidenceChoiceId,
+          name: item.nameVi || item.name,
         }));
       }
     } else if (isGroupMultiple && currentQuestion) {
       selectedAnswers = currentQuestion.items.map((item) => ({
         id: item.id,
         choice_id: answers[item.id] === "present" ? ("present" as EvidenceChoiceId) : ("absent" as EvidenceChoiceId),
+        name: item.nameVi || item.name,
       }));
     } else {
-      selectedAnswers = Object.entries(answers).map(([id, choice_id]) => ({
-        id,
-        choice_id,
-      }));
+      selectedAnswers = Object.entries(answers).map(([id, choice_id]) => {
+        const item = currentQuestion?.items?.find((i) => i.id === id);
+        return {
+          id,
+          choice_id,
+          name: item ? item.nameVi || item.name : undefined,
+        };
+      });
     }
 
     if (selectedAnswers.length > 0) {
@@ -95,13 +102,16 @@ export function InterviewView() {
     )
     : false;
 
-  if (!currentQuestion && !shouldStop && isLoading) {
+  if ((!currentQuestion || shouldStop) && isLoading) {
     return (
       <ScreenWrapper>
         <View className="flex-1 items-center justify-center bg-[#F8FAFC]">
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text className="text-gray-500 text-[13px] font-medium mt-3">
-            Đang chuẩn bị câu hỏi...
+          <Text className="text-gray-800 text-[15px] font-bold mt-4 text-center">
+            {shouldStop ? "Đang phân tích & đề xuất chuyên khoa..." : "Đang chuẩn bị câu hỏi..."}
+          </Text>
+          <Text className="text-gray-400 text-xs mt-1.5 text-center font-medium">
+            Hệ thống AI đang xử lý, vui lòng chờ trong giây lát
           </Text>
         </View>
       </ScreenWrapper>

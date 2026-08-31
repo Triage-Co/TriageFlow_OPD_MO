@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { stripRoomName } from "@/shared/utils/string.utils";
 
 interface TimelineStepCardProps {
@@ -10,9 +10,10 @@ interface TimelineStepCardProps {
   index: number;
   isLast: boolean;
   isActive: boolean;
-  onPayPress: (step: any) => void;
+  onPayPress?: (step: any) => void;
   activeStepId: string | null;
   allSteps?: any[];
+  isHistoryMode?: boolean;
 }
 
 export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
@@ -23,11 +24,9 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
   onPayPress,
   activeStepId,
   allSteps,
+  isHistoryMode = false,
 }) => {
-  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // Helper to find the physical room of the most recent completed/previous step before the given step ID
   const getPreviousPhysicalRoom = (targetStepId: string) => {
     if (!allSteps || allSteps.length === 0) return null;
     const targetIndex = allSteps.findIndex(
@@ -82,7 +81,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
       gTextColor = "text-primary";
       gIcon = "play-circle";
       gIconColor = Colors.primary;
-      gBorder = "border-[#84AFEB]/30";
+      gBorder = "border-blue-200";
     }
 
     return (
@@ -91,7 +90,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
         <View className="items-center mr-4 w-8 text-center">
           <View
             className={`w-8 h-8 rounded-full items-center justify-center z-10 bg-white border border-gray-100 ${
-              isGroupActive ? "bg-primary/20" : isGroupCompleted ? "bg-green-100" : "bg-gray-100"
+              isGroupActive ? "bg-blue-100" : isGroupCompleted ? "bg-green-100" : "bg-gray-100"
             }`}
           >
             <Ionicons name={gIcon} size={isGroupActive ? 20 : 16} color={gIconColor} />
@@ -103,13 +102,13 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
 
         {/* Right Column: Group Card */}
         <View className="flex-1 pb-6">
-          <View className={`bg-white rounded-[20px] border p-4 shadow-sm ${gBorder} ${isGroupActive ? "shadow-[#84AFEB]/10 border-primary" : ""}`}>
+          <View className={`bg-white rounded-[20px] border p-4 shadow-sm ${gBorder} ${isGroupActive ? "border-primary" : ""}`}>
             {/* Clickable Header */}
             <Pressable 
               onPress={() => setIsExpanded(!isExpanded)}
-              className="flex-row justify-between items-center select-none"
+              className="flex-row justify-between items-center"
             >
-              <View className="flex-1 mr-2 space-y-0.5">
+              <View className="flex-1 mr-2 gap-0.5">
                 <Text className={`text-[15px] font-bold ${isGroupActive ? "text-primary" : "text-gray-800"}`}>
                   Bước {index + 1}. Thực hiện chỉ định dịch vụ
                 </Text>
@@ -117,7 +116,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                   Tổng cộng {step.subSteps.length} dịch vụ
                 </Text>
               </View>
-              <View className={`${gBg} px-2.5 py-0.5 rounded-full border border-transparent`}>
+              <View className={`${gBg} px-2.5 py-0.5 rounded-full`}>
                 <Text className={`${gTextColor} text-[10px] font-bold`}>
                   {gText}
                 </Text>
@@ -126,7 +125,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
 
             {/* List of sub steps */}
             {isExpanded && (
-              <View className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+              <View className="mt-3 pt-3 border-t border-gray-100 gap-3">
                 {step.subSteps.map((subStep: any, subIdx: number) => {
                   const isSubCompleted = subStep.step_status === "COMPLETED";
                   const isSubActive = subStep.step_id === activeStepId;
@@ -155,14 +154,14 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                     <View 
                       key={subStep.step_id} 
                       className={`p-3 rounded-[16px] border border-gray-100 bg-white ${
-                        isSubActive ? "border-primary/50 bg-blue-50/10" : ""
+                        isSubActive ? "border-primary bg-blue-50" : ""
                       }`}
                     >
                       <View className="flex-row justify-between items-start mb-2">
                         <Text className={`text-[13px] font-bold flex-1 mr-2 ${isSubActive ? "text-primary" : "text-gray-800"}`}>
                           {subIdx + 1}. {subStep.step_name}
                         </Text>
-                        <View className={`${subBg} px-2 py-0.5 rounded-full border border-transparent`}>
+                        <View className={`${subBg} px-2 py-0.5 rounded-full`}>
                           <Text className={`${subTextColor} text-[9px] font-bold`}>
                             {subText}
                           </Text>
@@ -187,7 +186,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                           )}
                         </View>
 
-                        {isSubActive && (
+                        {isSubActive && !isHistoryMode && (
                           <Pressable
                             onPress={() => {
                               const prevRoom = getPreviousPhysicalRoom(subStep.step_id || subStep.id);
@@ -204,7 +203,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                                 },
                               });
                             }}
-                            className="bg-primary/10 px-2.5 py-1 rounded-full flex-row items-center gap-1 active:opacity-75"
+                            className="bg-blue-100 px-2.5 py-1 rounded-full flex-row items-center gap-1 active:opacity-75"
                           >
                             <Ionicons name="navigate-outline" size={10} color={Colors.primary} />
                             <Text className="text-primary text-[10px] font-bold">Đường đi</Text>
@@ -246,14 +245,14 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
     statusTextColor = "text-amber-600 border-amber-200";
     iconName = "card-outline";
     iconColor = "#F59E0B";
-    borderStyle = "border-amber-200/50";
+    borderStyle = "border-amber-200";
   } else if (isActive) {
     statusText = "Đang thực hiện";
     statusBg = "bg-blue-50";
     statusTextColor = "text-primary";
     iconName = "play-circle";
     iconColor = Colors.primary;
-    borderStyle = "border-[#84AFEB]/30";
+    borderStyle = "border-blue-200";
   }
 
   const roomName = step.room_info?.room_name || "Đang xếp phòng";
@@ -266,7 +265,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
       <View className="items-center mr-4 w-8">
         <View
           className={`w-8 h-8 rounded-full items-center justify-center z-10 ${
-            isActive ? "bg-primary/20" : isCompleted ? "bg-green-100" : isPendingPayment ? "bg-amber-100" : "bg-gray-100"
+            isActive ? "bg-blue-100" : isCompleted ? "bg-green-100" : isPendingPayment ? "bg-amber-100" : "bg-gray-100"
           }`}
         >
           <Ionicons name={iconName} size={isActive || isPendingPayment ? 20 : 16} color={iconColor} />
@@ -283,15 +282,15 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
       {/* Right Column: Thông tin Card */}
       <View className="flex-1 pb-6">
         <View
-          className={`bg-white rounded-[20px] border p-4 shadow-sm active:opacity-95 ${borderStyle} ${
-            isActive ? "shadow-[#84AFEB]/10 border-primary" : ""
+          className={`bg-white rounded-[20px] border p-4 shadow-sm ${borderStyle} ${
+            isActive ? "border-primary" : ""
           }`}
         >
           <View className="flex-row justify-between items-start mb-2">
             <Text className="text-gray-800 text-[15px] font-bold flex-1 mr-2">
               Bước {index + 1}. {step.step_name || specialtyName}
             </Text>
-            <View className={`${statusBg} px-2.5 py-0.5 rounded-full border border-transparent`}>
+            <View className={`${statusBg} px-2.5 py-0.5 rounded-full`}>
               <Text className={`${statusTextColor} text-[10px] font-bold`}>
                 {statusText}
               </Text>
@@ -317,9 +316,9 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
           </View>
 
           {/* Nút thanh toán trực tiếp từ timeline */}
-          {isPendingPayment && (
+          {isPendingPayment && !isHistoryMode && (
             <Pressable
-              onPress={() => onPayPress(step)}
+              onPress={() => onPayPress && onPayPress(step)}
               className="mt-3 bg-[#10B981] py-2 rounded-xl flex-row items-center justify-center gap-1 active:opacity-75"
             >
               <Ionicons name="card-outline" size={14} color="white" />
@@ -328,7 +327,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
           )}
 
           {/* Hiển thị thêm thông tin chỉ đường hoặc ước tính cho bước đang chạy */}
-          {isActive && !isPendingPayment && (
+          {isActive && !isPendingPayment && !isHistoryMode && (
             <View className="mt-3 pt-3 border-t border-gray-100 flex-row justify-between items-center">
               <View className="flex-row items-center gap-1">
                 <Ionicons name="time-outline" size={12} color="#6B7280" />
@@ -352,7 +351,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                     },
                   });
                 }}
-                className="bg-primary/10 px-3 py-1.5 rounded-full flex-row items-center gap-1 active:opacity-75"
+                className="bg-blue-100 px-3 py-1.5 rounded-full flex-row items-center gap-1 active:opacity-75"
               >
                 <Ionicons name="navigate-outline" size={12} color={Colors.primary} />
                 <Text className="text-primary text-[11px] font-bold">Đường đi</Text>
