@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Text, ActivityIndicator, Pressable, Alert } from "react-native";
+import { View, Text, ActivityIndicator, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useTriage } from "@/features/triage/hooks/useTriage";
 import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { AppAlert } from "@/shared/utils/alert.utils";
 import { Colors } from "@/config/colors";
 
 export function RecommendationView() {
@@ -48,8 +49,7 @@ export function RecommendationView() {
 
   const handleAutoAssignRoom = () => {
     if (!interviewToken) {
-      Alert.alert(
-        "Lỗi",
+      AppAlert.error(
         "Không tìm thấy phiên chẩn đoán. Vui lòng thực hiện khảo sát triệu chứng lại."
       );
       return;
@@ -61,7 +61,7 @@ export function RecommendationView() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
-        {/* ── 1. HEADER ── */}
+        
         <View className="bg-primary px-5 pt-12 pb-5 shadow-sm flex-row items-center justify-between">
           <Text className="text-white text-[16px] font-bold">Kết quả phân loại AI</Text>
           <Pressable onPress={handleGoHome} className="active:opacity-75">
@@ -73,10 +73,9 @@ export function RecommendationView() {
           </Pressable>
         </View>
 
-        {/* ── 2. NỘI DUNG ĐỀ XUẤT KHOA KHÁM ── */}
         <View className="flex-1 px-5 pt-10 justify-center">
           <View className="bg-white rounded-[32px] p-6 border border-gray-50 shadow-md items-center py-10 relative overflow-hidden">
-            {/* Vòng tròn Icon y tế */}
+            
             <View className="w-16 h-16 rounded-full bg-blue-50 items-center justify-center mb-6">
               <SymbolView
                 name={{ ios: "stethoscope", android: "medical_services" }}
@@ -89,14 +88,12 @@ export function RecommendationView() {
               Khoa khám đề xuất
             </Text>
 
-            {/* Tên khoa chẩn đoán */}
             <Text className="text-[#3b5e94] text-[24px] font-extrabold text-center px-4 leading-8 mb-6">
               {specialistName}
             </Text>
 
             <View className="h-[1px] bg-gray-100 w-full mb-6" />
 
-            {/* Lưu ý y tế */}
             <View className="bg-amber-50 border border-amber-100 p-4 rounded-[16px] flex-row gap-2.5">
               <SymbolView
                 name={{ ios: "exclamationmark.triangle.fill", android: "warning" }}
@@ -111,7 +108,6 @@ export function RecommendationView() {
           </View>
         </View>
 
-        {/* ── 3. HÀNH ĐỘNG DƯỚI CÙNG ── */}
         <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50 gap-2">
           <AppButton
             title="Chọn bác sĩ và đặt khám"

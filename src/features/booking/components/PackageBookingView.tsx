@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Modal,
   StyleSheet,
 } from "react-native";
@@ -15,14 +14,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
+import { formatVND as formatPrice } from "@/shared/utils/string.utils";
+import { formatDate as formatDateDisplay } from "@/shared/utils/date.utils";
 import { packageService } from "@/features/booking/services/package.service";
 import { RoomSlot } from "@/features/booking/types/package.types";
 import { AppButton } from "@/shared/components/AppButton";
+import { AppAlert } from "@/shared/utils/alert.utils";
 
 interface DateItem {
-  dateStr: string; // YYYY-MM-DD
-  dayNum: string; // e.g. "05"
-  dayLabel: string; // e.g. "Th 4" or "Hôm nay"
+  dateStr: string; 
+  dayNum: string; 
+  dayLabel: string; 
 }
 
 export function PackageBookingView() {
@@ -232,7 +234,7 @@ export function PackageBookingView() {
 
   const handleRegisterPackage = async () => {
     if (!patientId || !packageId || !selectedSlot) {
-      Alert.alert("Thông báo", "Vui lòng chọn ngày và giờ khám hợp lệ.");
+      AppAlert.info("Vui lòng chọn ngày và giờ khám hợp lệ.");
       return;
     }
 
@@ -292,33 +294,20 @@ export function PackageBookingView() {
       }
     } catch (err: any) {
       console.error("[PackageBooking] Error registering package:", err);
-      Alert.alert(
-        "Đăng ký thất bại",
-        err?.message || "Hệ thống gặp sự cố khi đăng ký gói khám. Vui lòng thử lại sau!"
+      AppAlert.error(
+        err?.message || "Hệ thống gặp sự cố khi đăng ký gói khám. Vui lòng thử lại sau!",
+        "Đăng ký thất bại"
       );
     } finally {
       setIsBooking(false);
     }
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("vi-VN") + " đ";
-  };
-
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return "";
-    const parts = dateStr.split("-");
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-    return dateStr;
-  };
-
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
-        {/* ── 1. HEADER ── */}
+        
         <View
           style={{ paddingTop: Math.max(insets.top, 16) + 8 }}
           className="flex-row items-center justify-between px-5 pb-3 bg-white border-b border-gray-100/80"
@@ -344,7 +333,7 @@ export function PackageBookingView() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          {/* ── 2. TỔNG QUAN GÓI ĐÃ CHỌN ── */}
+          
           <View className="mx-5 mt-5 bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex-row items-center justify-between">
             <View className="flex-1 pr-4">
               <Text className="text-gray-800 text-[15px] font-extrabold" numberOfLines={1}>
@@ -361,7 +350,6 @@ export function PackageBookingView() {
             </View>
           </View>
 
-          {/* ── 3. CHỌN NGÀY ── */}
           <View className="mt-6">
             <Text className="text-gray-800 text-[14px] font-extrabold px-5 mb-3">
               Chọn ngày khám
@@ -405,7 +393,6 @@ export function PackageBookingView() {
             </ScrollView>
           </View>
 
-          {/* ── 4. CHỌN KHUNG GIỜ ── */}
           <View className="mt-6 px-5 mb-28">
             <View className="flex-row justify-between items-center mb-3">
               <Text className="text-gray-800 text-[14px] font-extrabold">
@@ -432,7 +419,7 @@ export function PackageBookingView() {
               </View>
             ) : (
               <View className="gap-6">
-                {/* ── BUỔI SÁNG ── */}
+                
                 {morningSlots.length > 0 && (
                   <View>
                     <View className="flex-row items-center gap-2 mb-3">
@@ -450,7 +437,6 @@ export function PackageBookingView() {
                   </View>
                 )}
 
-                {/* ── BUỔI CHIỀU ── */}
                 {afternoonSlots.length > 0 && (
                   <View>
                     <View className="flex-row items-center gap-2 mb-3">
@@ -472,7 +458,6 @@ export function PackageBookingView() {
           </View>
         </ScrollView>
 
-        {/* ── 5. CONFIRM STICKY BAR ── */}
         <View className="p-5 bg-white border-t border-slate-100 flex-row justify-between items-center shadow-lg">
           <View className="flex-1 pr-4">
             <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">
@@ -495,7 +480,6 @@ export function PackageBookingView() {
           </View>
         </View>
 
-        {/* ── 6. SUCCESS DIALOG ── */}
         <Modal
           visible={isSuccessModalVisible}
           transparent

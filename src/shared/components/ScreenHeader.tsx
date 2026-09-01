@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -44,7 +44,6 @@ export function ScreenHeader({
       className="bg-primary px-5 pb-5 shadow-sm"
       style={{ paddingTop: insets.top + 12 }}
     >
-      {/* Top bar: Quay lại + Tiêu đề + Nút tác vụ phải */}
       <View className="flex-row items-center justify-between mb-4">
         <View className="flex-row items-center gap-3 flex-1">
           {showBackButton && (
@@ -77,7 +76,6 @@ export function ScreenHeader({
         {rightElement && <View>{rightElement}</View>}
       </View>
 
-      {/* Progress Bar */}
       {progress && (
         <View className="mt-1">
           <Text className="text-white/80 text-[11px] font-semibold">

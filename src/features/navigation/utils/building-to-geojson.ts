@@ -163,7 +163,6 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
   const centerShiftX = (globalMinX + globalMaxX) / 2;
   const centerShiftZ = (globalMinZ + globalMaxZ) / 2;
 
-  // 1. Convert Floor Outline Polygon
   const floorOutlinePoints: { x: number; z: number }[] = [];
   if (floor.outlineGeom && floor.outlineGeom.coordinates && floor.outlineGeom.coordinates.length > 0) {
     floor.outlineGeom.coordinates[0].forEach(([lng, lat]) => {
@@ -174,7 +173,6 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
     });
   }
 
-  // 2. Convert Rooms
   const rooms: RoomData3D[] = rawRooms.map(({ room, points, minX, maxX, minZ, maxZ }) => {
     const centeredPoints = points.map((p) => ({
       x: p.x - centerShiftX,
@@ -213,7 +211,6 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
     };
   });
 
-  // 3. Convert Clinic Partitions / Area Partitions
   const clinicPartitions: ClinicPartitionSegment[] = [];
   const areasToParse = floor.areas || (floor as any).clinics;
   if (areasToParse) {
@@ -253,7 +250,6 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
     });
   }
 
-  
   const standaloneDoors: StandaloneDoorData[] = [];
   if (floor.doors) {
     floor.doors.forEach((door) => {
@@ -293,7 +289,6 @@ export function floorToRoomData(floor: ApiFloor): FloorData3D {
     });
   }
 
-  // 5. Convert Standalone Boundaries
   const standaloneWalls: WallSegment[] = [];
   if (floor.standaloneBoundaries) {
     floor.standaloneBoundaries.forEach((b) => {

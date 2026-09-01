@@ -2,26 +2,13 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
+import { formatVND } from "@/shared/utils/string.utils";
+import { formatDate } from "@/shared/utils/date.utils";
 import { BillingVisit } from "../types/invoice.types";
 
 interface VisitBillingCardProps {
   visit: BillingVisit;
   onPress: () => void;
-}
-
-function formatVND(amount?: number): string {
-  if (amount === undefined || amount === null) return "0 đ";
-  return amount.toLocaleString("vi-VN") + " đ";
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
 }
 
 export function VisitBillingCard({ visit, onPress }: VisitBillingCardProps) {
@@ -33,7 +20,7 @@ export function VisitBillingCard({ visit, onPress }: VisitBillingCardProps) {
       activeOpacity={0.88}
       style={styles.card}
     >
-      {/* Header: Date & Badge */}
+      
       <View style={styles.headerRow}>
         <View style={styles.dateBlock}>
           <View style={styles.calendarIconBox}>
@@ -47,7 +34,6 @@ export function VisitBillingCard({ visit, onPress }: VisitBillingCardProps) {
         </View>
       </View>
 
-      {/* Service Orders Preview */}
       {visit.orders && visit.orders.length > 0 && (
         <View style={styles.ordersBox}>
           {visit.orders.slice(0, 3).map((ord, idx) => (
@@ -69,7 +55,6 @@ export function VisitBillingCard({ visit, onPress }: VisitBillingCardProps) {
         </View>
       )}
 
-      {/* Footer: Total & CTA Button */}
       <View style={styles.footerRow}>
         <View>
           <Text style={styles.totalLabel}>TỔNG VIỆN PHÍ</Text>

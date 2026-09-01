@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { otpService } from "@/features/auth/services/otp.service";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
 export function useOtpLogin() {
   const { loginWithToken } = useAuthContext();
@@ -16,7 +17,7 @@ export function useOtpLogin() {
       await otpService.sendLoginOtp({ email });
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể gửi mã OTP.");
+      setError(getErrorMessage(err, "Không thể gửi mã OTP."));
       return false;
     } finally {
       setIsLoading(false);
@@ -38,7 +39,7 @@ export function useOtpLogin() {
         }
         throw new Error("Không nhận được token xác thực.");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Xác thực OTP thất bại.");
+        setError(getErrorMessage(err, "Xác thực OTP thất bại."));
         return false;
       } finally {
         setIsLoading(false);

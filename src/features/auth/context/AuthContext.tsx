@@ -35,7 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Lắng nghe sự kiện phiên hết hạn từ api-client
   useEffect(() => {
     setOnSessionExpired(() => {
       setToken(null);
@@ -126,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loginService.logout(currentToken);
       }
     } catch {
-      // Bỏ qua lỗi server/mạng để user vẫn đăng xuất local thành công
+      
     } finally {
       await clearTokens();
       setToken(null);
@@ -163,5 +162,3 @@ export function useAuthContext(): AuthContextValue {
   }
   return context;
 }
-
-

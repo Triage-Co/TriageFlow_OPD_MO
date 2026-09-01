@@ -78,7 +78,7 @@ export function SymptomSelectView() {
         style={{ flex: 1, backgroundColor: "#F8FAFC" }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* ── HEADER ── */}
+        
         <View className="flex-row items-center justify-between px-5 py-4 bg-white border-b border-gray-100">
           <Pressable
             onPress={() => router.back()}
@@ -100,7 +100,6 @@ export function SymptomSelectView() {
           </Pressable>
         </View>
 
-        {/* ── THANH TÌM KIẾM ── */}
         <View className="px-5 pt-4 pb-2 bg-white">
           <View className="flex-row items-center bg-slate-100 rounded-2xl px-4 py-3">
             <Ionicons name="search" size={18} color="#94A3B8" />
@@ -125,7 +124,6 @@ export function SymptomSelectView() {
           </View>
         </View>
 
-        {/* ── NỘI DUNG DANH SÁCH ── */}
         <View className="flex-1">
           {isLoading ? (
             <View className="flex-1 items-center justify-center py-10 bg-white">

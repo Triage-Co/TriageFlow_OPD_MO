@@ -7,10 +7,7 @@ import {
 } from "@/features/auth/types/auth.types";
 
 export const forgotPasswordService = {
-  /**
-   * Gửi mã OTP lấy lại mật khẩu
-   * POST /api/auth/forgot
-   */
+  
   async forgotPassword(data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
     console.log("\n================== [API FORGOT PASSWORD - SEND OTP] ==================");
     console.log("[forgotPasswordService] Request payload:", JSON.stringify(data, null, 2));
@@ -31,10 +28,6 @@ export const forgotPasswordService = {
     }
   },
 
-  /**
-   * Xác thực mã OTP và cập nhật mật khẩu mới
-   * POST /api/auth/forgot/verify
-   */
   async verifyForgotPassword(data: ForgotPasswordVerifyRequest): Promise<ForgotPasswordVerifyResponse> {
     console.log("\n================== [API FORGOT PASSWORD - VERIFY & RESET] ==================");
     console.log("[forgotPasswordService] Request URL: POST /api/auth/forgot/verify");

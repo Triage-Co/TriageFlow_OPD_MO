@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { doctorService } from "../services/doctor.service";
 import { DoctorDetail } from "../types/doctor.types";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
 export function useDoctorSlots(doctorId: string, date: string) {
   const [doctorDetail, setDoctorDetail] = useState<DoctorDetail | null>(null);
@@ -19,7 +20,7 @@ export function useDoctorSlots(doctorId: string, date: string) {
       setDoctorDetail(data);
     } catch (err: any) {
       console.error(`[useDoctorSlots] API Error:`, err.message || err);
-      setError(err?.message || "Không thể tải danh sách khung giờ khám");
+      setError(getErrorMessage(err, "Không thể tải danh sách khung giờ khám"));
     } finally {
       setIsLoading(false);
     }

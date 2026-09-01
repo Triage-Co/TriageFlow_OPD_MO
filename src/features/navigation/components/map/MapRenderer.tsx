@@ -66,7 +66,7 @@ function RoomMesh({ room }: { room: RoomData3D }) {
 
   return (
     <group>
-      {/* 1. Room Floor plane */}
+      
       {floorGeo && (
         <mesh
           position={[0, 0.02, 0]}
@@ -106,7 +106,6 @@ function RoomMesh({ room }: { room: RoomData3D }) {
         </mesh>
       )}
 
-      {/* 2. Floating 3D Room Marker for important highlights */}
       {(isStart || isTarget || isSelected) && (
         <group position={[room.centerX, 0, room.centerZ]}>
           <React.Suspense fallback={null}>
@@ -120,7 +119,6 @@ function RoomMesh({ room }: { room: RoomData3D }) {
         </group>
       )}
 
-      {/* 3. Glowing beacon for target/selected locations */}
       {(isTarget || isSelected) && (
         <Beacon position={[room.centerX, 0.05, room.centerZ]} />
       )}
@@ -137,14 +135,12 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
   const postMeshRef = useRef<THREE.InstancedMesh>(null);
   const lintelMeshRef = useRef<THREE.InstancedMesh>(null);
 
-  // Group all walls and doors from active floor data
   const { walls, doors } = useMemo(() => {
     const wallsList: WallInstanceData[] = [];
     const doorsList: DoorInstanceData[] = [];
 
     if (!floorData3D) return { walls: wallsList, doors: doorsList };
 
-    // 1. Room walls & doors
     floorData3D.rooms.forEach((room: RoomData3D) => {
       const isReception =
         room.roomCode.toLowerCase().includes("reception") ||
@@ -172,7 +168,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
       });
     });
 
-    // 2. Clinic Partitions
     floorData3D.clinicPartitions.forEach((cp: ClinicPartitionSegment) => {
       wallsList.push({
         centerX: cp.centerX,
@@ -183,7 +178,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
       });
     });
 
-    // 3. Standalone Doors
     floorData3D.standaloneDoors.forEach((door: StandaloneDoorData) => {
       doorsList.push({
         centerX: door.centerX,
@@ -194,7 +188,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
       });
     });
 
-    // 4. Standalone Walls
     if (floorData3D.standaloneWalls) {
       floorData3D.standaloneWalls.forEach((seg: WallSegment) => {
         if (seg.boundaryType === "DOOR") {
@@ -223,7 +216,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
   useLayoutEffect(() => {
     const temp = new THREE.Object3D();
 
-    // 1. Update all wall instances
     if (wallMeshRef.current && walls.length > 0) {
       walls.forEach((wall, idx) => {
         temp.position.set(wall.centerX, wall.wallHeight / 2, wall.centerZ);
@@ -235,7 +227,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
       wallMeshRef.current.instanceMatrix.needsUpdate = true;
     }
 
-    // 2. Update door frame posts and lintels
     if (doors.length > 0) {
       const doorFrameHeight = 0.35;
 
@@ -245,7 +236,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
           const cosA = Math.cos(door.angle);
           const sinA = Math.sin(door.angle);
 
-          // Left post
           const leftX = door.centerX - cosA * halfW;
           const leftZ = door.centerZ - sinA * halfW;
           temp.position.set(leftX, door.wallHeight / 2, leftZ);
@@ -254,7 +244,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
           temp.updateMatrix();
           postMeshRef.current!.setMatrixAt(idx * 2, temp.matrix);
 
-          // Right post
           const rightX = door.centerX + cosA * halfW;
           const rightZ = door.centerZ + sinA * halfW;
           temp.position.set(rightX, door.wallHeight / 2, rightZ);
@@ -283,7 +272,7 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
 
   return (
     <group>
-      {/* A. Instanced walls rendering (Draw call: 1) */}
+      
       {walls.length > 0 && (
         <instancedMesh
           key={`walls-${activeFloor}-${walls.length}`}
@@ -297,7 +286,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
         </instancedMesh>
       )}
 
-      {/* B. Instanced door frame posts rendering (Draw call: 1) */}
       {doors.length > 0 && (
         <instancedMesh
           key={`door-posts-${activeFloor}-${doors.length}`}
@@ -314,7 +302,6 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
         </instancedMesh>
       )}
 
-      {/* C. Instanced door frame lintels rendering (Draw call: 1) */}
       {doors.length > 0 && (
         <instancedMesh
           key={`door-lintels-${activeFloor}-${doors.length}`}
@@ -331,12 +318,10 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
         </instancedMesh>
       )}
 
-      {/* D. Rooms floor rendering */}
       {floorData3D.rooms.map((room: RoomData3D) => (
         <RoomMesh key={`room-${room.id}`} room={room} />
       ))}
 
-      {/* E. Route Path Line */}
       {routeData && (
         <RoutePath
           path={routeData.path}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { doctorService } from "../services/doctor.service";
 import { Doctor } from "../types/doctor.types";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
 export function useDoctorList(specialtyCode: string, date: string) {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -18,7 +19,7 @@ export function useDoctorList(specialtyCode: string, date: string) {
       setDoctors(data);
     } catch (err: any) {
       console.error(`[useDoctorList] API Error:`, err.message || err);
-      setError(err?.message || "Không thể tải danh sách bác sĩ");
+      setError(getErrorMessage(err, "Không thể tải danh sách bác sĩ"));
     } finally {
       setIsLoading(false);
     }

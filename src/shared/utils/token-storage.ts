@@ -7,9 +7,6 @@ export const REFRESH_TOKEN_KEY = "auth_refresh_token";
 
 const isWeb = Platform.OS === "web";
 
-/**
- * Lấy Access Token từ SecureStore (có fallback về AsyncStorage & migration tự động)
- */
 export async function getAccessToken(): Promise<string | null> {
   if (isWeb) {
     return AsyncStorage.getItem(TOKEN_KEY);
@@ -21,7 +18,6 @@ export async function getAccessToken(): Promise<string | null> {
       return secureToken;
     }
 
-    // Migration nếu trước đó đã lưu ở AsyncStorage
     const legacyToken = await AsyncStorage.getItem(TOKEN_KEY);
     if (legacyToken) {
       await SecureStore.setItemAsync(TOKEN_KEY, legacyToken);
@@ -36,9 +32,6 @@ export async function getAccessToken(): Promise<string | null> {
   }
 }
 
-/**
- * Lưu Access Token vào SecureStore
- */
 export async function setAccessToken(token: string): Promise<void> {
   if (isWeb) {
     await AsyncStorage.setItem(TOKEN_KEY, token);
@@ -53,9 +46,6 @@ export async function setAccessToken(token: string): Promise<void> {
   }
 }
 
-/**
- * Lấy Refresh Token từ SecureStore (có fallback về AsyncStorage & migration tự động)
- */
 export async function getRefreshToken(): Promise<string | null> {
   if (isWeb) {
     return AsyncStorage.getItem(REFRESH_TOKEN_KEY);
@@ -81,9 +71,6 @@ export async function getRefreshToken(): Promise<string | null> {
   }
 }
 
-/**
- * Lưu Refresh Token vào SecureStore
- */
 export async function setRefreshToken(token: string): Promise<void> {
   if (isWeb) {
     await AsyncStorage.setItem(REFRESH_TOKEN_KEY, token);
@@ -98,9 +85,6 @@ export async function setRefreshToken(token: string): Promise<void> {
   }
 }
 
-/**
- * Lưu cả Access Token và Refresh Token đồng thời
- */
 export async function setAuthTokens(accessToken: string, refreshToken?: string): Promise<void> {
   await setAccessToken(accessToken);
   if (refreshToken) {
@@ -108,9 +92,6 @@ export async function setAuthTokens(accessToken: string, refreshToken?: string):
   }
 }
 
-/**
- * Xóa sạch tất cả token khi logout hoặc khi phiên đăng nhập hết hạn
- */
 export async function clearTokens(): Promise<void> {
   try {
     if (!isWeb) {
@@ -120,7 +101,6 @@ export async function clearTokens(): Promise<void> {
   } catch (error) {
     console.warn("[TokenStorage] Error clearing SecureStore tokens:", error);
   } finally {
-    // Luôn đảm bảo xóa cả AsyncStorage nếu có
     await AsyncStorage.removeItem(TOKEN_KEY).catch(() => {});
     await AsyncStorage.removeItem(REFRESH_TOKEN_KEY).catch(() => {});
   }

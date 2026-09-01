@@ -37,7 +37,7 @@ export function PatientBillingView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
       <View className="flex-1 bg-gray-50">
-        {/* Header Immersive chuẩn hệ thống */}
+        
         <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -58,7 +58,6 @@ export function PatientBillingView() {
           </TouchableOpacity>
         </View>
 
-        {/* Subtitle hiển thị tên bệnh nhân đang chọn */}
         {activePatient?.full_name ? (
           <View className="bg-white px-5 py-3 border-b border-gray-100 flex-row justify-between items-center shadow-sm">
             <View className="flex-row items-center gap-2 flex-1 pr-2">
@@ -78,7 +77,6 @@ export function PatientBillingView() {
           </View>
         ) : null}
 
-        {/* Main Content List */}
         <FlatList
           data={visits}
           keyExtractor={(item, index) => item.booking_id || `visit-${index}`}
@@ -93,7 +91,7 @@ export function PatientBillingView() {
           }
           ListHeaderComponent={
             <View className="mb-4">
-              {/* Thẻ tổng quan viện phí */}
+              
               <BillingSummaryCard summary={billingData?.summary} />
 
               <Text className="text-gray-800 text-[15px] font-bold mb-3 mt-1">
@@ -141,7 +139,6 @@ export function PatientBillingView() {
           }
         />
 
-        {/* Patient Picker Modal */}
         <PatientPickerModal
           visible={pickerVisible}
           onClose={() => setPickerVisible(false)}

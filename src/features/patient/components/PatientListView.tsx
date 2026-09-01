@@ -13,9 +13,9 @@ import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
 import { maskCitizenId } from "@/shared/utils/string.utils";
+import { AppAlert } from "@/shared/utils/alert.utils";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -137,12 +137,12 @@ export function PatientListView() {
     const { fullName, gender, dob } = editForm;
 
     if (!fullName.trim()) {
-      Alert.alert("Thông báo", "Vui lòng nhập họ và tên bệnh nhân.");
+      AppAlert.info("Vui lòng nhập họ và tên bệnh nhân.");
       return;
     }
 
     if (!gender) {
-      Alert.alert("Thông báo", "Vui lòng chọn giới tính.");
+      AppAlert.info("Vui lòng chọn giới tính.");
       return;
     }
 
@@ -164,22 +164,18 @@ export function PatientListView() {
   };
 
   const confirmDelete = (patientId: string, fullName: string) => {
-    Alert.alert(
+    AppAlert.confirm(
       "Xác nhận xóa",
       `Bạn có chắc chắn muốn xóa bệnh nhân "${fullName}" không?`,
-      [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: async () => {
-            const success = await deletePatient(patientId);
-            if (success) {
-              showGlobalToast("Đã xóa bệnh nhân thành công.", "success");
-            }
-          },
-        },
-      ]
+      async () => {
+        const success = await deletePatient(patientId);
+        if (success) {
+          showGlobalToast("Đã xóa bệnh nhân thành công.", "success");
+        }
+      },
+      undefined,
+      "Xóa",
+      "Hủy"
     );
   };
 
@@ -232,7 +228,7 @@ export function PatientListView() {
 
   return (
     <ScreenWrapper edges={["bottom", "left", "right"]}>
-      {/* ── Immersive Header ── */}
+      
       <View
         className="bg-primary rounded-b-[28px] px-6 pb-6 flex-row items-center justify-between"
         style={{ paddingTop: insets.top + 16 }}
@@ -265,7 +261,6 @@ export function PatientListView() {
         </Pressable>
       </View>
 
-      {/* ── Body Content ── */}
       <View className="flex-1 px-5 pt-4">
         {(isLoading && patients.length === 0) || isDeleting ? (
           <LoadingView
@@ -305,14 +300,13 @@ export function PatientListView() {
                   onPress={() => handleSelectPatient(item.patient_id)}
                   className="bg-white rounded-2xl p-4 flex-row items-center gap-4 border border-neutral-100 shadow-sm active:opacity-75"
                 >
-                  {/* Initial Avatar */}
+                  
                   <View className="bg-primary/10 w-12 h-12 rounded-xl items-center justify-center">
                     <Text className="text-primary font-bold text-base">
                       {getInitials(item.full_name)}
                     </Text>
                   </View>
 
-                  {/* Patient Info */}
                   <View className="flex-1">
                     <Text className="text-gray-800 font-bold text-[15px]">{item.full_name}</Text>
                     <View className="flex-row items-center gap-2 mt-1.5">
@@ -326,7 +320,6 @@ export function PatientListView() {
                     </View>
                   </View>
 
-                  {/* Right Arrow */}
                   <SymbolView
                     name={{ ios: "chevron.right", android: "chevron_right" }}
                     size={16}
@@ -339,7 +332,6 @@ export function PatientListView() {
         )}
       </View>
 
-      {/* Global Fetch Detail Loading Overlay */}
       {isFetchingDetail && (
         <View className="absolute inset-0 bg-black/10 items-center justify-center z-50">
           <View className="bg-white p-4 rounded-2xl flex-row items-center gap-3 shadow-md">
@@ -349,7 +341,6 @@ export function PatientListView() {
         </View>
       )}
 
-      {/* ── Popup: Tạo bệnh nhân qua eKYC ── */}
       <Modal
         visible={isEkycVisible}
         transparent
@@ -364,7 +355,7 @@ export function PatientListView() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ padding: 24 }}
             >
-              {/* Header */}
+              
               <View className="flex-row justify-between items-center mb-6">
                 <Text className="text-gray-800 text-[18px] font-bold">Thêm hồ sơ bệnh nhân</Text>
                 <Pressable
@@ -380,7 +371,6 @@ export function PatientListView() {
                 </Pressable>
               </View>
 
-              {/* Icon & Intro */}
               <View className="items-center mb-6">
                 <View className="bg-primary/10 w-24 h-24 rounded-3xl items-center justify-center mb-4">
                   <SymbolView
@@ -394,7 +384,6 @@ export function PatientListView() {
                 </Text>
               </View>
 
-              {/* Lưu ý */}
               <View className="bg-blue-50 rounded-2xl p-4 mb-6 gap-y-2">
                 <Text className="text-blue-700 font-bold text-xs mb-1">Lưu ý trước khi quét:</Text>
                 <View className="flex-row items-start gap-2">
@@ -415,7 +404,6 @@ export function PatientListView() {
                 </View>
               </View>
 
-              {/* Trạng thái đang tạo bệnh nhân */}
               {isCreating && (
                 <View className="bg-green-50 rounded-2xl p-4 flex-row items-center gap-3 mb-4">
                   <ActivityIndicator size="small" color="#10B981" />
@@ -425,7 +413,6 @@ export function PatientListView() {
                 </View>
               )}
 
-              {/* Actions */}
               <View className="gap-2">
                 <Pressable
                   onPress={handleLaunchEkyc}
@@ -453,7 +440,6 @@ export function PatientListView() {
         </View>
       </Modal>
 
-      {/* ── Popup: Cập nhật thông tin bệnh nhân ── */}
       <Modal
         visible={isEditVisible}
         transparent
@@ -466,7 +452,7 @@ export function PatientListView() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ padding: 24 }}
             >
-              {/* Header */}
+              
               <View className="flex-row justify-between items-center mb-6">
                 <Text className="text-gray-800 text-xl font-bold">Cập nhật thông tin</Text>
                 <Pressable
@@ -481,7 +467,6 @@ export function PatientListView() {
                 </Pressable>
               </View>
 
-              {/* Họ và tên */}
               <AppInput
                 label="Họ và tên"
                 placeholder="Nhập họ và tên bệnh nhân"
@@ -489,7 +474,6 @@ export function PatientListView() {
                 onChangeText={(v) => setEditForm((p) => ({ ...p, fullName: v }))}
               />
 
-              {/* Ngày sinh */}
               <View className="mb-3.5">
                 <Text className="text-sm text-gray-600 mb-1.5 font-medium">Ngày sinh</Text>
                 <Pressable
@@ -519,7 +503,6 @@ export function PatientListView() {
                 />
               )}
 
-              {/* Giới tính toggle */}
               <View className="mb-3.5">
                 <Text className="text-sm text-gray-600 mb-1.5 font-medium">Giới tính</Text>
                 <GenderToggle
@@ -528,7 +511,6 @@ export function PatientListView() {
                 />
               </View>
 
-              {/* Mã bảo hiểm y tế */}
               <View className="mb-6">
                 <Text className="text-sm text-gray-600 mb-1.5 font-medium">Mã bảo hiểm y tế</Text>
                 <View className="border border-neutral-200 rounded-xl px-4 h-[52px] justify-center bg-gray-50/70">
@@ -538,7 +520,6 @@ export function PatientListView() {
                 </View>
               </View>
 
-              {/* Actions */}
               <View className="gap-2">
                 <AppButton
                   title="Lưu thay đổi"
@@ -557,7 +538,6 @@ export function PatientListView() {
         </View>
       </Modal>
 
-      {/* ── Popup: Chi tiết bệnh nhân ── */}
       <Modal
         visible={isDetailVisible}
         transparent
@@ -566,7 +546,7 @@ export function PatientListView() {
       >
         <View className="flex-1 bg-black/50 justify-center items-center px-6">
           <View className="w-full bg-white rounded-[28px] p-6">
-            {/* Header info */}
+            
             <View className="items-center mb-6">
               <View className="bg-primary/10 w-20 h-20 rounded-2xl items-center justify-center mb-4">
                 <Text className="text-primary font-bold text-2xl">
@@ -581,7 +561,6 @@ export function PatientListView() {
               </Text>
             </View>
 
-            {/* Detailed details fields */}
             <View className="bg-neutral-50 rounded-2xl p-4 gap-y-3 mb-6">
               <View className="flex-row justify-between">
                 <Text className="text-gray-400 text-xs">Ngày sinh</Text>
@@ -623,7 +602,6 @@ export function PatientListView() {
               </View>
             </View>
 
-            {/* Actions */}
             <AppButton
               title="Đóng"
               variant="primary"

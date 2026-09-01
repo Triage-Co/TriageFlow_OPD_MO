@@ -6,9 +6,7 @@ import {
 } from "../types/invoice.types";
 
 export const invoiceService = {
-  /**
-   * Lấy danh sách hóa đơn viện phí tổng hợp của bệnh nhân theo các đợt khám
-   */
+  
   async getPatientBilling(
     patientId: string,
     params?: QueryPatientBillingParams
@@ -20,9 +18,6 @@ export const invoiceService = {
     return response.data;
   },
 
-  /**
-   * Lấy chi tiết hóa đơn, các chỉ định dịch vụ, hóa đơn và giao dịch của một đợt khám cụ thể
-   */
   async getPatientVisitBilling(
     patientId: string,
     bookingId: string

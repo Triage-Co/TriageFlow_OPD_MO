@@ -36,7 +36,7 @@ export function Room({
 
   return (
     <animated.group position={position as any}>
-      {/* 1. Room Floor plane */}
+      
       <mesh receiveShadow position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[w, d]} />
         <animated.meshStandardMaterial
@@ -46,8 +46,6 @@ export function Room({
         />
       </mesh>
 
-      {/* 2. Room Walls with Door opening calculations */}
-      {/* Top Wall (-z) */}
       {doorPosition === "top" ? (
         <group position={[0, wallHeight / 2, -d / 2]}>
           <mesh castShadow receiveShadow position={[-(w / 2 + doorWidth / 2) / 2 + doorOffset, 0, 0]}>
@@ -66,7 +64,6 @@ export function Room({
         </mesh>
       )}
 
-      {/* Bottom Wall (+z) */}
       {doorPosition === "bottom" ? (
         <group position={[0, wallHeight / 2, d / 2]}>
           <mesh castShadow receiveShadow position={[-(w / 2 + doorWidth / 2) / 2 + doorOffset, 0, 0]}>
@@ -85,7 +82,6 @@ export function Room({
         </mesh>
       )}
 
-      {/* Left Wall (-x) */}
       {doorPosition === "left" ? (
         <group position={[-w / 2, wallHeight / 2, 0]}>
           <mesh castShadow receiveShadow position={[0, 0, -(d / 2 + doorWidth / 2) / 2 + doorOffset]}>
@@ -104,7 +100,6 @@ export function Room({
         </mesh>
       )}
 
-      {/* Right Wall (+x) */}
       {doorPosition === "right" ? (
         <group position={[w / 2, wallHeight / 2, 0]}>
           <mesh castShadow receiveShadow position={[0, 0, -(d / 2 + doorWidth / 2) / 2 + doorOffset]}>
@@ -123,7 +118,6 @@ export function Room({
         </mesh>
       )}
 
-      {/* 3. Floating 3D Room Marker */}
       {label && (
         <RoomMarker
           label={label}

@@ -3,14 +3,9 @@ import { BuildingMapResponse, BuildingMapData } from "../types/map.types";
 
 export const HARDCODED_BUILDING_ID = "00b03ef8-7702-4b08-a07e-ec887432453c";
 
-
 const cachedBuildingData = new Map<string, BuildingMapData>();
 const buildingDataPromises = new Map<string, Promise<BuildingMapData>>();
 
-/**
- * Fetches the complete map detail data for a specific building.
- * Dynamic caching per buildingId.
- */
 export async function fetchBuildingMap(
   buildingId: string = HARDCODED_BUILDING_ID,
   forceRefresh: boolean = false
@@ -43,9 +38,6 @@ export async function fetchBuildingMap(
   return promise;
 }
 
-/**
- * Fetches routing path between two nodes in the building.
- */
 export async function fetchRoute(
   startId: string,
   startType: "ROOM" | "ROOM_ENTRANCE" | "JUNCTION" | "ELEVATOR" | "STAIR",

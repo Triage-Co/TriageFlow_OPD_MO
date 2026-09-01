@@ -14,7 +14,7 @@ export function Elevator({ position, opacity, isActive, rotation = [0, 0, 0] }: 
 
   return (
     <animated.group position={position as any} rotation={rotation as any}>
-      {/* Elevator Shaft (Outer Box) */}
+      
       <mesh castShadow receiveShadow position={[0, height / 2, 0]}>
         <boxGeometry args={[size, height, size]} />
         <animated.meshStandardMaterial
@@ -26,7 +26,6 @@ export function Elevator({ position, opacity, isActive, rotation = [0, 0, 0] }: 
         />
       </mesh>
 
-      {/* Elevator Doors */}
       <group position={[0, height / 2, size / 2 + 0.05]}>
         <mesh castShadow position={[-0.7, 0, 0]}>
           <boxGeometry args={[1.2, height - 0.2, 0.1]} />
@@ -38,7 +37,6 @@ export function Elevator({ position, opacity, isActive, rotation = [0, 0, 0] }: 
         </mesh>
       </group>
 
-      {/* Floor Indicator Light */}
       <mesh position={[0, height - 0.3, size / 2 + 0.06]}>
         <boxGeometry args={[0.5, 0.2, 0.05]} />
         <animated.meshStandardMaterial

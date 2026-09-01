@@ -100,13 +100,12 @@ export function SymptomsView() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
-        {/* ── 1. HEADER ── */}
+        
         <ScreenHeader
           title={`Triệu chứng vùng ${params.labelVi || "cơ thể"}`}
           progress={{ current: 2, total: 3 }}
         />
 
-        {/* ── 2. NỘI DUNG CHÍNH ── */}
         <View className="flex-1 px-5 pt-4">
           <Text className="text-gray-500 text-[12px] font-medium mb-3">
             Chọn một triệu chứng mô tả đúng nhất tình trạng của bạn bên dưới:
@@ -184,7 +183,6 @@ export function SymptomsView() {
           )}
         </View>
 
-        {/* ── 3. HÀNH ĐỘNG DƯỚI CÙNG ── */}
         <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50">
           <AppButton
             title="Tiếp theo"

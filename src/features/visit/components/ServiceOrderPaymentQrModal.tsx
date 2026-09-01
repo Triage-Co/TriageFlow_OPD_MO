@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, View, Text, Pressable, ScrollView, Image, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
+import { formatVND, getQrCodeUrl } from "@/shared/utils/string.utils";
 
 interface ServiceOrderPaymentQrModalProps {
   visible: boolean;
@@ -25,7 +26,7 @@ export const ServiceOrderPaymentQrModal: React.FC<ServiceOrderPaymentQrModalProp
     >
       <View className="flex-1 bg-black/60 justify-end">
         <View className="bg-white rounded-t-[36px] p-6 space-y-6 max-h-[85%]">
-          {/* Header Modal */}
+          
           <View className="flex-row justify-between items-center pb-2 border-b border-gray-100">
             <Text className="text-gray-800 text-lg font-bold">Thanh Toán Đơn Chỉ Định</Text>
             <Pressable
@@ -36,7 +37,6 @@ export const ServiceOrderPaymentQrModal: React.FC<ServiceOrderPaymentQrModalProp
             </Pressable>
           </View>
 
-          {/* Scrollable Content */}
           {selectedServiceOrder && (
             <ScrollView showsVerticalScrollIndicator={false} className="space-y-6">
               <View className="items-center space-y-4">
@@ -44,14 +44,11 @@ export const ServiceOrderPaymentQrModal: React.FC<ServiceOrderPaymentQrModalProp
                   Quét mã QR dưới đây bằng ứng dụng ngân hàng của bạn để thanh toán đơn dịch vụ chỉ định.
                 </Text>
 
-                {/* QR Image */}
                 <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-md">
                   {selectedServiceOrder.qr_code ? (
                     <Image
                       source={{
-                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                          selectedServiceOrder.qr_code
-                        )}`,
+                        uri: getQrCodeUrl(selectedServiceOrder.qr_code),
                       }}
                       className="w-52 h-52"
                       resizeMode="contain"
@@ -63,12 +60,11 @@ export const ServiceOrderPaymentQrModal: React.FC<ServiceOrderPaymentQrModalProp
                   )}
                 </View>
 
-                {/* Details */}
                 <View className="w-full bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-2.5">
                   <View className="flex-row justify-between">
                     <Text className="text-gray-400 text-xs">Số tiền</Text>
                     <Text className="text-primary text-xs font-extrabold">
-                      {selectedServiceOrder.total_price ? selectedServiceOrder.total_price.toLocaleString("vi-VN") : 0} đ
+                      {formatVND(selectedServiceOrder.total_price)}
                     </Text>
                   </View>
                   <View className="flex-row justify-between">
@@ -86,7 +82,6 @@ export const ServiceOrderPaymentQrModal: React.FC<ServiceOrderPaymentQrModalProp
                 </View>
               </View>
 
-              {/* Close Button */}
               <View className="pt-2">
                 <Pressable
                   onPress={onClose}

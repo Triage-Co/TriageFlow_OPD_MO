@@ -1,5 +1,5 @@
 import { BodyMap } from "@/features/body-map/BodyMap";
-import { BodyRegion } from "@/features/body-map/types";
+import { BodyRegion, BodyGender } from "@/features/body-map/types";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -44,7 +44,7 @@ export function BodyMapView() {
     }
   }, [patientId]);
 
-  const gender = selectedPatient
+  const gender: BodyGender = selectedPatient
     ? (selectedPatient.gender?.toLowerCase() === "female" ? "female" : "male")
     : (user?.gender?.toLowerCase() === "female" ? "female" : "male");
 
@@ -106,7 +106,7 @@ export function BodyMapView() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <View className="flex-1 justify-between">
-        {/* ── 1. HEADER PHÂN LOẠI AI ── */}
+        
         <View className="bg-primary px-5 pt-12 pb-5 shadow-sm">
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center gap-3">
@@ -158,7 +158,6 @@ export function BodyMapView() {
             </TouchableOpacity>
           </View>
 
-          {/* Thanh Tiến trình (Bước 1/3) */}
           <View className="mt-1">
             <Text className="text-white/80 text-[11px] font-semibold">
               Bước 1/3
@@ -169,7 +168,6 @@ export function BodyMapView() {
           </View>
         </View>
 
-        {/* ── 2. NỘI DUNG CHÍNH ── */}
         <View className="flex-1 px-5 mt-4">
           {error && (
             <View className="bg-red-50 border border-red-200 p-3 rounded-[12px] mb-3 flex-row items-center gap-2">
@@ -184,7 +182,6 @@ export function BodyMapView() {
             </View>
           )}
 
-          {/* Card trắng chứa Body Map SVG */}
           <View
             style={{ height: cardHeight }}
             className="bg-white rounded-[20px] py-3 items-center justify-center shadow shadow-black/5 border border-white/50"
@@ -199,7 +196,6 @@ export function BodyMapView() {
             />
           </View>
 
-          {/* ── 3. DANH SÁCH TRIỆU CHỨNG ĐÃ CHỌN ── */}
           <View className="mt-4 flex-1">
             {hasAnySelected ? (
               <View className="flex-1">

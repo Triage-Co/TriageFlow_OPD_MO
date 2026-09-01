@@ -60,7 +60,6 @@ function deduplicateById(items: TranslatedSymptomSearchItem[]): TranslatedSympto
 export function getLocalSymptoms(bodyPartId: string, gender: BodyGender): TranslatedSymptomSearchItem[] {
   const result: TranslatedSymptomSearchItem[] = [];
 
-  
   if (bodyPartId === 'genitals') {
     if (gender === 'female') {
       result.push(...(femaleSymptomDataset.femaleGenitals?.symptoms ?? []).map(toTranslated));
@@ -70,13 +69,11 @@ export function getLocalSymptoms(bodyPartId: string, gender: BodyGender): Transl
     return deduplicateById(result);
   }
 
-  
   const datasetKey = BODY_PART_MAPPING[bodyPartId];
   if (datasetKey && commonSymptomDataset[datasetKey]) {
     result.push(...commonSymptomDataset[datasetKey].symptoms.map(toTranslated));
   }
 
-  
   if (bodyPartId === 'chest' && gender === 'female') {
     result.push(...(femaleSymptomDataset.breast?.symptoms ?? []).map(toTranslated));
   }

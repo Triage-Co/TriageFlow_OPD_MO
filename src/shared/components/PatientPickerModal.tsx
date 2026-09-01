@@ -3,7 +3,6 @@ import {
   Modal,
   View,
   Text,
-  Pressable,
   FlatList,
   ActivityIndicator,
   StyleSheet,
@@ -13,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
 import { patientService } from "@/features/patient/services/patient.service";
 import { Patient } from "@/features/patient/types/patient.types";
+import { getInitials, formatGenderLabel } from "@/shared/utils/string.utils";
+import { formatDate } from "@/shared/utils/date.utils";
 
 interface PatientPickerModalProps {
   visible: boolean;
@@ -84,7 +85,7 @@ export function PatientPickerModal({
     >
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          {/* Header */}
+          
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Chọn bệnh nhân</Text>
             <TouchableOpacity
@@ -95,7 +96,6 @@ export function PatientPickerModal({
             </TouchableOpacity>
           </View>
 
-          {/* Desc */}
           <Text style={styles.modalDesc}>
             Vui lòng chạm để chọn hồ sơ bệnh nhân:
           </Text>
@@ -113,20 +113,8 @@ export function PatientPickerModal({
               contentContainerStyle={{ paddingBottom: 4 }}
               renderItem={({ item }) => {
                 const isSelected = selectedPatientId === item.patient_id;
-
-                let initials = "BN";
-                if (item.full_name) {
-                  const parts = item.full_name.trim().split(" ");
-                  if (parts.length > 1) {
-                    initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                  } else if (parts.length === 1) {
-                    initials = parts[0].substring(0, 2).toUpperCase();
-                  }
-                }
-
-                const formattedDob = item.dob
-                  ? item.dob.split("T")[0].split("-").reverse().join("/")
-                  : "";
+                const initials = getInitials(item.full_name);
+                const formattedDob = formatDate(item.dob);
 
                 return (
                   <TouchableOpacity
@@ -137,7 +125,7 @@ export function PatientPickerModal({
                       isSelected ? styles.patientItemSelected : styles.patientItemUnselected,
                     ]}
                   >
-                    {/* Initials Avatar */}
+                    
                     <View
                       style={[
                         styles.avatarBox,
@@ -154,7 +142,6 @@ export function PatientPickerModal({
                       </Text>
                     </View>
 
-                    {/* Patient Details */}
                     <View style={styles.patientInfo}>
                       <Text
                         style={[
@@ -166,16 +153,19 @@ export function PatientPickerModal({
                       </Text>
                       <View style={styles.patientSubRow}>
                         <Text style={styles.patientSubText}>
-                          {item.gender?.toUpperCase() === "MALE" ? "Nam" : "Nữ"}
+                          {formatGenderLabel(item.gender)}
                         </Text>
-                        <View style={styles.dot} />
-                        <Text style={styles.patientSubText}>
-                          {formattedDob}
-                        </Text>
+                        {formattedDob ? (
+                          <>
+                            <View style={styles.dot} />
+                            <Text style={styles.patientSubText}>
+                              {formattedDob}
+                            </Text>
+                          </>
+                        ) : null}
                       </View>
                     </View>
 
-                    {/* Radio Checkmark */}
                     <View
                       style={[
                         styles.radioBox,

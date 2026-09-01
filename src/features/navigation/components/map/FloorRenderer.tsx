@@ -15,7 +15,6 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
 
   const floorData3D = data?.floorData3D;
 
-  
   const slabMesh = React.useMemo(() => {
     if (!floorData3D || !floorData3D.floorOutlinePoints || floorData3D.floorOutlinePoints.length < 3) {
       return null;
@@ -35,7 +34,7 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
 
   return (
     <group visible={true}>
-      {/* 1. Base floor slab */}
+      
       {slabMesh ? (
         <mesh position={[0, -0.5, 0]} geometry={slabMesh}>
           <meshLambertMaterial
@@ -51,7 +50,6 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
         </mesh>
       )}
 
-      {/* 2. Room & Architectural models */}
       {!loading && !error && data && (
         <MapRenderer
           featureCollection={data}

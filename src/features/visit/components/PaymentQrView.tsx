@@ -3,14 +3,14 @@ import { useBooking } from "@/features/booking/hooks/useBooking";
 import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
 import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { AppAlert } from "@/shared/utils/alert.utils";
+import { formatVND, getQrCodeUrl } from "@/shared/utils/string.utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-  Alert,
   Clipboard,
-  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -18,6 +18,7 @@ import {
   View,
   Modal
 } from "react-native";
+import { Image } from "expo-image";
 
 export function PaymentQrView() {
   const router = useRouter();
@@ -69,18 +70,16 @@ export function PaymentQrView() {
   };
 
   const amount = parseInt(amountStr || "0", 10);
-  const formattedAmount = amount.toLocaleString("vi-VN") + " VND";
+  const formattedAmount = formatVND(amount);
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-    qrCode
-  )}`;
+  const qrImageUrl = getQrCodeUrl(qrCode);
 
   const copyToClipboard = (text: string, label: string) => {
     try {
       Clipboard.setString(text);
-      Alert.alert("Đã sao chép", `Đã sao chép ${label} vào bộ nhớ tạm.`);
+      AppAlert.info(`Đã sao chép ${label} vào bộ nhớ tạm.`, "Đã sao chép");
     } catch {
-      Alert.alert("Sao chép", `${label}: ${text}`);
+      AppAlert.info(`${label}: ${text}`, "Sao chép");
     }
   };
 
@@ -91,10 +90,10 @@ export function PaymentQrView() {
       if (supported) {
         await Linking.openURL(checkoutUrl);
       } else {
-        Alert.alert("Lỗi", "Không thể mở trang thanh toán này trên thiết bị.");
+        AppAlert.error("Không thể mở trang thanh toán này trên thiết bị.");
       }
     } catch (err) {
-      Alert.alert("Lỗi", "Đã xảy ra lỗi khi mở liên kết thanh toán.");
+      AppAlert.error("Đã xảy ra lỗi khi mở liên kết thanh toán.");
     }
   };
 
@@ -121,10 +120,9 @@ export function PaymentQrView() {
 
     const bookingResult = await fetchBookingResult(stepId);
     if (!bookingResult) {
-      Alert.alert(
-        "Chưa nhận được thanh toán",
+      AppAlert.info(
         "Hệ thống chưa ghi nhận giao dịch thanh toán cho lịch hẹn này. Nếu bạn đã chuyển khoản, vui lòng đợi 1-2 phút rồi bấm lại nút xác nhận.",
-        [{ text: "Đồng ý" }]
+        "Chưa nhận được thanh toán"
       );
       return;
     }
@@ -183,7 +181,7 @@ export function PaymentQrView() {
       <StatusBar style="dark" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          {/* ── 1. HEADER ── */}
+          
           <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
             <Pressable
               onPress={() => router.back()}
@@ -199,7 +197,6 @@ export function PaymentQrView() {
             <View className="w-10" />
           </View>
 
-          {/* ── 2. THÔNG TIN LỊCH KHÁM ── */}
           <View className="mx-5 bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm mb-4">
             <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-3">
               Thông tin dịch vụ
@@ -237,9 +234,8 @@ export function PaymentQrView() {
             </View>
           </View>
 
-          {/* ── 3. KHU VỰC QUÉT MÃ QR ── */}
           <View className="mx-5 bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm items-center mb-6">
-            {/* QR Frame */}
+            
             <View className="bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm mb-5">
               <Image
                 source={{ uri: qrImageUrl }}
@@ -248,11 +244,9 @@ export function PaymentQrView() {
               />
             </View>
 
-            {/* Số tiền cần thanh toán */}
             <Text className="text-gray-400 text-[12px] font-semibold">Số tiền thanh toán</Text>
             <Text className="text-primary text-[24px] font-extrabold mb-2">{formattedAmount}</Text>
 
-            {/* Option to Open in browser */}
             {checkoutUrl ? (
               <Pressable
                 onPress={handleOpenCheckoutUrl}
@@ -265,7 +259,6 @@ export function PaymentQrView() {
           </View>
         </ScrollView>
 
-        {/* ── 4. ACTIONS DƯỚI CÙNG ── */}
         <View className="px-5 pb-12 pt-4 bg-white border-t border-gray-50">
           <AppButton
             title="Tôi đã thanh toán xong"
@@ -275,7 +268,6 @@ export function PaymentQrView() {
           />
         </View>
 
-        {/* ── 5. SUCCESS PAYMENT POPUP MODAL ── */}
         <Modal
           visible={showSuccessModal}
           transparent={true}
@@ -284,21 +276,19 @@ export function PaymentQrView() {
         >
           <View className="flex-1 justify-center items-center bg-black/50 px-6">
             <View className="bg-white w-full rounded-[28px] overflow-hidden shadow-2xl max-w-sm relative">
-              {/* Top Blue Header Portion matching mockup design */}
+              
               <View style={{ backgroundColor: "#82A9F5" }} className="h-24 w-full justify-center items-end px-5">
                 <View className="bg-white px-3 py-1 rounded-full shadow-sm">
                   <Text className="text-gray-900 text-xs font-bold">Đã thanh toán</Text>
                 </View>
               </View>
 
-              {/* Modal Body */}
               <View className="items-center px-6 pt-12 pb-8 bg-white">
-                {/* Title Text */}
+                
                 <Text style={{ color: "#6C94EC" }} className="text-[20px] font-bold text-center mb-8 mt-4">
                   Thanh toán thành công!
                 </Text>
 
-                {/* View Ticket button */}
                 <Pressable
                   onPress={handleViewTicket}
                   style={{ backgroundColor: "#82A9F5" }}
@@ -308,7 +298,6 @@ export function PaymentQrView() {
                 </Pressable>
               </View>
 
-              {/* Overlapping Checkmark Circle with white border sitting on the boundary */}
               <View
                 style={{
                   backgroundColor: "#82A9F5",

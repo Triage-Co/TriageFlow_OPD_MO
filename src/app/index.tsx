@@ -3,15 +3,8 @@ import { View, Image, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Colors } from "@/config/colors";
 
-/**
- * index.tsx – Entry point của app
- * Kiểm tra session và redirect:
- *   - Đã login → /(patient)/(tabs)/home
- *   - Chưa login:
- *       + Chưa xem Onboarding → /(auth)/welcome
- *       + Đã xem Onboarding → /(auth)/login
- */
 export default function Index() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthContext();
@@ -47,7 +40,7 @@ export default function Index() {
         style={{ width: 160, height: 160 }}
         resizeMode="contain"
       />
-      <ActivityIndicator size="small" color="#208AEF" className="mt-6" />
+      <ActivityIndicator size="small" color={Colors.primary} className="mt-6" />
     </View>
   );
 }

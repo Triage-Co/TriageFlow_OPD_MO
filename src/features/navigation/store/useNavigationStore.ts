@@ -28,10 +28,6 @@ interface NavigationState {
   ) => void;
 }
 
-/**
- * Navigation state store using Zustand.
- * Manages active floor level, selected rooms, active building and routing details.
- */
 export const useNavigationStore = create<NavigationState>((set) => ({
   activeFloor: 2,
   setActiveFloor: (floor) => set({ activeFloor: floor }),

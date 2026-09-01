@@ -16,6 +16,7 @@ import { patientService } from "@/features/patient/services/patient.service";
 import { visitService } from "@/features/visit/services/visit.service";
 import { Patient } from "@/features/patient/types/patient.types";
 import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
+import { formatDate } from "@/shared/utils/date.utils";
 
 const getFlowExamDate = (flow: any): string => {
   if (flow.date) {
@@ -60,7 +61,6 @@ export function MyAppointmentsView() {
           return examDate >= tomorrowStr;
         });
 
-        // Sắp xếp ngày gần nhất lên trước
         upcomingFlows.sort((a: any, b: any) => {
           return getFlowExamDate(a).localeCompare(getFlowExamDate(b));
         });
@@ -112,20 +112,10 @@ export function MyAppointmentsView() {
     fetchAppointments(patientId, true);
   };
 
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return "Chưa xếp ngày";
-    const parts = dateStr.split("-");
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-    return dateStr;
-  };
-
   return (
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
 
-      {/* Header */}
       <View style={styles.header}>
         <View style={[styles.headerRow, { gap: 16 }]}>
           <Pressable
@@ -153,7 +143,7 @@ export function MyAppointmentsView() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
-        {/* Thẻ bệnh nhân */}
+        
         <View style={styles.patientCard}>
           <View style={styles.patientInfoRow}>
             <View style={styles.patientAvatar}>
@@ -178,7 +168,6 @@ export function MyAppointmentsView() {
           </Pressable>
         </View>
 
-        {/* Danh sách các cuộc hẹn */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#84AFEB" />
@@ -195,7 +184,7 @@ export function MyAppointmentsView() {
               step.specialty_name ||
               step.step_name ||
               "Khám Chuyên Khoa";
-            // Lọc bỏ tiền tố "Thanh toán" nếu có trong step_name
+            
             const specialtyName = rawSpecialty.replace(/^Thanh toán\s+/i, "");
             const roomName = step.room_info?.room_name || "Đang xếp phòng";
             const doctorName = flow.booking?.slot?.doctor?.full_name;
@@ -204,13 +193,13 @@ export function MyAppointmentsView() {
 
             return (
               <View key={flow.flow_id || index} style={styles.appointmentCard}>
-                {/* Header card: Ngày hẹn & Trạng thái */}
+                
                 <View style={styles.cardHeader}>
                   <View style={styles.dateBadgeRow}>
                     <View style={styles.dateBadge}>
                       <Ionicons name="calendar" size={14} color="#8B5CF6" />
                       <Text style={styles.dateBadgeText}>
-                        {formatDateDisplay(examDate)}
+                        {formatDate(examDate, "Chưa xếp ngày")}
                       </Text>
                     </View>
                   </View>
@@ -220,7 +209,6 @@ export function MyAppointmentsView() {
                   </View>
                 </View>
 
-                {/* Nội dung ca khám */}
                 <View style={styles.cardBody}>
                   <Text style={styles.specialtyTitle}>{specialtyName}</Text>
 
@@ -246,7 +234,7 @@ export function MyAppointmentsView() {
             );
           })
         ) : (
-          /* Trạng thái rỗng */
+          
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
               <Ionicons name="calendar-outline" size={32} color="#84AFEB" />
@@ -269,7 +257,6 @@ export function MyAppointmentsView() {
         )}
       </ScrollView>
 
-      {/* Modal chọn bệnh nhân */}
       <PatientPickerModal
         visible={isPatientModalVisible}
         onClose={() => setIsPatientModalVisible(false)}

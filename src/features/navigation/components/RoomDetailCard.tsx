@@ -33,7 +33,7 @@ export function RoomDetailCard({
 
   return (
     <View style={[styles.container, { bottom: bottomOffset }]}>
-      {/* Header Card: Tên phòng & Nút đóng */}
+      
       <View style={styles.headerRow}>
         <View style={styles.roomBadgeContainer}>
           <View style={styles.iconCircle}>
@@ -61,9 +61,8 @@ export function RoomDetailCard({
         </TouchableOpacity>
       </View>
 
-      {/* Dải nút hành động chính (Google Maps Style) */}
       <View style={styles.actionsRow}>
-        {/* 🔵 Nút Chỉ Đường Đến Đây (Primary) */}
+        
         <TouchableOpacity
           onPress={() => onNavigateTo(room)}
           style={[styles.primaryActionBtn, isCurrentTarget && styles.disabledBtn]}
@@ -75,7 +74,6 @@ export function RoomDetailCard({
           </Text>
         </TouchableOpacity>
 
-        {/* 🟢 Nút Đặt Làm Điểm Xuất Phát */}
         <TouchableOpacity
           onPress={() => onSetStart(room)}
           style={[styles.secondaryActionBtn, isCurrentStart && styles.secondaryActiveBtn]}

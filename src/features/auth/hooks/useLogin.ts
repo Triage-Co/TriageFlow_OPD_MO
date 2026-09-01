@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { LoginRequest } from "@/features/auth/types/auth.types";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
 export function useLogin() {
   const { login, isLoading: sessionLoading } = useAuthContext();
@@ -17,7 +18,7 @@ export function useLogin() {
         await login(requestData);
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Đăng nhập thất bại.");
+        setError(getErrorMessage(err, "Đăng nhập thất bại."));
         return false;
       } finally {
         setIsLoading(false);

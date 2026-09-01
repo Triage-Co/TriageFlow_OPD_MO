@@ -91,4 +91,3 @@ export interface DiagnosisSessionCache {
   recommendation?: RecommendSpecialistResponse;
   updatedAt: string;
 }
-

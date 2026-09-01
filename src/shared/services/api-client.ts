@@ -17,7 +17,6 @@ const API_TIMEOUT_MS = process.env.EXPO_PUBLIC_API_TIMEOUT_MS
   ? parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT_MS, 10)
   : 15000;
 
-// Callback đồng bộ khi phiên đăng nhập hết hạn
 let onSessionExpiredCallback: (() => void) | null = null;
 
 export const setOnSessionExpired = (callback: (() => void) | null) => {
@@ -144,4 +143,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-

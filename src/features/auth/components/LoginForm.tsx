@@ -4,10 +4,7 @@ import { AppInput } from "@/shared/components/AppInput";
 import { FormScrollContainer } from "@/shared/components/FormScrollContainer";
 import { AuthHeader } from "@/shared/components/AuthHeader";
 import { FormErrorBanner } from "@/shared/components/FormErrorBanner";
-import {
-  validateEmailField,
-  validatePasswordField,
-} from "@/shared/utils/validation.utils";
+import { validateEmailField } from "@/shared/utils/validation.utils";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";

@@ -2,15 +2,11 @@ import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
+import { formatVND } from "@/shared/utils/string.utils";
 import { InvoiceSummary } from "../types/invoice.types";
 
 interface BillingSummaryCardProps {
   summary?: InvoiceSummary | null;
-}
-
-function formatVND(amount?: number): string {
-  if (amount === undefined || amount === null) return "0 đ";
-  return amount.toLocaleString("vi-VN") + " đ";
 }
 
 export function BillingSummaryCard({ summary }: BillingSummaryCardProps) {

@@ -135,7 +135,7 @@ export function InterviewView() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
-        {/* ── 1. HEADER ── */}
+        
         <View className="bg-primary px-5 pt-12 pb-5 shadow-sm">
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center gap-3">
@@ -163,7 +163,6 @@ export function InterviewView() {
             </TouchableOpacity>
           </View>
 
-          {/* Thanh Tiến trình */}
           <View className="mt-1">
             <Text className="text-white/80 text-[11px] font-semibold">
               Bước 3/3
@@ -174,7 +173,6 @@ export function InterviewView() {
           </View>
         </View>
 
-        {/* ── 2. NỘI DUNG HỎI BỆNH ── */}
         <View className="flex-1 px-5 pt-5">
           {error && (
             <View className="bg-red-50 border border-red-100 p-3 rounded-[12px] mb-4">
@@ -184,7 +182,6 @@ export function InterviewView() {
             </View>
           )}
 
-          {/* Trạng thái kết thúc hỏi bệnh */}
           {shouldStop && !currentQuestion && (
             <View className="flex-1 items-center justify-center px-4">
               <View className="bg-green-50 border border-green-100 rounded-[20px] p-6 items-center w-full">
@@ -203,7 +200,6 @@ export function InterviewView() {
             </View>
           )}
 
-          {/* Câu hỏi đang hiển thị */}
           {currentQuestion && (
             <>
               <View className="bg-white rounded-[20px] p-5 border border-gray-50 shadow-sm mb-4">
@@ -269,7 +265,6 @@ export function InterviewView() {
                       );
                     })}
 
-                    {/* Nút "Không có triệu chứng nào nêu trên" */}
                     {(() => {
                       const isNoneSelected = currentQuestion.items.every((it) => answers[it.id] === "absent");
                       
@@ -378,7 +373,6 @@ export function InterviewView() {
           )}
         </View>
 
-        {/* ── 3. HÀNH ĐỘNG DƯỚI CÙNG ── */}
         <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50">
           {shouldStop ? (
             <AppButton

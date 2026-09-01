@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { registerService } from "@/features/auth/services/register.service";
 import { RegisterRequest } from "@/features/auth/types/auth.types";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
 export function useRegister() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +16,7 @@ export function useRegister() {
       await registerService.register(data);
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đăng ký thất bại.");
+      setError(getErrorMessage(err, "Đăng ký thất bại."));
       return false;
     } finally {
       setIsLoading(false);

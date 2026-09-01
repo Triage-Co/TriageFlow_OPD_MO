@@ -9,9 +9,11 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { sortStepsTopologically } from "@/shared/utils/flow.utils";
+import { formatVND, getQrCodeUrl } from "@/shared/utils/string.utils";
+import { formatDateTime } from "@/shared/utils/date.utils";
+import { AppAlert } from "@/shared/utils/alert.utils";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -61,21 +63,17 @@ export function ActiveTicketView() {
   const [activeTicket, setActiveTicket] = useState<ActiveTicket | null>(null);
   const [activeFlow, setActiveFlow] = useState<any | null>(null);
 
-  // States for patient selection
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [selectedPatientName, setSelectedPatientName] = useState<string>("");
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
 
-  // States for flows and tabs
   const [allFlows, setAllFlows] = useState<any[]>([]);
   const [selectedFlow, setSelectedFlow] = useState<any | null>(null);
   const [selectedTab, setSelectedTab] = useState<"today" | "prescription" | "invoice">("today");
 
-  // State for prescription
   const [prescription, setPrescription] = useState<any | null>(null);
   const [isLoadingPrescription, setIsLoadingPrescription] = useState(false);
 
-  // State for invoice / billing
   const [visitInvoice, setVisitInvoice] = useState<any | null>(null);
   const [isLoadingInvoice, setIsLoadingInvoice] = useState(false);
 
@@ -89,10 +87,8 @@ export function ActiveTicketView() {
     setSelectedFlow(flow);
     setActiveFlow(flow);
 
-    // Sắp xếp các bước theo cấu trúc tô-pô & trọng số trạng thái tiến độ
     const sortedSteps = sortStepsTopologically(flow.steps || []);
 
-    // Tìm bước khám active hiện tại
     const activeSteps = sortedSteps.filter(
       (s: any) => s.step_status !== "COMPLETED" && s.step_status !== "CANCELLED"
     );
@@ -158,7 +154,7 @@ export function ActiveTicketView() {
       if (startTimeStr === "Đang xếp ca" && flow.create_at) {
         const timeParts = flow.create_at.split("T")[1];
         if (timeParts) {
-          startTimeStr = timeParts.substring(0, 5); // Lấy HH:MM
+          startTimeStr = timeParts.substring(0, 5); 
         }
       }
 
@@ -178,7 +174,6 @@ export function ActiveTicketView() {
     }
   }, []);
 
-  // Lọc tất cả ca khám của ngày hôm nay
   const todayFlows = useMemo(() => {
     const todayStr = new Date().toISOString().split("T")[0];
     const filtered = allFlows.filter((flow: any) => {
@@ -192,7 +187,6 @@ export function ActiveTicketView() {
       return isToday && isValidStatus;
     });
 
-    // Ưu tiên ca IN_PROGRESS lên đầu, sau đó sắp xếp theo thời gian tạo mới nhất
     return filtered.sort((a: any, b: any) => {
       if (a.status === "IN_PROGRESS" && b.status !== "IN_PROGRESS") return -1;
       if (b.status === "IN_PROGRESS" && a.status !== "IN_PROGRESS") return 1;
@@ -202,7 +196,6 @@ export function ActiveTicketView() {
     });
   }, [allFlows]);
 
-  // Cầm booking_id hoặc session_id của CHÍNH PHIÊN KHÁM ĐÓ để lấy đơn thuốc duy nhất của ca khám này
   const loadPrescription = useCallback(async (patientId: string, flow: any) => {
     setIsLoadingPrescription(true);
     try {
@@ -214,7 +207,6 @@ export function ActiveTicketView() {
       const flowBookingId = flow?.booking_id || flow?.booking?.booking_id;
       let targetSessionId = flow?.session_id || flow?.visit_session_id;
 
-      // 1. Kiểm tra session_id trong từng bước khám của flow
       if (!targetSessionId && flow?.steps && Array.isArray(flow.steps)) {
         for (const st of flow.steps) {
           if (st.session_id || st.visit_session_id) {
@@ -224,7 +216,6 @@ export function ActiveTicketView() {
         }
       }
 
-      // 2. Nếu chưa có session_id trực tiếp, cầm booking_id để tìm chính xác session tương ứng
       if (!targetSessionId && flowBookingId && patientId) {
         const sessions = await visitService.getVisitSessions(patientId);
         const sessionList = Array.isArray(sessions) ? sessions : (sessions as any)?.data || [];
@@ -236,7 +227,6 @@ export function ActiveTicketView() {
         }
       }
 
-      // 3. Gọi API đơn thuốc nếu tìm thấy đúng phiên khám của ca này
       if (targetSessionId) {
         const res = await visitService.getPrescriptionByVisitSession(targetSessionId);
         const presData = res?.data || res;
@@ -246,7 +236,7 @@ export function ActiveTicketView() {
             : null
         );
       } else {
-        // Phiên khám này chưa có đơn thuốc -> Set null
+        
         setPrescription(null);
       }
     } catch (err) {
@@ -257,7 +247,6 @@ export function ActiveTicketView() {
     }
   }, []);
 
-  // Lấy chi tiết hóa đơn & viện phí của chính phiên khám hôm nay
   const loadVisitInvoice = useCallback(async (patientId: string, flow: any) => {
     setIsLoadingInvoice(true);
     try {
@@ -273,7 +262,7 @@ export function ActiveTicketView() {
           return;
         }
       }
-      // Fallback: Lấy hóa đơn mới nhất từ tổng hợp
+      
       const res = await invoiceService.getPatientBilling(patientId);
       if (res?.data?.visits && res.data.visits.length > 0) {
         setVisitInvoice(res.data.visits[0]);
@@ -316,7 +305,6 @@ export function ActiveTicketView() {
     []
   );
 
-  // Sync selected flow when todayFlows changes
   useEffect(() => {
     if (todayFlows.length === 1) {
       selectFlow(todayFlows[0], selectedPatientName);
@@ -348,7 +336,6 @@ export function ActiveTicketView() {
     }
   }, [todayFlows, selectedPatientName, selectFlow, selectedPatientId, loadPrescription, loadVisitInvoice, selectedFlow]);
 
-  // Tự động kích hoạt Modal chọn bệnh nhân 1 lần khi mới vào
   useEffect(() => {
     setIsPatientModalVisible(true);
   }, []);
@@ -375,7 +362,7 @@ export function ActiveTicketView() {
 
   const handleGoToClinicalRoute = () => {
     if (!activeFlow) {
-      Alert.alert("Thông báo", "Không tìm thấy dữ liệu lộ trình của phiếu khám hôm nay.");
+      AppAlert.info("Không tìm thấy dữ liệu lộ trình của phiếu khám hôm nay.");
       return;
     }
     router.push({
@@ -388,25 +375,12 @@ export function ActiveTicketView() {
     });
   };
 
-  const formatDateTime = (dateTimeStr?: string) => {
-    if (!dateTimeStr) return "—";
-    const parts = dateTimeStr.split("T");
-    const dateStr = parts[0].split("-").reverse().join("/");
-    const timeStr = parts[1] ? parts[1].substring(0, 5) : "";
-    return `${dateStr} ${timeStr}`;
-  };
-
-  const qrImageUrl = activeTicket?.ticketCode
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-      activeTicket.ticketCode
-    )}`
-    : "";
+  const qrImageUrl = getQrCodeUrl(activeTicket?.ticketCode || "", 250);
 
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
 
-      {/* Patient Picker Modal */}
       <PatientPickerModal
         visible={isPatientModalVisible}
         onClose={() => setIsPatientModalVisible(false)}
@@ -415,7 +389,7 @@ export function ActiveTicketView() {
       />
 
       <View className="flex-1">
-        {/* Header Area */}
+        
         <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
           <Text className="text-white text-[18px] font-bold">
             Phiếu Khám Y Tế
@@ -429,7 +403,6 @@ export function ActiveTicketView() {
           </TouchableOpacity>
         </View>
 
-        {/* Subtitle hiển thị tên bệnh nhân đang chọn */}
         {selectedPatientName ? (
           <View className="bg-primary/10 px-5 py-2 flex-row items-center justify-between border-b border-[#84AFEB]/20">
             <View className="flex-row items-center gap-1.5 flex-1 pr-2">
@@ -447,7 +420,6 @@ export function ActiveTicketView() {
           </View>
         ) : null}
 
-        {/* Tab Selection: [ Hôm nay | Đơn thuốc | Viện phí ] */}
         <View
           style={{
             flexDirection: "row",
@@ -551,9 +523,8 @@ export function ActiveTicketView() {
           </TouchableOpacity>
         </View>
 
-        {/* Nội dung Tab */}
         {selectedTab === "today" ? (
-          /* TAB HÔM NAY */
+          
           isLoading ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -646,7 +617,6 @@ export function ActiveTicketView() {
                 </Pressable>
               )}
 
-              {/* Scrollable Card Area */}
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 className="flex-1 px-5 mt-3"
@@ -660,7 +630,7 @@ export function ActiveTicketView() {
                 }
               >
                 <View className="bg-white rounded-[32px] border border-[#84AFEB]/30 shadow-lg shadow-black/5 overflow-hidden">
-                  {/* Header của thẻ */}
+                  
                   <View className="bg-[#84AFEB]/10 flex-row items-center justify-between px-5 py-4 border-b border-[#84AFEB]/15">
                     <View className="flex-row items-center">
                       <View className="bg-primary/20 w-7 h-7 rounded-lg items-center justify-center mr-2">
@@ -671,7 +641,6 @@ export function ActiveTicketView() {
                       </Text>
                     </View>
 
-                    {/* Badge trạng thái ca khám */}
                     <View
                       className={`px-2.5 py-0.5 rounded-full border ${activeTicket.status === "COMPLETED" || activeTicket.status === "FINISHED"
                           ? "bg-emerald-50 border-emerald-200"
@@ -691,7 +660,6 @@ export function ActiveTicketView() {
                     </View>
                   </View>
 
-                  {/* Nội dung chính */}
                   <View className="p-6 items-center">
                     <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-1.5">
                       Số thứ tự
@@ -700,10 +668,9 @@ export function ActiveTicketView() {
                       {activeTicket.queueNumber}
                     </Text>
 
-                    {/* Bảng thông tin chi tiết */}
                     <View className="w-full bg-[#84AFEB]/10 rounded-[24px] p-5 border border-[#84AFEB]/20 mb-6">
                       <View className="flex-row mb-4">
-                        {/* Cột trái: Chuyên khoa / Gói khám */}
+                        
                         <View className="flex-1 pr-2">
                           <View className="flex-row items-center gap-1.5 mb-1">
                             <Ionicons name="medical" size={12} color="#6B7280" />
@@ -714,7 +681,6 @@ export function ActiveTicketView() {
                           </Text>
                         </View>
 
-                        {/* Cột phải: Phòng khám */}
                         <View className="flex-1 pl-2">
                           <View className="flex-row items-center gap-1.5 mb-1">
                             <Ionicons name="location" size={12} color="#6B7280" />
@@ -727,7 +693,7 @@ export function ActiveTicketView() {
                       </View>
 
                       <View className="flex-row mb-4">
-                        {/* Cột trái: Bác sĩ phụ trách */}
+                        
                         <View className="flex-1 pr-2">
                           <View className="flex-row items-center gap-1.5 mb-1">
                             <Ionicons name="person-circle" size={12} color="#6B7280" />
@@ -738,7 +704,6 @@ export function ActiveTicketView() {
                           </Text>
                         </View>
 
-                        {/* Cột phải: Thời gian đăng ký */}
                         <View className="flex-1 pl-2">
                           <View className="flex-row items-center gap-1.5 mb-1">
                             <Ionicons name="time" size={12} color="#6B7280" />
@@ -750,7 +715,6 @@ export function ActiveTicketView() {
                         </View>
                       </View>
 
-                      {/* Hàng 3: Bệnh nhân */}
                       <View className="pt-2 border-t border-[#84AFEB]/20">
                         <View className="flex-row items-center justify-between">
                           <View className="flex-row items-center gap-1.5">
@@ -764,10 +728,8 @@ export function ActiveTicketView() {
                       </View>
                     </View>
 
-                    {/* Dotted divider */}
                     <View className="w-full border-t border-dashed border-gray-200 my-4" />
 
-                    {/* QR Code */}
                     <View className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm items-center">
                       <Image
                         source={{ uri: qrImageUrl }}
@@ -783,7 +745,6 @@ export function ActiveTicketView() {
                   </View>
                 </View>
 
-                {/* Nút xem lộ trình */}
                 <View className="mt-6 gap-y-3 pb-8">
                   <AppButton
                     title="Lộ Trình Khám"
@@ -793,7 +754,7 @@ export function ActiveTicketView() {
               </ScrollView>
             </View>
           ) : (
-            /* Trạng thái không có vé hôm nay */
+            
             <View className="flex-1 justify-between px-6 py-12 items-center">
               <View className="flex-1 items-center justify-center">
                 <View className="w-24 h-24 rounded-full bg-[#84AFEB]/10 items-center justify-center mb-6">
@@ -828,7 +789,7 @@ export function ActiveTicketView() {
             </View>
           )
         ) : selectedTab === "prescription" ? (
-          /* TAB ĐƠN THUỐC */
+          
           isLoadingPrescription ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -849,7 +810,7 @@ export function ActiveTicketView() {
                 />
               }
             >
-              {/* Header Đơn thuốc */}
+              
               <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                 <View className="flex-row items-center gap-2.5 mb-3">
                   <View className="w-10 h-10 rounded-2xl bg-blue-50 items-center justify-center">
@@ -883,7 +844,6 @@ export function ActiveTicketView() {
                 </View>
               </View>
 
-              {/* Lời dặn / Chẩn đoán */}
               {prescription.diagnosis_note && (
                 <View className="bg-blue-50/70 rounded-3xl p-5 border border-blue-100 shadow-sm mb-4">
                   <View className="flex-row items-center gap-2 mb-2">
@@ -898,7 +858,6 @@ export function ActiveTicketView() {
                 </View>
               )}
 
-              {/* Danh sách thuốc */}
               <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                 <View className="flex-row items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                   <Ionicons name="medkit" size={18} color={Colors.primary} />
@@ -947,7 +906,7 @@ export function ActiveTicketView() {
               </View>
             </ScrollView>
           ) : (
-            /* Trạng thái chưa có đơn thuốc của phiên khám này */
+            
             <View className="flex-1 justify-center items-center px-6 py-12">
               <View className="w-20 h-20 rounded-full bg-blue-50 items-center justify-center mb-4">
                 <Ionicons name="medkit-outline" size={36} color="#2563EB" />
@@ -961,7 +920,7 @@ export function ActiveTicketView() {
             </View>
           )
         ) : (
-          /* TAB VIỆN PHÍ */
+          
           isLoadingInvoice ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -982,7 +941,7 @@ export function ActiveTicketView() {
                 />
               }
             >
-              {/* Bảng kê chi tiết dịch vụ */}
+              
               <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                 <View className="flex-row items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                   <Ionicons name="list-outline" size={18} color={Colors.primary} />
@@ -1011,7 +970,7 @@ export function ActiveTicketView() {
                                 • {detail.name || "Dịch vụ"}
                               </Text>
                               <Text className="text-gray-800 text-[11px] font-bold">
-                                {(detail.sub_total || 0).toLocaleString("vi-VN")} đ
+                                {formatVND(detail.sub_total)}
                               </Text>
                             </View>
                           ))
@@ -1025,17 +984,16 @@ export function ActiveTicketView() {
                   </Text>
                 )}
 
-                {/* Tổng kết tiền */}
                 <View className="mt-4 pt-3 border-t border-gray-100 flex-row justify-between items-center">
                   <Text className="text-gray-900 text-sm font-black">Tổng cộng viện phí:</Text>
                   <Text className="text-primary text-lg font-black">
-                    {(visitInvoice.total_amount || 0).toLocaleString("vi-VN")} đ
+                    {formatVND(visitInvoice.total_amount)}
                   </Text>
                 </View>
               </View>
             </ScrollView>
           ) : (
-            /* Trạng thái chưa có viện phí của phiên khám này */
+            
             <View className="flex-1 justify-center items-center px-6 py-12">
               <View className="w-20 h-20 rounded-full bg-blue-50 items-center justify-center mb-4">
                 <Ionicons name="receipt-outline" size={36} color="#2563EB" />

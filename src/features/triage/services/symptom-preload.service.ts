@@ -50,14 +50,12 @@ class SymptomPreloadService {
     this.isPreloadingAll = true;
     console.log(`[Preload] Queue started`);
 
-    
     for (const id of regionIds) {
       if (!this.states.has(id)) {
         this.states.set(id, { regionId: id, status: "idle", symptoms: [] });
       }
     }
 
-    
     for (const id of regionIds) {
       const cached = await triageCacheService.getSearchCache(id);
       if (cached) {
@@ -70,7 +68,6 @@ class SymptomPreloadService {
       }
     }
 
-    
     const cachedRegions = Array.from(this.states.entries())
       .filter(([_, v]) => v.status === "completed")
       .map(([k]) => k);
@@ -107,19 +104,16 @@ class SymptomPreloadService {
         phrase: regionId,
       });
 
-      
       const initialSymptoms: TranslatedSymptomSearchItem[] = searchItems.map((item) => ({
         id: item.id,
         labelEn: item.label,
         labelVi: item.label,
       }));
 
-      
       await triageCacheService.setSearchCache(regionId, initialSymptoms);
       this.states.set(regionId, { regionId, status: "translating", symptoms: initialSymptoms });
       this.notify(regionId);
 
-      
       this.translateSymptomsAsync(regionId, initialSymptoms);
 
     } catch (error: any) {
@@ -142,7 +136,6 @@ class SymptomPreloadService {
         symptoms.map((s) => ({ id: s.id, label: s.labelEn }))
       );
 
-      
       await triageCacheService.setSearchCache(regionId, translated);
       this.states.set(regionId, { regionId, status: "completed", symptoms: translated });
       this.notify(regionId);
@@ -170,13 +163,11 @@ class SymptomPreloadService {
     console.log(`[Preload] Cache miss`);
     console.log(`[Preload] Urgent request inserted: ${regionId}`);
     
-    
     const index = this.queue.indexOf(regionId);
     if (index > -1) {
       this.queue.splice(index, 1);
     }
 
-    
     this.preloadRegion(regionId);
   }
 }

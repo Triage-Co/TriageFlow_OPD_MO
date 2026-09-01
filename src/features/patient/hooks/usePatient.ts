@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 import { patientService } from "../services/patient.service";
 import { Patient, CreatePatientRequest, UpdatePatientRequest } from "../types/patient.types";
 import type { EkycOcrObject } from "@/features/ekyc/types/ekyc.types";
@@ -30,7 +31,7 @@ export function usePatient() {
         }
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "";
+      const msg = getErrorMessage(err, "");
       if (msg.toLowerCase().includes("rỗng") || msg.toLowerCase().includes("empty")) {
         setPatients([]);
       } else {
@@ -54,7 +55,7 @@ export function usePatient() {
       setError(errMsg);
       return { success: false, message: errMsg };
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : "Đã xảy ra lỗi khi tạo bệnh nhân.";
+      const errMsg = getErrorMessage(err, "Đã xảy ra lỗi khi tạo bệnh nhân.");
       setError(errMsg);
       return { success: false, message: errMsg };
     } finally {
@@ -62,10 +63,6 @@ export function usePatient() {
     }
   }, [fetchPatients]);
 
-  /**
-   * Tạo bệnh nhân mới từ dữ liệu OCR của eKYC.
-   * Tự động convert định dạng ngày sinh và giới tính trước khi gọi API.
-   */
   const createPatientFromEkyc = useCallback(
     async (ocrData: EkycOcrObject): Promise<{ success: boolean; message?: string }> => {
       
@@ -75,10 +72,8 @@ export function usePatient() {
           ? `${parts[2]}-${parts[1]}-${parts[0]}`
           : ocrData.birth_day;
 
-      
       const gender: Gender = ocrData.gender.trim().toLowerCase() === "nam" ? "MALE" : "FEMALE";
 
-      // Tạo mã BHYT ngẫu nhiên 15 ký tự (chuẩn VN: DN479 + 10 chữ số) để tránh trùng lặp Unique Index
       const randomMedicalCoverageId = `DN479${Math.floor(1000000000 + Math.random() * 9000000000)}`;
 
       return createPatient({
@@ -104,7 +99,7 @@ export function usePatient() {
       setError(response.message || "Không thể cập nhật thông tin.");
       return false;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi cập nhật thông tin.");
+      setError(getErrorMessage(err, "Đã xảy ra lỗi khi cập nhật thông tin."));
       return false;
     } finally {
       setIsUpdating(false);
@@ -126,7 +121,7 @@ export function usePatient() {
       return false;
     } catch (err: any) {
       console.error(`[usePatient] deletePatient catch block:`, err?.response?.data || err?.message || err);
-      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi xóa bệnh nhân.");
+      setError(getErrorMessage(err, "Đã xảy ra lỗi khi xóa bệnh nhân."));
       return false;
     } finally {
       setIsDeleting(false);
@@ -140,10 +135,10 @@ export function usePatient() {
       if (response.status === "success" || response.code === 200) {
         return response.data;
       }
-      setError(response.message || "Không thể lấy thông tin chi tiết bệnh nhân.");
+      setError(response.message || "Không thể tải thông tin bệnh nhân.");
       return null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi lấy thông tin chi tiết.");
+      setError(getErrorMessage(err, "Đã xảy ra lỗi khi tải thông tin bệnh nhân."));
       return null;
     }
   }, []);

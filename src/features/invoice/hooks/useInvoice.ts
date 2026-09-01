@@ -8,6 +8,7 @@ import {
 import { usePatient } from "@/features/patient/hooks/usePatient";
 import { Patient } from "@/features/patient/types/patient.types";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
 export function useInvoice() {
   const { patients, isLoading: patientsLoading, fetchPatients } = usePatient();
@@ -27,7 +28,6 @@ export function useInvoice() {
     }
   }, [patients, activePatient]);
 
-  // Fetch billing summary and visit list for the active patient
   const fetchBilling = useCallback(
     async (isRefresh = false) => {
       if (!activePatient?.patient_id) return;
@@ -51,8 +51,7 @@ export function useInvoice() {
         }
       } catch (err: any) {
         console.error("Lỗi khi tải hóa đơn viện phí:", err);
-        const msg = err.response?.data?.message || "Không thể tải dữ liệu viện phí";
-        showGlobalToast(msg, "error");
+        showGlobalToast(getErrorMessage(err, "Không thể tải dữ liệu viện phí"), "error");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -94,8 +93,7 @@ export function useVisitInvoice(patientId?: string, bookingId?: string) {
       }
     } catch (err: any) {
       console.error("Lỗi tải chi tiết hóa đơn lần khám:", err);
-      const msg = err.response?.data?.message || "Không thể tải chi tiết hóa đơn";
-      showGlobalToast(msg, "error");
+      showGlobalToast(getErrorMessage(err, "Không thể tải chi tiết hóa đơn"), "error");
     } finally {
       setLoading(false);
     }

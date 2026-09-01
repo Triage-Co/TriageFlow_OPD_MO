@@ -44,7 +44,7 @@ class TranslationService {
     try {
       const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
       if (!apiKey) {
-        // Fallback to Google Translation Service if DeepSeek key is not available
+        
         return await googleTranslationService.translateEnToVi(normalizedText, symptomId);
       }
 
@@ -191,14 +191,12 @@ Return ONLY a raw JSON object (no markdown, no backticks, no extra text) matchin
   ): Promise<DiagnosisQuestion | null> {
     if (!question) return null;
 
-    // Helper kiểm tra xem chuỗi có phải là tiếng Việt có dấu không
     const isVietnamese = (str?: string | null): boolean => {
       if (!str) return false;
       const viRegex = /[àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i;
       return viRegex.test(str);
     };
 
-    // NẾU BACKEND ĐÃ DỊCH SẴN SANG TIẾNG VIỆT (ƯU TIÊN BE)
     if (isVietnamese(question.text) || isVietnamese(question.textVi)) {
       const translatedItemsList = (question.items || []).map((item) => {
         const translatedChoices = (item.choices || []).map((choice) => ({
@@ -224,7 +222,6 @@ Return ONLY a raw JSON object (no markdown, no backticks, no extra text) matchin
       };
     }
 
-    // NẾU BE TRẢ VỀ TIẾNG ANH THÌ DÙNG BỘ DỊCH FALLBACK DỰ PHÒNG
     try {
       const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
       if (!apiKey) {

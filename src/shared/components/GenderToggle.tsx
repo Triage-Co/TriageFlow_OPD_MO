@@ -1,9 +1,10 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
+import type { Gender } from "@/features/auth/types/auth.types";
 
 type GenderToggleProps = {
-  value: "MALE" | "FEMALE" | "";
-  onChange: (value: "MALE" | "FEMALE") => void;
+  value: Gender | "";
+  onChange: (value: Gender) => void;
   error?: string;
   className?: string;
 };

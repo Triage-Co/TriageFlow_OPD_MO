@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
-import { View, Text, ActivityIndicator, Alert, TouchableOpacity } from "react-native";
+import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { AppAlert } from "@/shared/utils/alert.utils";
 import { Colors } from "@/config/colors";
 import { useTriage } from "@/features/triage/hooks/useTriage";
 import { useBooking } from "@/features/booking/hooks/useBooking";
@@ -17,7 +18,7 @@ export function AutoBookingView() {
 
     const performAutoBooking = async () => {
       if (!interviewToken) {
-        Alert.alert("Lỗi", "Không tìm thấy phiên chẩn đoán. Vui lòng thử lại.");
+        AppAlert.error("Không tìm thấy phiên chẩn đoán. Vui lòng thử lại.");
         router.replace("/(patient)/triage/body-map");
         return;
       }
@@ -27,9 +28,9 @@ export function AutoBookingView() {
         if (!active) return;
 
         if (!patientsRes?.data || patientsRes.data.length === 0) {
-          Alert.alert(
-            "Không tìm thấy bệnh nhân",
-            "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch."
+          AppAlert.info(
+            "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch.",
+            "Không tìm thấy bệnh nhân"
           );
           router.back();
           return;

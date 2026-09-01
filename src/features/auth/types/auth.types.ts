@@ -1,10 +1,6 @@
 
-
-
-/** Giới tính theo API */
 export type Gender = "MALE" | "FEMALE";
 
-/** POST /api/auth/register */
 export type RegisterRequest = {
   email: string;
   user_name: string;
@@ -14,7 +10,6 @@ export type RegisterRequest = {
 
 };
 
-/** Response 201 từ /api/auth/register */
 export type RegisterResponse = {
   code: number;
   status: string;
@@ -79,7 +74,6 @@ export type RefreshTokenResponse = {
   };
 };
 
-/** Role của bệnh nhân được lưu trong user_metadata.role của Supabase JWT */
 export type UserRole = "USER";
 
 export type UserProfile = {
@@ -127,4 +121,3 @@ export type ForgotPasswordVerifyResponse = {
     user?: any;
   };
 };
-

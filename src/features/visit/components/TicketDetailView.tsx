@@ -4,11 +4,10 @@ import {
   Text,
   ScrollView,
   BackHandler,
-  Image,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +15,7 @@ import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
 import { AppButton } from "@/shared/components/AppButton";
 import { useBooking } from "@/features/booking/hooks/useBooking";
+import { getQrCodeUrl } from "@/shared/utils/string.utils";
 
 interface TicketData {
   queueNumber: string;
@@ -211,32 +211,27 @@ export function TicketDetailView() {
 
   const ticketCode = ticketData?.ticketCode || (params.ticketCode as string) || (params.ticket_code as string) || "";
 
-  const qrImageUrl = ticketCode
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-      ticketCode
-    )}`
-    : "";
+  const qrImageUrl = ticketCode ? getQrCodeUrl(ticketCode, 250) : "";
 
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
       <View className="flex-1 justify-between">
-        {/* ── 1. BLUE HEADER AREA ── */}
+        
         <View className="bg-primary pt-12 pb-5 items-center justify-center px-5 shadow-sm">
           <Text className="text-white text-[17px] font-bold">
             Phiếu khám của tôi
           </Text>
         </View>
 
-        {/* ── 2. SCROLLABLE CARD AREA ── */}
         <ScrollView
           showsVerticalScrollIndicator={false}
           className="flex-1 px-5 mt-5"
           contentContainerStyle={{ paddingBottom: 60 }}
         >
-          {/* Main Ticket Card */}
+          
           <View className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden mb-6">
-            {/* Status Top Strip */}
+            
             <View className="bg-emerald-50 px-6 py-3 border-b border-emerald-100 flex-row justify-between items-center">
               <Text className="text-emerald-700 text-xs font-bold">
                 Phiếu khám hợp lệ
@@ -249,7 +244,6 @@ export function TicketDetailView() {
               </View>
             </View>
 
-            {/* Nội dung chính */}
             <View className="p-6 items-center">
               <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-1.5">
                 Số thứ tự
@@ -258,10 +252,9 @@ export function TicketDetailView() {
                 {queueNumber || "0"}
               </Text>
 
-              {/* Bảng thông tin chi tiết */}
               <View className="w-full bg-[#84AFEB]/10 rounded-[24px] p-5 border border-[#84AFEB]/20 mb-6">
                 <View className="flex-row mb-4">
-                  {/* Cột trái: Chuyên khoa / Gói khám */}
+                  
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
                       <Ionicons name="medical" size={12} color="#6B7280" />
@@ -272,7 +265,6 @@ export function TicketDetailView() {
                     </Text>
                   </View>
 
-                  {/* Cột phải: Phòng khám */}
                   <View className="flex-1 pl-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
                       <Ionicons name="location" size={12} color="#6B7280" />
@@ -285,7 +277,7 @@ export function TicketDetailView() {
                 </View>
 
                 <View className="flex-row mb-4">
-                  {/* Cột trái: Bác sĩ phụ trách */}
+                  
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
                       <Ionicons name="person-circle" size={12} color="#6B7280" />
@@ -296,7 +288,6 @@ export function TicketDetailView() {
                     </Text>
                   </View>
 
-                  {/* Cột phải: Thời gian bắt đầu */}
                   <View className="flex-1 pl-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
                       <Ionicons name="time" size={12} color="#6B7280" />
@@ -308,7 +299,6 @@ export function TicketDetailView() {
                   </View>
                 </View>
 
-                {/* Hàng 3: Bệnh nhân */}
                 <View className="pt-2 border-t border-[#84AFEB]/20">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-1.5">
@@ -322,7 +312,6 @@ export function TicketDetailView() {
                 </View>
               </View>
 
-              {/* QR Code */}
               <View className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm items-center">
                 <Image
                   source={{ uri: qrImageUrl }}
@@ -337,7 +326,6 @@ export function TicketDetailView() {
               </View>
             </View>
 
-            {/* Các nút hành động dưới card */}
             <View className="mt-6 gap-y-3 pb-8 px-6">
               <AppButton
                 title="Theo dõi hàng đợi"

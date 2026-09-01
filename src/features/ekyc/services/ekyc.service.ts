@@ -4,10 +4,6 @@ import type { EkycConfig, EkycResult, VnptKeyData, VnptKeyResponse } from '../ty
 
 const { VnptEkycModule } = NativeModules;
 
-/**
- * Lấy cấu hình xác thực VNPT eKYC từ Backend
- * GET /api/vnpt/key
- */
 export const getVnptKey = async (): Promise<VnptKeyData | null> => {
   try {
     const response = await apiClient.get<VnptKeyResponse>('/api/vnpt/key');

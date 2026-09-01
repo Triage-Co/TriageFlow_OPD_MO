@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
+import { formatVND as formatPrice } from "@/shared/utils/string.utils";
 import { packageService } from "@/features/booking/services/package.service";
 import { ExamPackage } from "@/features/booking/types/package.types";
 
@@ -66,10 +67,6 @@ export function PackageSelectView() {
     });
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("vi-VN") + " đ";
-  };
-
   const renderPackageItem = ({ item }: { item: ExamPackage }) => {
     return (
       <TouchableOpacity
@@ -78,17 +75,17 @@ export function PackageSelectView() {
         className="mx-5 my-2.5 p-5 rounded-3xl bg-white border border-slate-100 shadow-sm flex-row items-center justify-between"
       >
         <View className="flex-1 pr-4">
-          {/* Badge */}
+          
           <View className="bg-blue-50 self-start px-3 py-1 rounded-full mb-2 border border-blue-100/60">
             <Text className="text-primary text-[10px] font-extrabold uppercase">
               Gói Sức Khỏe
             </Text>
           </View>
-          {/* Title */}
+          
           <Text className="text-gray-800 text-[16px] font-extrabold leading-5">
             {item.package_name}
           </Text>
-          {/* Description */}
+          
           {item.description ? (
             <Text
               className="text-gray-400 text-[12px] font-medium mt-1.5 leading-4"
@@ -97,13 +94,12 @@ export function PackageSelectView() {
               {item.description}
             </Text>
           ) : null}
-          {/* Price */}
+          
           <Text className="text-primary text-[16px] font-black mt-3">
             {formatPrice(item.price)}
           </Text>
         </View>
 
-        {/* Action Icon */}
         <View className="w-10 h-10 rounded-2xl bg-blue-50/70 items-center justify-center border border-blue-100/50">
           <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
         </View>
@@ -115,7 +111,7 @@ export function PackageSelectView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
       <View className="flex-1 bg-gray-50/50">
-        {/* ── 1. HEADER ── */}
+        
         <View
           style={{ paddingTop: Math.max(insets.top, 16) + 8 }}
           className="flex-row items-center justify-between px-5 pb-3 bg-white border-b border-gray-100/80"
@@ -140,7 +136,6 @@ export function PackageSelectView() {
           <View className="w-10" />
         </View>
 
-        {/* ── 2. SEARCH BAR ── */}
         <View className="px-5 mt-4 mb-2">
           <View className="flex-row items-center bg-white border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm">
             <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
@@ -159,7 +154,6 @@ export function PackageSelectView() {
           </View>
         </View>
 
-        {/* ── 3. LIST OF PACKAGES ── */}
         {isLoading ? (
           <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color={Colors.primary} />

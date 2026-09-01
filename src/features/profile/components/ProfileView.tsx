@@ -4,9 +4,11 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Colors } from "@/config/colors";
+import { AppAlert } from "@/shared/utils/alert.utils";
+import { getInitials } from "@/shared/utils/string.utils";
 
 export function ProfileView() {
   const router = useRouter();
@@ -14,43 +16,34 @@ export function ProfileView() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc muốn đăng xuất không?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: async () => {
-          setIsLoggingOut(true);
-          try {
-            await logout();
-            router.replace("/(auth)/login");
-          } finally {
-            setIsLoggingOut(false);
-          }
-        },
+    AppAlert.confirm(
+      "Đăng xuất",
+      "Bạn có chắc muốn đăng xuất không?",
+      async () => {
+        setIsLoggingOut(true);
+        try {
+          await logout();
+          router.replace("/(auth)/login");
+        } finally {
+          setIsLoggingOut(false);
+        }
       },
-    ]);
-  };
-
-  const getInitials = (name?: string) => {
-    if (!name) return "BN";
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    const first = parts[0].charAt(0);
-    const last = parts[parts.length - 1].charAt(0);
-    return (first + last).toUpperCase();
+      undefined,
+      "Đăng xuất",
+      "Hủy"
+    );
   };
 
   return (
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-        {/* Header Immersive */}
+        
         <View className="px-6 py-6 bg-primary">
           <Text className="text-white text-[24px] font-extrabold tracking-tight mb-5 mt-5">
             Hồ sơ cá nhân
           </Text>
-          {/* Card thông tin bệnh nhân */}
+          
           <View className="mx-1 bg-white rounded-[24px] p-5 flex-row items-center gap-4 shadow shadow-black/5">
             <View className="bg-primary w-16 h-16 rounded-2xl items-center justify-center shadow-sm overflow-hidden">
               {user?.avatar ? (
@@ -94,7 +87,6 @@ export function ProfileView() {
           </View>
         </View>
 
-        {/* Các tùy chọn */}
         <View className="mt-6 px-5 gap-3.5 mb-28">
           <ActionCard
             iconName={{ ios: "person", android: "person" }}

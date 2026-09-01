@@ -22,7 +22,6 @@ function CameraController({ activeFloor }: { activeFloor: number }) {
       ctrl.target.set(0, 0, 0);
     }
 
-    // Góc chiếu thẳng đứng từ trên cao nhìn xuống (chuẩn trục Y-up)
     camera.position.set(0, 180, 0.001);
     camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
@@ -72,9 +71,6 @@ function CameraController({ activeFloor }: { activeFloor: number }) {
   return null;
 }
 
-/**
- * Theo dõi và chuyển đổi tọa độ 3D của Điểm Xuất Phát & Điểm Đến sang tọa độ 2D trên màn hình
- */
 function ScreenMarkerTracker({
   onUpdate,
 }: {
@@ -97,7 +93,6 @@ function ScreenMarkerTracker({
       const vec = new THREE.Vector3(pt.x, pt.y, pt.z);
       vec.project(camera);
 
-      // Điểm nằm sau lưng camera
       if (vec.z > 1) return { x: 0, y: 0, visible: false };
 
       const x = ((vec.x + 1) * size.width) / 2;
@@ -195,7 +190,6 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
         />
       </Canvas>
 
-      {/* 🟢 HIỂN THỊ TÊN ĐIỂM XUẤT PHÁT TRỰC TIẾP TRÊN BẢN ĐỒ (Chuẩn Kiosk) */}
       {screenMarkers.start?.visible && startRoom && (
         <View
           pointerEvents="none"
@@ -213,7 +207,6 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
         </View>
       )}
 
-      {/* 🔴 HIỂN THỊ TÊN ĐIỂM ĐẾN TRỰC TIẾP TRÊN BẢN ĐỒ (Chuẩn Kiosk) */}
       {screenMarkers.dest?.visible && targetRoom && (
         <View
           pointerEvents="none"
@@ -231,9 +224,8 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
         </View>
       )}
 
-      {/* Cột nút điều khiển nổi: [ Bàn tay Pan ] ➔ [ Xoay Rotate ] ➔ [ Nút Fullscreen / Thu nhỏ ] */}
       <View style={[styles.toggleContainer, { top: topOffset, right: hasMultipleFloors ? 72 : 16 }]}>
-        {/* Nút Pan */}
+        
         <TouchableOpacity
           style={[
             styles.toggleButton,
@@ -249,7 +241,6 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
           />
         </TouchableOpacity>
 
-        {/* Nút Xoay 3D */}
         <TouchableOpacity
           style={[
             styles.toggleButton,
@@ -265,7 +256,6 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
           />
         </TouchableOpacity>
 
-        {/* Nút Phóng to / Thu nhỏ Full màn hình: Đặt ngay dưới nút Xoay */}
         {onToggleFullscreen && (
           <TouchableOpacity
             style={[styles.toggleButton, styles.inactiveButton]}

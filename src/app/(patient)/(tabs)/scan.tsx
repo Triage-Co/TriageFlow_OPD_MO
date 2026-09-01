@@ -5,7 +5,6 @@ import {
   Pressable,
   ActivityIndicator,
   Dimensions,
-  Alert,
   StyleSheet,
   ScrollView,
 } from "react-native";
@@ -22,12 +21,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { AppAlert } from "@/shared/utils/alert.utils";
 import { Colors } from "@/config/colors";
 import { usePatient } from "@/features/patient/hooks/usePatient";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
-import { maskCitizenId } from "@/shared/utils/string.utils";
-
+import { maskCitizenId, getInitials, formatGenderLabel, getQrCodeUrl } from "@/shared/utils/string.utils";
+import { calculateAgeFromDob } from "@/shared/utils/date.utils";
 
 let CameraView: any = null;
 let useCameraPermissions: any = null;
@@ -43,7 +43,6 @@ try {
 } catch (e) {
   console.warn("ExpoCamera module is not compiled in this client, falling back to mock scanner.", e);
 }
-
 
 const useMockCameraPermissions = () => {
   const [perm] = useState({
@@ -66,7 +65,6 @@ export default function ScanScreen() {
   const { user } = useAuthContext();
   const { patients, fetchPatients, isLoading } = usePatient();
   const [activeTab, setActiveTab] = useState<"personal" | "scan">("personal");
-
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
@@ -95,13 +93,11 @@ export default function ScanScreen() {
     setIsPatientModalVisible(false);
   };
 
-
   useEffect(() => {
     if (activeTab === "scan" && isCameraAvailable && permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
   }, [activeTab, permission]);
-
 
   useEffect(() => {
     if (activeTab === "scan") {
@@ -124,34 +120,9 @@ export default function ScanScreen() {
     };
   });
 
-
   const activePatient =
     patients?.find((p) => p.patient_id === selectedPatientId) ||
     (patients && patients.length > 0 ? patients[0] : null);
-
-
-  const getInitials = (name: string): string => {
-    const cleanName = name.replace(/^(BS\.|BS|PGS\.|PGS|TS\.|TS|ThS\.|ThS)\s+/i, "");
-    const parts = cleanName.trim().split(/\s+/);
-    if (parts.length === 0) return "PT";
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    const first = parts[0];
-    const last = parts[parts.length - 1];
-    return (first.charAt(0) + last.charAt(0)).toUpperCase();
-  };
-
-  const calculateAge = (dobString?: string): number | null => {
-    if (!dobString) return null;
-    const birthDate = new Date(dobString);
-    if (isNaN(birthDate.getTime())) return null;
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age >= 0 ? age : null;
-  };
 
   const formatDobVi = (dobString?: string): string => {
     if (!dobString) return "Chưa cập nhật";
@@ -165,17 +136,12 @@ export default function ScanScreen() {
   };
 
   const patientName = activePatient?.full_name || user?.full_name || "Chưa cập nhật";
-  const initials = getInitials(patientName);
+  const initials = getInitials(patientName, "PT");
   const patientCode = activePatient?.patient_id
     ? `BN-${activePatient.patient_id.substring(0, 8).toUpperCase()}`
     : "Chưa có mã hồ sơ";
-  const patientGender =
-    activePatient?.gender === "MALE"
-      ? "Nam"
-      : activePatient?.gender === "FEMALE"
-        ? "Nữ"
-        : "Chưa cập nhật";
-  const patientAge = calculateAge(activePatient?.dob);
+  const patientGender = formatGenderLabel(activePatient?.gender, "Chưa cập nhật");
+  const patientAge = activePatient?.dob ? calculateAgeFromDob(activePatient.dob) : null;
   const patientDob = formatDobVi(activePatient?.dob);
   const patientPhone = user?.phone || "Chưa cập nhật";
   const patientInsurance = activePatient?.medical_coverage_id
@@ -189,25 +155,20 @@ export default function ScanScreen() {
       : "Chưa cập nhật";
 
   const qrData = activePatient?.citizen_id || activePatient?.patient_id || user?.citizen_id || user?.id || "";
-  const qrCodeUrl = qrData
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`
-    : null;
-
+  const qrCodeUrl = qrData ? getQrCodeUrl(qrData, 300) : null;
 
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 20;
   const subTabBarBottom = bottomOffset + 68;
 
-
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
-    Alert.alert(
-      "Checkpoint Check-in",
+    AppAlert.info(
       `Đã quét mã Checkpoint thành công! Dữ liệu: ${data}`,
-      [{ text: "OK", onPress: () => setScanned(false) }]
+      "Checkpoint Check-in",
+      () => setScanned(false)
     );
   };
-
 
   const handleMockScanClick = () => {
     handleBarcodeScanned({ data: "CHECKPOINT-MOCK-LOCATION-3F" });
@@ -225,7 +186,6 @@ export default function ScanScreen() {
           <View className="flex-1 bg-black relative">
             <StatusBar style="light" />
 
-            {/* Live rear camera view covering the entire background */}
             {isCameraAvailable && CameraView ? (
               permission?.granted ? (
                 <CameraView
@@ -238,7 +198,7 @@ export default function ScanScreen() {
                 />
               ) : null
             ) : (
-              /* Simulated camera feed when native module is missing */
+              
               <Pressable
                 onPress={handleMockScanClick}
                 style={StyleSheet.absoluteFill}
@@ -251,7 +211,6 @@ export default function ScanScreen() {
               </Pressable>
             )}
 
-            {/* ── 1. HEADER (DARK, overlay on top of camera) ── */}
             <View className="absolute top-0 left-0 right-0 flex-row items-center justify-between px-5 pt-12 pb-4 z-10 bg-black/20">
               <Pressable
                 onPress={handleBack}
@@ -263,7 +222,6 @@ export default function ScanScreen() {
               <View className="w-10" />
             </View>
 
-            {/* ── 2. VIEW FINDER OVERLAY (centered on screen) ── */}
             <View className="flex-1 items-center justify-center px-10 pb-40 z-10">
               {!isCameraAvailable ? (
 
@@ -309,19 +267,17 @@ export default function ScanScreen() {
                     style={{ width: VIEWFINDER_SIZE, height: VIEWFINDER_SIZE }}
                     className="relative justify-center items-center bg-transparent"
                   >
-                    {/* Viewfinder Corner Borders */}
+                    
                     <View className="absolute top-0 left-0 w-8 h-8 border-t-[4px] border-l-[4px] border-white rounded-tl-[16px] z-10" />
                     <View className="absolute top-0 right-0 w-8 h-8 border-t-[4px] border-r-[4px] border-white rounded-tr-[16px] z-10" />
                     <View className="absolute bottom-0 left-0 w-8 h-8 border-b-[4px] border-l-[4px] border-white rounded-bl-[16px] z-10" />
                     <View className="absolute bottom-0 right-0 w-8 h-8 border-b-[4px] border-r-[4px] border-white rounded-br-[16px] z-10" />
 
-                    {/* Completely transparent viewfinder center region */}
                     <View
                       style={{ width: VIEWFINDER_SIZE - 8, height: VIEWFINDER_SIZE - 8 }}
                       className="bg-transparent rounded-[12px] overflow-hidden"
                     />
 
-                    {/* Horizontal Glowing Scanning Laser Line */}
                     <Animated.View
                       style={[
                         styles.laserLine,
@@ -331,7 +287,6 @@ export default function ScanScreen() {
                     />
                   </View>
 
-                  {/* Helper Text below Viewfinder with semi-transparent background */}
                   <View className="bg-black/50 px-5 py-2.5 rounded-full mt-8 shadow-sm">
                     <Text className="text-white text-xs font-bold leading-5">
                       Đặt mã QR vào khung để quét
@@ -342,14 +297,12 @@ export default function ScanScreen() {
             </View>
           </View>
         ) : (
-          // --- VIEW 2: PERSONAL QR CODE (LIGHT THEME) ---
+          
           <View className="flex-1">
             <StatusBar style="dark" />
 
-            {/* Header background block to match mockup styling */}
             <View className="absolute top-0 left-0 right-0 h-44 bg-[#84AFEB]/30 rounded-b-[40px] z-0" />
 
-            {/* ── 1. HEADER (LIGHT) ── */}
             <View className="flex-row items-center justify-between px-5 pt-12 pb-4 z-10">
               <Pressable
                 onPress={handleBack}
@@ -361,7 +314,6 @@ export default function ScanScreen() {
               <View className="w-10" />
             </View>
 
-            {/* ── 2. SCROLLABLE PATIENT INFOMATION & QR CARD ── */}
             {isLoading ? (
               <View className="flex-1 items-center justify-center">
                 <ActivityIndicator size="large" color={Colors.primary} />
@@ -393,9 +345,9 @@ export default function ScanScreen() {
                 className="flex-1 z-10"
               >
                 <View className="gap-4">
-                  {/* Profile Card */}
+                  
                   <View className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
-                    {/* Top Profile Header */}
+                    
                     <View className="flex-row items-center justify-between mb-2">
                       <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">
                         Hồ sơ khám bệnh
@@ -449,7 +401,6 @@ export default function ScanScreen() {
 
                     <View className="h-[1px] bg-slate-100 w-full my-4" />
 
-                    {/* Demographics key-value layout */}
                     <View className="gap-2.5">
                       <View className="flex-row justify-between items-center">
                         <Text className="text-gray-400 text-[13px] font-medium">Số CCCD</Text>
@@ -472,10 +423,9 @@ export default function ScanScreen() {
                     </View>
                   </View>
 
-                  {/* QR Display Card */}
                   {qrCodeUrl ? (
                     <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm items-center justify-center py-8">
-                      {/* QR Image Wrapper */}
+                      
                       <View className="p-3 bg-white border border-slate-100 rounded-3xl shadow-sm mb-4">
                         <Image
                           source={{ uri: qrCodeUrl }}
@@ -494,15 +444,12 @@ export default function ScanScreen() {
           </View>
         )}
 
-        {/* ── 3. FLOATING SEGMENTED SUB-TAB BAR ── */}
-        {/* Positioned absolutely and dynamically above the system tab bar */}
         <View
           style={{ bottom: subTabBarBottom }}
           className="absolute left-5 right-5 z-20"
         >
           <View className="bg-white rounded-[24px] border border-slate-100 shadow-lg flex-row items-center h-16 p-1.5 justify-between">
 
-            {/* Tab 1: Mã Cá Nhân */}
             <Pressable
               onPress={() => setActiveTab("personal")}
               className="flex-1 items-center justify-center py-2"
@@ -521,7 +468,6 @@ export default function ScanScreen() {
               </Text>
             </Pressable>
 
-            {/* Tab 2: Quét QR */}
             <Pressable
               onPress={() => setActiveTab("scan")}
               className="flex-1 items-center justify-center py-2"
@@ -544,7 +490,6 @@ export default function ScanScreen() {
         </View>
       </View>
 
-      {/* Modal chọn bệnh nhân đồng bộ với hệ thống */}
       <PatientPickerModal
         visible={isPatientModalVisible}
         onClose={() => setIsPatientModalVisible(false)}

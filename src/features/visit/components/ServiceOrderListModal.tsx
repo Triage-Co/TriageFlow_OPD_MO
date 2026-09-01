@@ -2,6 +2,8 @@ import React from "react";
 import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
+import { formatVND, calculateOrderTotal } from "@/shared/utils/string.utils";
+import { formatDateTime } from "@/shared/utils/date.utils";
 
 interface ServiceOrderListModalProps {
   visible: boolean;
@@ -27,7 +29,7 @@ export const ServiceOrderListModal: React.FC<ServiceOrderListModalProps> = ({
     >
       <View className="flex-1 bg-black/60 justify-end">
         <View className="bg-white rounded-t-[36px] p-6 space-y-6 max-h-[85%]">
-          {/* Header Modal */}
+          
           <View className="flex-row justify-between items-center pb-3 border-b border-gray-100">
             <View className="flex-row items-center gap-2">
               <Ionicons name="basket-outline" size={20} color={Colors.primary} />
@@ -44,7 +46,6 @@ export const ServiceOrderListModal: React.FC<ServiceOrderListModalProps> = ({
             </Pressable>
           </View>
 
-          {/* List Content */}
           {isFetchingServiceOrders ? (
             <View className="py-20 items-center justify-center">
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -54,11 +55,11 @@ export const ServiceOrderListModal: React.FC<ServiceOrderListModalProps> = ({
             <ScrollView showsVerticalScrollIndicator={false} className="space-y-4">
               {unpaidServiceOrders.map((order: any) => {
                 const pendingDetails = order.serviceOrderDetails?.filter((d: any) => d.status === "PENDING") || [];
-                const displayTotal = pendingDetails.reduce((sum: number, detail: any) => sum + (detail.price_at_order * (detail.quantity || 1)), 0);
+                const displayTotal = calculateOrderTotal(pendingDetails);
 
                 return (
                   <View key={order.service_order_id} className="bg-gray-50/50 border border-gray-100 rounded-3xl p-5 space-y-4">
-                    {/* Order Info */}
+                    
                     <View className="flex-row justify-between items-center">
                       <View className="bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
                         <Text className="text-amber-800 text-[10px] font-bold">Chờ thanh toán</Text>
@@ -70,7 +71,6 @@ export const ServiceOrderListModal: React.FC<ServiceOrderListModalProps> = ({
 
                     <View className="border-t border-gray-200 border-dashed my-1" />
 
-                    {/* Detail items */}
                     <View className="space-y-2">
                       {pendingDetails.map((detail: any) => (
                         <View key={detail.service_order_detail_id} className="flex-row justify-between items-start">
@@ -83,18 +83,17 @@ export const ServiceOrderListModal: React.FC<ServiceOrderListModalProps> = ({
                             </Text>
                           </View>
                           <Text className="text-gray-700 text-xs font-black">
-                            {(detail.price_at_order * (detail.quantity || 1)).toLocaleString("vi-VN")} đ
+                            {formatVND(detail.price_at_order * (detail.quantity || 1))}
                           </Text>
                         </View>
                       ))}
                     </View>
 
-                    {/* Total & Pay button */}
                     <View className="flex-row justify-between items-center pt-3 border-t border-gray-200/60 mt-1">
                       <View className="space-y-0.5">
                         <Text className="text-gray-400 text-[10px] font-bold uppercase">Tổng thanh toán</Text>
                         <Text className="text-gray-900 text-base font-black">
-                          {displayTotal.toLocaleString("vi-VN")} đ
+                          {formatVND(displayTotal)}
                         </Text>
                       </View>
 

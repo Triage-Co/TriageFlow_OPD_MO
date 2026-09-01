@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { stripRoomName } from "@/shared/utils/string.utils";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
 
-// Helper to match a room across floors in building map
 function findRoomInFloors(
   floors: any[],
   roomId?: string,
@@ -35,7 +34,7 @@ function findRoomInFloors(
 
   for (const floor of floors) {
     const room = floor.rooms?.find((r: any) => {
-      // 1. Match by ID if provided
+      
       if (roomId && (r.id === roomId || r.roomId === roomId)) {
         return true;
       }
@@ -54,12 +53,10 @@ function findRoomInFloors(
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
 
-      // 2. Match by Room Code (e.g. "P101", "XQ01")
       if (targetCodeLower && rCode === targetCodeLower) {
         return true;
       }
 
-      // 3. Match by Normalized & Stripped Room Label
       if (normName) {
         if (rCode === normName) return true;
         if (normLabel === normName) return true;
@@ -133,7 +130,6 @@ export default function NavigationScreen() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
 
-  // Ẩn / hiện Bottom Tab Bar khi bật chế độ Fullscreen
   useEffect(() => {
     navigation.setOptions({
       tabBarStyle: { display: isFullscreen ? "none" : "flex" },
@@ -149,7 +145,7 @@ export default function NavigationScreen() {
     async function initAutoRouting() {
       try {
         let resolvedTargetRoomName = targetRoomName;
-        let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c"; // Default building
+        let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c"; 
 
         if (resolvedTargetRoomName || targetRoomId) {
           const activeBooking = await bookingStorageService.getActiveBookingStep();
@@ -185,7 +181,6 @@ export default function NavigationScreen() {
         let foundTarget: RoomOption | null = null;
         let foundStart: RoomOption | null = null;
 
-        // 1. Match Target Room
         foundTarget = findRoomInFloors(
           mapData.floors,
           targetRoomId,
@@ -193,7 +188,6 @@ export default function NavigationScreen() {
           resolvedTargetRoomName
         );
 
-        // 2. Match Start Room if explicitly passed from previous step
         const hasExplicitStart = Boolean(startRoomName || startRoomId || startRoomCode);
         if (hasExplicitStart) {
           foundStart = findRoomInFloors(
@@ -206,7 +200,6 @@ export default function NavigationScreen() {
 
         const isExplicitTarget = Boolean(targetRoomName || targetRoomId || targetRoomCode);
 
-        // Only search for default start point if target was NOT explicitly requested via step click AND no explicit start room
         if (!isExplicitTarget && !hasExplicitStart) {
           for (const floor of mapData.floors) {
             const room = floor.rooms?.find((r: any) => {
@@ -277,7 +270,6 @@ export default function NavigationScreen() {
     triggerTime,
   ]);
 
-  // Handle Automatic Route Calculating
   useEffect(() => {
     async function calculatePath() {
       if (!startRoom || !targetRoom) {
@@ -330,16 +322,14 @@ export default function NavigationScreen() {
   return (
     <ScreenWrapper edges={["left", "right"]}>
       <View style={[styles.container, isFullscreen && styles.fullscreenContainer]}>
-        {/* Header (Ẩn hoàn toàn khi Fullscreen) */}
+        
         {!isFullscreen && <MapHeader />}
 
-        {/* Bản đồ 3D Canvas với cột nút điều khiển tích hợp [ Pan ] ➔ [ Xoay ] ➔ [ Fullscreen ] */}
         <MapViewer
           isFullscreen={isFullscreen}
           onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
         />
 
-        {/* Nút Chuyển Tầng Nổi (Cột riêng bên phải cùng, luôn cách an toàn dưới tai thỏ) */}
         {rawMap?.floors && rawMap.floors.length > 1 && (
           <View style={[styles.floorSwitcher, { top: topOffset }]}>
             {rawMap.floors
@@ -368,9 +358,8 @@ export default function NavigationScreen() {
           </View>
         )}
 
-        {/* BẢNG CHỈ ĐƯỜNG KIỂU KIOSK: ĐIỂM ĐI & ĐIỂM ĐẾN (Luôn cách an toàn dưới tai thỏ) */}
         <View style={[styles.kioskCard, { top: topOffset }]}>
-          {/* Header Bảng */}
+          
           <View style={styles.kioskCardHeader}>
             <View style={styles.kioskHeaderLeft}>
               <Ionicons name="navigate-circle" size={18} color="#2563EB" />
@@ -399,7 +388,7 @@ export default function NavigationScreen() {
 
           {isPanelExpanded && (
             <View style={styles.kioskBody}>
-              {/* Row Điểm Xuất Phát */}
+              
               <View style={styles.roomSelectRow}>
                 <View style={styles.dotStart} />
                 <TouchableOpacity
@@ -413,7 +402,6 @@ export default function NavigationScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Nút Hoán đổi 2 chiều */}
               <View style={styles.swapRow}>
                 <View style={styles.connectLine} />
                 <TouchableOpacity onPress={handleSwapRooms} style={styles.swapBtn} activeOpacity={0.7}>
@@ -421,7 +409,6 @@ export default function NavigationScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Row Điểm Đến */}
               <View style={styles.roomSelectRow}>
                 <View style={styles.dotDestination} />
                 <TouchableOpacity
@@ -435,7 +422,6 @@ export default function NavigationScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Trạng thái tính toán / Thông số lộ trình */}
               {routeLoading ? (
                 <View style={styles.statusLoading}>
                   <ActivityIndicator size="small" color="#2563EB" />
@@ -455,7 +441,6 @@ export default function NavigationScreen() {
           )}
         </View>
 
-        {/* BẢNG THÔNG TIN PHÒNG (Google Maps POI Card: Bật lên khi chạm vào phòng trên bản đồ 3D) */}
         {selectedRoom && (
           <RoomDetailCard
             room={selectedRoom}
@@ -491,7 +476,6 @@ export default function NavigationScreen() {
           />
         )}
 
-        {/* Modal Chọn Phòng Đi / Phòng Đến */}
         <RoomPickerModal
           isOpen={modalType !== null}
           onClose={() => setModalType(null)}

@@ -114,4 +114,3 @@ export default function CustomTabBar({ state, descriptors, navigation }: CustomT
     </View>
   );
 }
-

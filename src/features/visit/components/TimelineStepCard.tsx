@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
 import { router } from "expo-router";
 import { stripRoomName } from "@/shared/utils/string.utils";
+import { getStatusBadgeInfo } from "@/shared/utils/status.utils";
 
 interface TimelineStepCardProps {
   step: any;
@@ -56,7 +57,6 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
     return null;
   };
 
-  // Grouped Steps Rendering
   if (step.isGrouped) {
     const isGroupCompleted = step.subSteps.every((s: any) => s.step_status === "COMPLETED");
     const isGroupActive = isActive;
@@ -86,7 +86,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
 
     return (
       <View className="flex-row">
-        {/* Left Column timeline connector */}
+        
         <View className="items-center mr-4 w-8 text-center">
           <View
             className={`w-8 h-8 rounded-full items-center justify-center z-10 bg-white border border-gray-100 ${
@@ -100,10 +100,9 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
           )}
         </View>
 
-        {/* Right Column: Group Card */}
         <View className="flex-1 pb-6">
           <View className={`bg-white rounded-[20px] border p-4 shadow-sm ${gBorder} ${isGroupActive ? "border-primary" : ""}`}>
-            {/* Clickable Header */}
+            
             <Pressable 
               onPress={() => setIsExpanded(!isExpanded)}
               className="flex-row justify-between items-center"
@@ -123,7 +122,6 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
               </View>
             </Pressable>
 
-            {/* List of sub steps */}
             {isExpanded && (
               <View className="mt-3 pt-3 border-t border-gray-100 gap-3">
                 {step.subSteps.map((subStep: any, subIdx: number) => {
@@ -221,7 +219,6 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
     );
   }
 
-  // Single Step Rendering (Default)
   const isCompleted = step.step_status === "COMPLETED";
   const isPendingPayment = step.payment_status === "PENDING";
 
@@ -261,7 +258,7 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
 
   return (
     <View className="flex-row">
-      {/* Left Column: Nối đường vẽ timeline */}
+      
       <View className="items-center mr-4 w-8">
         <View
           className={`w-8 h-8 rounded-full items-center justify-center z-10 ${
@@ -279,7 +276,6 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
         )}
       </View>
 
-      {/* Right Column: Thông tin Card */}
       <View className="flex-1 pb-6">
         <View
           className={`bg-white rounded-[20px] border p-4 shadow-sm ${borderStyle} ${
@@ -297,7 +293,6 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
             </View>
           </View>
 
-          {/* Chi tiết phòng và số thứ tự */}
           <View className="flex-row items-center gap-4 mt-1">
             <View className="flex-row items-center gap-1">
               <Ionicons name="location" size={13} color="#9CA3AF" />
@@ -315,7 +310,6 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
             )}
           </View>
 
-          {/* Nút thanh toán trực tiếp từ timeline */}
           {isPendingPayment && !isHistoryMode && (
             <Pressable
               onPress={() => onPayPress && onPayPress(step)}
@@ -326,7 +320,6 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
             </Pressable>
           )}
 
-          {/* Hiển thị thêm thông tin chỉ đường hoặc ước tính cho bước đang chạy */}
           {isActive && !isPendingPayment && !isHistoryMode && (
             <View className="mt-3 pt-3 border-t border-gray-100 flex-row justify-between items-center">
               <View className="flex-row items-center gap-1">

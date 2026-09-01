@@ -24,7 +24,7 @@ export function Beacon({ position }: BeaconProps) {
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Ring lying on the floor */}
+      
       <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.0, 1.5, 32]} />
         <meshBasicMaterial
@@ -35,7 +35,6 @@ export function Beacon({ position }: BeaconProps) {
         />
       </mesh>
 
-      {/* Light cylinder beacon */}
       <mesh position={[0, 3, 0]}>
         <cylinderGeometry args={[0.3, 0.5, 6, 16]} />
         <meshBasicMaterial

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { forgotPasswordService } from "@/features/auth/services/forgot-password.service";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
 export function useForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +19,7 @@ export function useForgotPassword() {
       setError(response.message || "Gửi mã OTP thất bại.");
       return false;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gửi mã OTP thất bại.");
+      setError(getErrorMessage(err, "Gửi mã OTP thất bại."));
       return false;
     } finally {
       setIsLoading(false);
@@ -44,7 +45,7 @@ export function useForgotPassword() {
       setError(response.message || "Xác thực OTP thất bại.");
       return false;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xác thực OTP thất bại.");
+      setError(getErrorMessage(err, "Xác thực OTP thất bại."));
       return false;
     } finally {
       setIsLoading(false);

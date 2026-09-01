@@ -12,24 +12,9 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Colors } from "@/config/colors";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { formatVND } from "@/shared/utils/string.utils";
+import { formatDateTimeWithDot as formatDate } from "@/shared/utils/date.utils";
 import { useVisitInvoice } from "../hooks/useInvoice";
-
-function formatVND(amount?: number): string {
-  if (amount === undefined || amount === null) return "0 đ";
-  return amount.toLocaleString("vi-VN") + " đ";
-}
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const mins = String(d.getMinutes()).padStart(2, "0");
-  return `${hours}:${mins} • ${day}/${month}/${year}`;
-}
 
 export function VisitInvoiceDetailView() {
   const router = useRouter();
@@ -49,7 +34,7 @@ export function VisitInvoiceDetailView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
       <View style={styles.container}>
-        {/* Header Immersive chuẩn hệ thống */}
+        
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -80,9 +65,9 @@ export function VisitInvoiceDetailView() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* THẺ BIÊN LAI E-RECEIPT CAO CẤP */}
+            
             <View style={styles.receiptContainer}>
-              {/* Receipt Top Banner: Ngày khám */}
+              
               <View style={styles.receiptTopHeader}>
                 <View style={styles.dateRow}>
                   <View style={styles.dateIconWrapper}>
@@ -103,14 +88,12 @@ export function VisitInvoiceDetailView() {
                 </View>
               </View>
 
-              {/* Đường kẻ răng cưa / phân cách biên lai */}
               <View style={styles.notchDividerContainer}>
                 <View style={styles.notchLeft} />
                 <View style={styles.dashedLine} />
                 <View style={styles.notchRight} />
               </View>
 
-              {/* Danh sách các nhóm dịch vụ */}
               <View style={styles.itemsSection}>
                 <Text style={styles.sectionHeading}>
                   DANH MỤC DỊCH VỤ ĐÃ THỰC HIỆN
@@ -130,7 +113,7 @@ export function VisitInvoiceDetailView() {
                             styles.orderGroupSpacing,
                         ]}
                       >
-                        {/* Tiêu đề nhóm */}
+                        
                         <View style={styles.groupHeaderRow}>
                           <View style={styles.groupIconBox}>
                             <Ionicons
@@ -144,7 +127,6 @@ export function VisitInvoiceDetailView() {
                           </Text>
                         </View>
 
-                        {/* Danh sách từng dịch vụ con */}
                         <View style={styles.subItemsList}>
                           {hasSubItems ? (
                             subItems.map((detail, detailIdx) => (
@@ -175,7 +157,6 @@ export function VisitInvoiceDetailView() {
                           )}
                         </View>
 
-                        {/* Dòng tổng tiền nhóm con (nếu có từ 2 dịch vụ trở lên) */}
                         {hasSubItems && subItems.length > 1 && (
                           <View style={styles.groupSubtotalRow}>
                             <Text style={styles.groupSubtotalLabel}>
@@ -196,10 +177,8 @@ export function VisitInvoiceDetailView() {
                 )}
               </View>
 
-              {/* Đường gạch phân cách tổng kết */}
               <View style={styles.footerDivider} />
 
-              {/* TỔNG VIỆN PHÍ CUỐI CÙNG */}
               <View style={styles.totalBox}>
                 <View style={styles.totalLeftCol}>
                   <Text style={styles.totalLabel}>TỔNG CỘNG VIỆN PHÍ</Text>
@@ -281,7 +260,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  // RECEIPT CARD
+  
   receiptContainer: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
@@ -340,7 +319,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: Colors.primary,
   },
-  // NOTCH DIVIDER
+  
   notchDividerContainer: {
     position: "relative",
     flexDirection: "row",
@@ -378,7 +357,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     marginHorizontal: 16,
   },
-  // ITEMS SECTION
+  
   itemsSection: {
     paddingHorizontal: 20,
     paddingTop: 10,
@@ -477,7 +456,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#E2E8F0",
   },
-  // TOTAL FOOTER
+  
   totalBox: {
     flexDirection: "row",
     alignItems: "center",

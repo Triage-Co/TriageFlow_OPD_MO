@@ -13,7 +13,6 @@ export function useBodyMapPreload() {
 
   const gender: PatientSex = user?.gender?.toLowerCase() === "female" ? "female" : "male";
 
-  
   const getRegionIdsForGender = (sex: PatientSex): string[] => {
     const frontParts = sex === "female" ? femaleFrontData.bodyParts : maleFrontData.bodyParts;
     const backParts = sex === "female" ? femaleBackData.bodyParts : maleBackData.bodyParts;
@@ -36,7 +35,6 @@ export function useBodyMapPreload() {
     const regionIds = getRegionIdsForGender(gender);
     symptomPreloadService.startPreload(regionIds);
 
-    
     const initialStates: Record<string, RegionPreloadState> = {};
     regionIds.forEach((id) => {
       const state = symptomPreloadService.getState(id);

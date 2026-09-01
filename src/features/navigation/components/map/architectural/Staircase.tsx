@@ -16,13 +16,12 @@ export function Staircase({ position, opacity, isActive, rotation = [0, 0, 0] }:
 
   return (
     <animated.group position={position as any} rotation={rotation as any}>
-      {/* Floor / Base of stairs */}
+      
       <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[stepWidth + 1, stepDepth * stepCount + 1]} />
         <animated.meshStandardMaterial color="#cbd5e1" opacity={opacity} transparent />
       </mesh>
 
-      {/* Steps */}
       {Array.from({ length: stepCount }).map((_, i) => (
         <mesh
           key={i}
@@ -35,7 +34,6 @@ export function Staircase({ position, opacity, isActive, rotation = [0, 0, 0] }:
         </mesh>
       ))}
 
-      {/* Railings */}
       <mesh castShadow position={[-stepWidth / 2 - 0.1, stepHeight * stepCount / 2 + 0.5, 0]}>
         <boxGeometry args={[0.1, stepHeight * stepCount + 1, stepDepth * stepCount]} />
         <animated.meshStandardMaterial color="#94a3b8" opacity={opacity} transparent metalness={0.5} />

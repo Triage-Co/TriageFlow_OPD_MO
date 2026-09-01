@@ -190,5 +190,3 @@ export interface StepDetailResponse {
   message: string;
   data: StepDetailData;
 }
-
-

@@ -1,5 +1,4 @@
 
-
 export interface ApiBuilding {
   id: string;
   name: string;
@@ -128,8 +127,6 @@ export interface BuildingMapResponse {
   data: BuildingMapData;
 }
 
-
-
 export interface WallSegment {
   startX: number;
   startZ: number;
@@ -208,8 +205,6 @@ export interface FloorData3D {
     maxZ: number;
   };
 }
-
-
 
 export type MapFeatureType = 'room' | 'corridor' | 'elevator' | 'stairs' | 'slab';
 

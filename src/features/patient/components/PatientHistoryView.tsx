@@ -6,6 +6,8 @@ import { TimelineStepCard } from "@/features/visit/components/TimelineStepCard";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { formatVND as formatCurrency } from "@/shared/utils/string.utils";
+import { formatDateTime } from "@/shared/utils/date.utils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,12 +31,10 @@ export function PatientHistoryView() {
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
-  // Tab & Detail States
   const [activeTab, setActiveTab] = useState<DetailTabType>("record");
   const [sessionPrescription, setSessionPrescription] = useState<any | null>(null);
   const [isLoadingModalData, setIsLoadingModalData] = useState(false);
 
-  // States for patient selection
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [selectedPatientName, setSelectedPatientName] = useState<string>("");
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
@@ -54,7 +54,7 @@ export function PatientHistoryView() {
           : Array.isArray(rawSessions?.data)
           ? rawSessions.data
           : [];
-        // Sắp xếp các phiên khám mới nhất lên đầu dựa trên visit_date
+        
         const sortedSessions = [...sessionsList].sort((a: any, b: any) => {
           return new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime();
         });
@@ -84,7 +84,6 @@ export function PatientHistoryView() {
     }
   }, []);
 
-  // Tự động mở Modal chọn bệnh nhân 1 lần khi mới vào màn hình
   useEffect(() => {
     setIsPatientModalVisible(true);
   }, []);
@@ -121,11 +120,9 @@ export function PatientHistoryView() {
     }
   };
 
-  // Tìm flow tương ứng với phiên khám đang chọn
   const currentSessionFlow = useMemo(() => {
     if (!selectedSession || !patientFlows || patientFlows.length === 0) return null;
     
-    // 1. So khớp chính xác qua booking_id
     if (selectedSession.booking_id) {
       const matchedByBooking = patientFlows.find(
         (f: any) => f.booking_id === selectedSession.booking_id
@@ -133,7 +130,6 @@ export function PatientHistoryView() {
       if (matchedByBooking) return matchedByBooking;
     }
 
-    // 2. So khớp theo ngày (YYYY-MM-DD)
     if (selectedSession.visit_date) {
       const sessionDateStr = new Date(selectedSession.visit_date).toISOString().split("T")[0];
       const matchedByDate = patientFlows.find((f: any) => {
@@ -144,11 +140,9 @@ export function PatientHistoryView() {
       if (matchedByDate) return matchedByDate;
     }
 
-    // 3. Fallback: Lấy flow đầu tiên nếu chỉ có 1 flow
     return patientFlows[0] || null;
   }, [selectedSession, patientFlows]);
 
-  // Gom nhóm steps cho tab Lộ trình khám tương tự ClinicalRouteView
   const displayRouteSteps = useMemo(() => {
     if (!currentSessionFlow || !currentSessionFlow.steps) return [];
     const visibleSteps: any[] = currentSessionFlow.steps;
@@ -198,26 +192,10 @@ export function PatientHistoryView() {
     return result;
   }, [currentSessionFlow]);
 
-  // Định dạng ngày hiển thị: YYYY-MM-DDTHH:MM:SS -> DD/MM/YYYY HH:MM
-  const formatDateTime = (dateTimeStr: string) => {
-    if (!dateTimeStr) return "";
-    const parts = dateTimeStr.split("T");
-    const dateStr = parts[0].split("-").reverse().join("/");
-    const timeStr = parts[1] ? parts[1].substring(0, 5) : "";
-    return `${dateStr} ${timeStr}`;
-  };
-
-  // Format tiền tệ VNĐ
-  const formatCurrency = (amount?: number) => {
-    if (typeof amount !== "number") return "0 đ";
-    return `${amount.toLocaleString("vi-VN")} đ`;
-  };
-
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
 
-      {/* Patient Picker Modal */}
       <PatientPickerModal
         visible={isPatientModalVisible}
         onClose={() => setIsPatientModalVisible(false)}
@@ -226,7 +204,7 @@ export function PatientHistoryView() {
       />
 
       <View className="flex-1">
-        {/* Header Area */}
+        
         <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -247,7 +225,6 @@ export function PatientHistoryView() {
           </TouchableOpacity>
         </View>
 
-        {/* Subtitle hiển thị tên bệnh nhân đang chọn */}
         {selectedPatientName ? (
           <View className="bg-white px-5 py-3 border-b border-gray-100 flex-row justify-between items-center shadow-sm">
             <View className="flex-row items-center gap-2">
@@ -363,7 +340,6 @@ export function PatientHistoryView() {
         )}
       </View>
 
-      {/* ── CHI TIẾT PHIÊN KHÁM MODAL (3 TABS) ── */}
       <Modal
         visible={isDetailModalVisible}
         animationType="slide"
@@ -371,7 +347,7 @@ export function PatientHistoryView() {
       >
         <ScreenWrapper edges={["left", "right", "bottom"]}>
           <View className="flex-1 bg-gray-50">
-            {/* Header Modal */}
+            
             <View className="bg-primary pt-14 pb-4 px-5 shadow-sm">
               <View className="flex-row items-center justify-between">
                 <TouchableOpacity
@@ -391,7 +367,6 @@ export function PatientHistoryView() {
                 <View className="w-8" />
               </View>
 
-              {/* 3 Tab Navigation Pills */}
               <View
                 style={{
                   flexDirection: "row",
@@ -493,10 +468,9 @@ export function PatientHistoryView() {
               </View>
             </View>
 
-            {/* Modal Body Content theo từng Tab */}
             {activeTab === "record" && (
               <ScrollView showsVerticalScrollIndicator={false} className="flex-1 px-5 pt-5">
-                {/* Thẻ ngày khám */}
+                
                 <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                   <View className="flex-row items-center gap-2 mb-3">
                     <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
@@ -524,7 +498,6 @@ export function PatientHistoryView() {
                   </View>
                 </View>
 
-                {/* Chỉ số sinh hiệu (nếu có) */}
                 {(selectedSession?.heart_rate ||
                   selectedSession?.blood_pressure_sys ||
                   selectedSession?.temperature ||
@@ -578,7 +551,6 @@ export function PatientHistoryView() {
                   </View>
                 )}
 
-                {/* Bệnh sử & Tiền sử */}
                 <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                   <View className="flex-row items-center gap-2 mb-4">
                     <Ionicons name="pulse" size={18} color="#EF4444" />
@@ -606,7 +578,6 @@ export function PatientHistoryView() {
                   </View>
                 </View>
 
-                {/* Chẩn đoán */}
                 <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-8 border-l-4 border-l-emerald-500">
                   <View className="flex-row items-center gap-2 mb-2">
                     <Ionicons name="checkmark-circle" size={20} color="#10B981" />
@@ -621,7 +592,6 @@ export function PatientHistoryView() {
               </ScrollView>
             )}
 
-            {/* TAB 2: LỘ TRÌNH KHÁM */}
             {activeTab === "route" && (
               <View className="flex-1 px-5 pt-5">
                 {displayRouteSteps.length === 0 ? (
@@ -662,7 +632,6 @@ export function PatientHistoryView() {
               </View>
             )}
 
-            {/* TAB 3: ĐƠN THUỐC */}
             {activeTab === "prescription" && (
               <View className="flex-1 px-5 pt-5">
                 {isLoadingModalData ? (
@@ -690,7 +659,7 @@ export function PatientHistoryView() {
                     className="flex-1"
                     contentContainerStyle={{ paddingBottom: 50 }}
                   >
-                    {/* Header thông tin đơn thuốc */}
+                    
                     <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                       <View className="flex-row items-center gap-2 mb-3">
                         <Ionicons name="receipt-outline" size={18} color={Colors.primary} />
@@ -723,7 +692,6 @@ export function PatientHistoryView() {
                       </View>
                     </View>
 
-                    {/* Lời dặn của bác sĩ */}
                     {sessionPrescription.diagnosis_note && (
                       <View className="bg-blue-50 rounded-3xl p-5 border border-blue-100 shadow-sm mb-4">
                         <View className="flex-row items-center gap-2 mb-2">
@@ -738,7 +706,6 @@ export function PatientHistoryView() {
                       </View>
                     )}
 
-                    {/* Danh sách các loại thuốc */}
                     <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                       <View className="flex-row items-center justify-between mb-4">
                         <View className="flex-row items-center gap-2">
@@ -776,7 +743,6 @@ export function PatientHistoryView() {
                                     </View>
                                   </View>
 
-                                  {/* Cách dùng / Liều lượng */}
                                   {item.dosage_instruction ? (
                                     <View className="bg-white p-2.5 rounded-xl border border-gray-100 mt-1 mb-2">
                                       <Text className="text-gray-500 text-[10px] font-bold uppercase mb-0.5">
@@ -788,7 +754,6 @@ export function PatientHistoryView() {
                                     </View>
                                   ) : null}
 
-                                  {/* Đơn giá & Thành tiền */}
                                   <View className="flex-row justify-between items-center pt-1 border-t border-gray-200">
                                     <Text className="text-gray-400 text-[11px]">
                                       Đơn giá: {formatCurrency(item.unit_price)}
@@ -808,7 +773,6 @@ export function PatientHistoryView() {
                         </Text>
                       )}
 
-                      {/* Tổng tiền đơn thuốc */}
                       {typeof sessionPrescription.total_amount === "number" && (
                         <View className="mt-4 pt-4 border-t border-gray-100 flex-row justify-between items-center">
                           <Text className="text-gray-600 text-sm font-bold">Tổng tiền thuốc:</Text>

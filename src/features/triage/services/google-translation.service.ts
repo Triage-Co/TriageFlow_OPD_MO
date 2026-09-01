@@ -16,9 +16,6 @@ export const STATIC_EN_VI_DICTIONARY: Record<string, string> = {
   personal_visit: "Khám trực tiếp",
 };
 
-/**
- * Dịch thuật miễn phí qua Google Translate Free Endpoint (Không cần API Key)
- */
 export async function fetchGoogleTranslate(text: string, from = "en", to = "vi"): Promise<string> {
   if (!text || !text.trim()) return "";
   const trimmed = text.trim();
@@ -147,10 +144,9 @@ export class GoogleTranslationService {
     if (!question) return null;
 
     try {
-      // Dịch tiêu đề câu hỏi
+      
       const translatedText = await fetchGoogleTranslate(question.text || "");
 
-      // Dịch các lựa chọn và item
       const translatedItemsList = await Promise.all(
         (question.items || []).map(async (item) => {
           const nameVi = await fetchGoogleTranslate(item.name || "");

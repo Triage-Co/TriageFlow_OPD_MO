@@ -5,12 +5,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { AppAlert } from "@/shared/utils/alert.utils";
 import { Colors } from "@/config/colors";
 import { useDoctorSlots } from "@/features/booking/hooks/useDoctorSlots";
 import { Slot } from "@/features/booking/types/doctor.types";
@@ -18,6 +18,8 @@ import { AppButton } from "@/shared/components/AppButton";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { patientService } from "@/features/patient/services/patient.service";
+import { getInitials } from "@/shared/utils/string.utils";
+import { toISODateString } from "@/shared/utils/date.utils";
 
 export function DoctorSlotsView() {
   const router = useRouter();
@@ -34,10 +36,7 @@ export function DoctorSlotsView() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
   const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${year}-${month}-${day}`;
+  const todayStr = toISODateString(today);
   const isToday = initialDate === todayStr;
   const currentHours = today.getHours();
   const currentMinutes = today.getMinutes();
@@ -63,16 +62,6 @@ export function DoctorSlotsView() {
       return slotHours >= 12;
     });
   }, [slots]);
-
-  const getInitials = (name: string): string => {
-    const cleanName = name.replace(/^(BS\.|BS|PGS\.|PGS|TS\.|TS|ThS\.|ThS)\s+/i, "");
-    const parts = cleanName.trim().split(/\s+/);
-    if (parts.length === 0) return "DR";
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    const first = parts[0];
-    const last = parts[parts.length - 1];
-    return (first.charAt(0) + last.charAt(0)).toUpperCase();
-  };
 
   const handleSlotSelect = (slot: Slot) => {
     if (slot.status !== "AVAILABLE" || slot.capacity <= 0) return;
@@ -147,9 +136,9 @@ export function DoctorSlotsView() {
 
     const accountId = user?.account_id || user?.id;
     if (!accountId) {
-      Alert.alert(
-        "Không tìm thấy tài khoản",
-        "Vui lòng đăng nhập lại để thực hiện đặt lịch khám."
+      AppAlert.info(
+        "Vui lòng đăng nhập lại để thực hiện đặt lịch khám.",
+        "Không tìm thấy tài khoản"
       );
       return;
     }
@@ -157,9 +146,9 @@ export function DoctorSlotsView() {
     try {
       const patientsRes = await patientService.getPatients();
       if (!patientsRes?.data || patientsRes.data.length === 0) {
-        Alert.alert(
-          "Không tìm thấy bệnh nhân",
-          "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch."
+        AppAlert.info(
+          "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch.",
+          "Không tìm thấy bệnh nhân"
         );
         return;
       }
@@ -219,7 +208,7 @@ export function DoctorSlotsView() {
       <StatusBar style="dark" />
       <View className="flex-1 justify-between">
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          {/* ── 1. HEADER ── */}
+          
           <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
             <TouchableOpacity
               onPress={() => router.back()}
@@ -236,7 +225,6 @@ export function DoctorSlotsView() {
             <View className="w-10" />
           </View>
 
-          {/* ── 2. THÔNG TIN BÁC SĨ ĐÃ CHỌN ── */}
           <View className="mx-5 bg-white rounded-[24px] p-4 border border-gray-100 shadow-sm flex-row items-center">
             <View className="w-12 h-12 rounded-full bg-[#84AFEB]/20 items-center justify-center mr-4">
               <Text className="text-primary text-[14px] font-bold">
@@ -260,7 +248,6 @@ export function DoctorSlotsView() {
             </View>
           </View>
 
-          {/* ── 4. CHỌN GIỜ KHÁM ── */}
           <View className="mt-6 px-5 mb-10">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-gray-800 text-[14px] font-bold">Chọn giờ khám</Text>
@@ -296,7 +283,7 @@ export function DoctorSlotsView() {
               </View>
             ) : (
               <View className="gap-6">
-                {/* ── BUỔI SÁNG ── */}
+                
                 {morningSlots.length > 0 && (
                   <View>
                     <View className="flex-row items-center gap-2 mb-3">
@@ -314,7 +301,6 @@ export function DoctorSlotsView() {
                   </View>
                 )}
 
-                {/* ── BUỔI CHIỀU ── */}
                 {afternoonSlots.length > 0 && (
                   <View>
                     <View className="flex-row items-center gap-2 mb-3">

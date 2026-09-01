@@ -10,16 +10,13 @@ interface RoutePathProps {
   activeFloor: number;
 }
 
-/**
- * Creates 3D Navigation Arrow Pointer Geometry (Gấp đôi kích thước)
- */
 function createGoogleMapsArrowGeometry(): THREE.BufferGeometry {
   const shape = new THREE.Shape();
-  // Đỉnh nhọn phía trước (+Y) - Kích thước lớn x2
+  
   shape.moveTo(0, 2.6);
-  shape.lineTo(1.4, -1.4);     // Góc phải sau
-  shape.lineTo(0, -0.6);       // Hõm đuôi giữa
-  shape.lineTo(-1.4, -1.4);    // Góc trái sau
+  shape.lineTo(1.4, -1.4);     
+  shape.lineTo(0, -0.6);       
+  shape.lineTo(-1.4, -1.4);    
   shape.closePath();
 
   const extrudeSettings = {
@@ -34,12 +31,6 @@ function createGoogleMapsArrowGeometry(): THREE.BufferGeometry {
   return new THREE.ExtrudeGeometry(shape, extrudeSettings);
 }
 
-/**
- * Traveling 3D Navigation Arrow Pointer
- * - Thuần 1 màu TRẮNG tinh khiết (#FFFFFF)
- * - Không viền màu, không vòng sáng / không nhiễu
- * - Kích thước to x2, tốc độ chậm êm đềm
- */
 function GoogleMapsTravelingArrow({ curve }: { curve: THREE.CatmullRomCurve3 }) {
   const arrowGroupRef = useRef<THREE.Group>(null);
   const arrowGeometry = useMemo(() => createGoogleMapsArrowGeometry(), []);
@@ -53,10 +44,8 @@ function GoogleMapsTravelingArrow({ curve }: { curve: THREE.CatmullRomCurve3 }) 
     const position = curve.getPointAt(t);
     const tangent = curve.getTangentAt(t).normalize();
 
-    // Nâng mũi tên lên 0.45 để nổi rõ ràng trên mặt sàn và đường ống
     arrowGroupRef.current.position.set(position.x, position.y + 0.45, position.z);
 
-    // Xoay hướng mũi nhọn chuẩn xác theo tiếp tuyến lộ trình
     const arrowForward = new THREE.Vector3(0, 0, -1);
     const quaternion = new THREE.Quaternion().setFromUnitVectors(arrowForward, tangent);
     arrowGroupRef.current.quaternion.copy(quaternion);
@@ -66,7 +55,7 @@ function GoogleMapsTravelingArrow({ curve }: { curve: THREE.CatmullRomCurve3 }) 
 
   return (
     <group ref={arrowGroupRef}>
-      {/* Mũi tên 3D thuần màu Trắng tinh, sắc nét, không viền, không nhiễu */}
+      
       <group rotation={[-Math.PI / 2, 0, 0]}>
         <mesh geometry={arrowGeometry}>
           <meshBasicMaterial color="#FFFFFF" />
@@ -76,9 +65,6 @@ function GoogleMapsTravelingArrow({ curve }: { curve: THREE.CatmullRomCurve3 }) 
   );
 }
 
-/**
- * Start (Green Beacon) & Destination (Red Pin) 3D Markers on Map
- */
 function RouteMarkers({
   startPoint,
   endPoint,
@@ -102,33 +88,32 @@ function RouteMarkers({
 
   return (
     <group>
-      {/* 🟢 ĐIỂM XUẤT PHÁT: Ghim cột xanh lá + Cột cờ xuất phát 3D */}
+      
       <group position={[startPoint.x, startPoint.y, startPoint.z]}>
-        {/* Cột trụ */}
+        
         <mesh position={[0, 0.8, 0]}>
           <cylinderGeometry args={[0.08, 0.08, 1.6, 12]} />
           <meshBasicMaterial color="#15803D" />
         </mesh>
-        {/* Chấm tròn tâm */}
+        
         <mesh position={[0, 0.2, 0]}>
           <sphereGeometry args={[0.5, 16, 16]} />
           <meshBasicMaterial color="#22C55E" />
         </mesh>
-        {/* Vòng sóng */}
+        
         <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.4, 1.2, 24]} />
           <meshBasicMaterial ref={startRippleRef} color="#4ADE80" transparent opacity={0.65} side={THREE.DoubleSide} />
         </mesh>
       </group>
 
-      {/* 🔴 ĐIỂM ĐẾN: Ghim đích đỏ to + Cột cờ đích 3D */}
       <group position={[endPoint.x, endPoint.y, endPoint.z]}>
-        {/* Cột trụ đích */}
+        
         <mesh position={[0, 1.0, 0]}>
           <cylinderGeometry args={[0.08, 0.08, 2.0, 12]} />
           <meshBasicMaterial color="#991B1B" />
         </mesh>
-        {/* Ghim đích hình nón chúc xuống */}
+        
         <mesh position={[0, 1.1, 0]} rotation={[Math.PI, 0, 0]}>
           <coneGeometry args={[0.6, 1.3, 16]} />
           <meshBasicMaterial color="#EF4444" />
@@ -137,7 +122,7 @@ function RouteMarkers({
           <sphereGeometry args={[0.5, 16, 16]} />
           <meshBasicMaterial color="#DC2626" />
         </mesh>
-        {/* Vòng tròn đích */}
+        
         <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.5, 1.4, 24]} />
           <meshBasicMaterial ref={endRippleRef} color="#F87171" transparent opacity={0.7} side={THREE.DoubleSide} />
@@ -147,9 +132,6 @@ function RouteMarkers({
   );
 }
 
-/**
- * Renders the 3D route paths as a glowing neon tube with Google Maps-style navigation arrow and markers.
- */
 export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: RoutePathProps) {
   const setMarker3DPositions = useNavigationStore((s) => s.setMarker3DPositions);
 
@@ -211,7 +193,6 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
     }
   }, [path, centerShiftX, centerShiftZ, activeFloor]);
 
-  // Cập nhật tọa độ 3D của Điểm Xuất Phát và Điểm Đến
   useEffect(() => {
     if (startPoint && endPoint) {
       setMarker3DPositions({
@@ -228,7 +209,7 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
 
   return (
     <group>
-      {/* Ống dẫn đường màu xanh cố định */}
+      
       <mesh geometry={tubeGeometry}>
         <meshBasicMaterial
           color="#38BDF8"
@@ -238,10 +219,8 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
         />
       </mesh>
 
-      {/* Con trỏ điều hướng 3D thuần màu Trắng tinh */}
       <GoogleMapsTravelingArrow curve={curve} />
 
-      {/* Ghim 3D Điểm Đi và Điểm Đến */}
       <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
     </group>
   );

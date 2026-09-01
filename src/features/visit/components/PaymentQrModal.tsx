@@ -1,5 +1,6 @@
 import React from "react";
-import { Modal, View, Text, Pressable, ScrollView, Image, ActivityIndicator } from "react-native";
+import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 
 interface PaymentQrModalProps {
@@ -32,7 +33,7 @@ export const PaymentQrModal: React.FC<PaymentQrModalProps> = ({
     >
       <View className="flex-1 bg-black/60 justify-end">
         <View className="bg-white rounded-t-[36px] p-6 space-y-6 max-h-[85%]">
-          {/* Header Modal */}
+          
           <View className="flex-row justify-between items-center pb-2 border-b border-gray-100">
             <Text className="text-gray-800 text-lg font-bold">Quét Mã Chuyển Khoản</Text>
             <Pressable
@@ -44,14 +45,12 @@ export const PaymentQrModal: React.FC<PaymentQrModalProps> = ({
             </Pressable>
           </View>
 
-          {/* QR Content */}
           <ScrollView showsVerticalScrollIndicator={false} className="space-y-6">
             <View className="items-center space-y-4">
               <Text className="text-gray-500 text-xs text-center px-4 leading-[18px]">
                 Mở ứng dụng ngân hàng và quét mã QR để đóng phí cho dịch vụ khám.
               </Text>
 
-              {/* QR Image */}
               <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-md">
                 {qrImageUrl ? (
                   <Image
@@ -66,7 +65,6 @@ export const PaymentQrModal: React.FC<PaymentQrModalProps> = ({
                 )}
               </View>
 
-              {/* Details */}
               <View className="w-full bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-2.5">
                 <View className="flex-row justify-between">
                   <Text className="text-gray-400 text-xs">Dịch vụ</Text>
@@ -89,7 +87,6 @@ export const PaymentQrModal: React.FC<PaymentQrModalProps> = ({
               </View>
             </View>
 
-            {/* Confirm Actions */}
             <View className="pt-2 gap-3 flex-row">
               <Pressable
                 disabled={isCheckingPayment}

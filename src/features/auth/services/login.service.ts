@@ -80,7 +80,6 @@ export const loginService = {
     return response.data;
   },
 
-
   async logout(token: string): Promise<void> {
     try {
       await apiClient.post("/api/auth/logout", { token });

@@ -76,7 +76,6 @@ export function BookingMethodSelectView() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
 
-      {/* Header Xanh Thương Hiệu (Dài thêm x1.3, Icon & Text cùng hàng, chữ to nổi bật) */}
       <View
         style={{
           backgroundColor: "#84AFEB",
@@ -135,7 +134,7 @@ export function BookingMethodSelectView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}
       >
-        {/* Thẻ bệnh nhân đang chọn */}
+        
         <View
           style={{
             backgroundColor: "#FFFFFF",
@@ -198,7 +197,6 @@ export function BookingMethodSelectView() {
           </Pressable>
         </View>
 
-        {/* ⭐ THẺ HERO: AI GỢI Ý CHUYÊN KHOA (Màu xanh #84AFEB đồng bộ với Header) */}
         <Pressable
           onPress={handleSelectAITriage}
           style={{
@@ -210,7 +208,7 @@ export function BookingMethodSelectView() {
           }}
           className="active:opacity-90 shadow-sm"
         >
-          {/* Top row: Icon + Badge */}
+          
           <View className="flex-row items-center justify-between mb-4">
             <View
               style={{ backgroundColor: "#84AFEB" }}
@@ -227,13 +225,11 @@ export function BookingMethodSelectView() {
             </View>
           </View>
 
-          {/* Title & Desc */}
           <Text className="text-[19px] font-bold text-gray-900">AI Gợi Ý Chuyên Khoa</Text>
           <Text className="text-xs text-gray-600 leading-5 mt-1.5 mb-5">
             Phân tích triệu chứng & chỉ điểm vị trí đau trên mô hình cơ thể 3D để tìm đúng bác sĩ.
           </Text>
 
-          {/* Nút CTA to (Xanh thương hiệu #84AFEB) */}
           <View
             style={{ backgroundColor: "#84AFEB", borderRadius: 16 }}
             className="py-3.5 px-4 flex-row items-center justify-between shadow-sm"
@@ -243,9 +239,8 @@ export function BookingMethodSelectView() {
           </View>
         </Pressable>
 
-        {/* 2 KHỐI VUÔNG BÊN DƯỚI (50% - 50% Grid) */}
         <View className="flex-row gap-3.5">
-          {/* Cột 1: Khám Chuyên Khoa */}
+          
           <Pressable
             onPress={handleSelectSpecialty}
             style={{
@@ -277,7 +272,6 @@ export function BookingMethodSelectView() {
             </View>
           </Pressable>
 
-          {/* Cột 2: Gói Sức Khỏe */}
           <Pressable
             onPress={handleSelectPackage}
             style={{
@@ -311,7 +305,6 @@ export function BookingMethodSelectView() {
         </View>
       </ScrollView>
 
-      {/* Modal chọn bệnh nhân */}
       <PatientPickerModal
         visible={isPatientModalVisible}
         onClose={() => setIsPatientModalVisible(false)}

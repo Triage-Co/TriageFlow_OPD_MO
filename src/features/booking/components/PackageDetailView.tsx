@@ -12,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
+import { formatVND as formatPrice } from "@/shared/utils/string.utils";
+import { getStepVisualInfo } from "@/shared/utils/flow.utils";
 import { packageService } from "@/features/booking/services/package.service";
 import { ExamPackageDetail } from "@/features/booking/types/package.types";
 import { AppButton } from "@/shared/components/AppButton";
@@ -63,41 +65,13 @@ export function PackageDetailView() {
     });
   };
 
-  const getStepIcon = (stepType: string) => {
-    switch (stepType) {
-      case "LAB_TEST":
-        return "flask-outline";
-      case "IMAGING":
-        return "eye-outline";
-      case "CLINICAL":
-      default:
-        return "medkit-outline";
-    }
-  };
-
-  const getStepColor = (stepType: string) => {
-    switch (stepType) {
-      case "LAB_TEST":
-        return "#6366F1"; // Indigo
-      case "IMAGING":
-        return "#0EA5E9"; // Sky blue
-      case "CLINICAL":
-      default:
-        return Colors.primary;
-    }
-  };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("vi-VN") + " đ";
-  };
-
   const steps = packageDetail?.template?.steps || [];
 
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
       <View className="flex-1 bg-gray-50/50">
-        {/* ── 1. HEADER ── */}
+        
         <View
           style={{ paddingTop: Math.max(insets.top, 16) + 8 }}
           className="flex-row items-center justify-between px-5 pb-3 bg-white border-b border-gray-100/80"
@@ -150,7 +124,7 @@ export function PackageDetailView() {
               contentContainerStyle={{ paddingBottom: 120 }}
               className="flex-1"
             >
-              {/* Package Card */}
+              
               <View className="bg-white rounded-3xl m-5 p-6 border border-slate-100 shadow-sm">
                 <View className="w-12 h-12 rounded-2xl bg-blue-50 items-center justify-center mb-4 border border-blue-100/60">
                   <Ionicons name="briefcase" size={22} color={Colors.primary} />
@@ -172,7 +146,6 @@ export function PackageDetailView() {
                 </View>
               </View>
 
-              {/* Steps inside the package */}
               <View className="px-5 mt-1">
                 <Text className="text-gray-800 text-[15px] font-extrabold mb-4">
                   Danh mục dịch vụ bao gồm ({steps.length})
@@ -186,13 +159,12 @@ export function PackageDetailView() {
                   </View>
                 ) : (
                   steps.map((step, idx) => {
-                    const iconName = getStepIcon(step.step_type);
-                    const iconColor = getStepColor(step.step_type);
+                    const { icon: iconName, color: iconColor } = getStepVisualInfo(step.step_type, Colors.primary);
                     const isLast = idx === steps.length - 1;
 
                     return (
                       <View key={idx} className="flex-row items-stretch">
-                        {/* Timeline bar */}
+                        
                         <View className="items-center mr-3.5">
                           <View
                             style={{ backgroundColor: iconColor + "15" }}
@@ -205,7 +177,6 @@ export function PackageDetailView() {
                           )}
                         </View>
 
-                        {/* Step detail card */}
                         <View className="flex-1 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mb-3.5">
                           <Text className="text-gray-800 text-[14px] font-bold">
                             {idx + 1}. {step.step_name}
@@ -233,7 +204,6 @@ export function PackageDetailView() {
               </View>
             </ScrollView>
 
-            {/* Sticky register button bar */}
             <View className="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-slate-100 flex-row justify-between items-center shadow-lg">
               <View className="flex-1 pr-4">
                 <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">

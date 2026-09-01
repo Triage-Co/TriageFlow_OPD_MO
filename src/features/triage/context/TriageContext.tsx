@@ -69,7 +69,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [patientId, setPatientId] = useState<string | undefined>(undefined);
   const [patientName, setPatientName] = useState<string | undefined>(undefined);
 
-  
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -124,7 +123,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return Object.values(selectedSymptomsMap).flat();
   };
 
-  
   const searchSymptomsByRegion = async (params: {
     bodyPartId: string;
     gender: BodyGender;
@@ -134,7 +132,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }) => {
     setError(null);
 
-    
     const localSymptoms = getLocalSymptoms(params.bodyPartId, params.gender);
     setSymptoms(localSymptoms);
 
@@ -152,7 +149,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
-    
     try {
       const phrasesToTry = [params.searchPhrase, ...(params.fallbackSearchPhrases ?? [])];
 
@@ -192,10 +188,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  /**
-   * Bắt đầu phiên chẩn đoán mới từ các triệu chứng đã chọn trên Body Map.
-   * Gọi diagnose API lần đầu (không có interview_token), lưu session và navigate sang interview.
-   */
   const startDiagnosisSession = async (selectedPatientId?: string) => {
     const allSelected = getAllSelectedSymptoms();
     if (allSelected.length === 0) {
@@ -245,10 +237,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      
       citizenId = citizenId || user?.account_id || user?.id || "";
 
-      
       if (!citizenId || !genderVal || !dobVal) {
         console.log("[Triage] Thiếu thông tin trong JWT, đang tải từ Profile API...");
         const profileRes = await profileService.getProfile();
@@ -305,7 +295,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPatientName(targetPatientName);
       if (allSelected.length > 0) setSelectedSymptom(allSelected[0]);
 
-      
       setSelectedSymptomsMap(currentMap);
 
       const newSession: DiagnosisSessionCache = {
@@ -343,10 +332,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  /**
-   * Trả lời câu hỏi trong phiên hỏi bệnh (lần 2 trở đi).
-   * Evidence được tích lũy dần theo từng lần trả lời.
-   */
   const answerQuestion = async (selectedAnswers: Evidence[]) => {
     setIsLoading(true);
     setError(null);
@@ -355,7 +340,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const session = await triageCacheService.getDiagnosisSession();
       if (!session) throw new Error("Không tìm thấy phiên làm việc hiện tại. Vui lòng thử lại.");
 
-      
       let citizenId = session.citizenId;
       if (!citizenId) {
         citizenId = user?.citizen_id;
@@ -369,7 +353,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (!citizenId) throw new Error("Không tìm thấy thông tin định danh người dùng. Vui lòng đăng nhập lại.");
 
-      
       const updatedEvidence = [...session.evidence];
       selectedAnswers.forEach((ans) => {
         const index = updatedEvidence.findIndex((e) => e.id === ans.id);
@@ -385,7 +368,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setEvidence(updatedEvidence);
 
-      
       const nextCount = (session.questionCount || 1) + 1;
       console.log(`[Triage] Câu hỏi số ${nextCount}. Gọi diagnose lần ${updatedEvidence.length} evidence, token=${session.interviewToken}`);
 
@@ -405,7 +387,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error((response as any).message || "API chẩn đoán trả về lỗi không xác định.");
       }
 
-      
       const isForcedStop = nextCount >= 5 || response.should_stop;
 
       const translatedQuestion = isForcedStop ? null : await translationService.translateQuestion(response.question);
@@ -425,7 +406,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log(`[Triage] Kết quả lần này: nextCount=${nextCount}, should_stop=${isForcedStop}, token=${session.interviewToken}`);
 
-      // Tự động gọi API đề xuất chuyên khoa và chuyển trang ngay lập tức
       if (isForcedStop) {
         await triggerRecommendation();
         return;
@@ -442,9 +422,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  /**
-   * Gọi API đề xuất chuyên khoa sau khi hoàn tất hỏi bệnh (should_stop = true).
-   */
   const triggerRecommendation = async () => {
     setIsLoading(true);
     setError(null);

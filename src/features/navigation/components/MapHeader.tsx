@@ -4,15 +4,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigationStore } from "../store/useNavigationStore";
 import { useBuildingMap } from "../hooks/useBuildingMap";
 
-/**
- * Header component for the map view. Displays the dynamic building details.
- */
 export function MapHeader() {
   const insets = useSafeAreaInsets();
   const { activeFloor, activeBuildingId } = useNavigationStore();
   const { rawMap } = useBuildingMap(activeFloor, activeBuildingId || undefined);
 
-  
   const buildingName = rawMap?.building?.name || "Tòa G2 – Khoa Khám Bệnh";
   const buildingAddress = rawMap?.building?.addressLabel || "Sơ đồ 3D chỉ đường trong bệnh viện";
 
