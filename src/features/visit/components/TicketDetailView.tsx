@@ -22,6 +22,7 @@ interface TicketData {
   ticketCode: string;
   specialtyName: string;
   roomName: string;
+  doctorName?: string;
   startTime: string;
   patientName: string;
 }
@@ -44,15 +45,16 @@ export function TicketDetailView() {
       const defaultTicketCode =
         (params.ticketCode as string) ||
         (params.ticket_code as string) ||
-        (params.qrText as string) ||
+        (params.code as string) ||
         "";
 
       if (!stepId) {
         setTicketData({
           queueNumber: (params.queueNumber as string) || "--",
           ticketCode: defaultTicketCode,
-          specialtyName: (params.specialtyName as string) || "Tổng quát",
+          specialtyName: (params.packageName as string) || (params.specialtyName as string) || "Khám chuyên khoa",
           roomName: (params.roomName as string) || "Đang xếp phòng",
+          doctorName: (params.doctorName as string) || "Bác sĩ phụ trách",
           startTime: (params.startTime as string) || "Đang xếp ca",
           patientName: (params.patientName as string) || "Bệnh nhân",
         });
@@ -86,12 +88,45 @@ export function TicketDetailView() {
             if (pId) {
               setPatientId(pId);
             }
+            const flowBooking = stepDetail.flow?.booking as any;
+            const flowAny = stepDetail.flow as any;
+            const specName =
+              flowBooking?.package?.package_name ||
+              flowAny?.package_name ||
+              stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name ||
+              (params.packageName as string) ||
+              (params.specialtyName as string) ||
+              "Khám chuyên khoa";
+            const rName =
+              stepDetail.flow?.booking?.slot?.shift?.room?.room_name ||
+              flowBooking?.room?.room_name ||
+              flowAny?.room ||
+              (stepDetail as any)?.room_info?.room_name ||
+              (stepDetail as any)?.room?.room_name ||
+              (stepDetail as any)?.room_name ||
+              (params.roomName as string) ||
+              "Đang xếp phòng";
+            const docName =
+              flowBooking?.slot?.shift?.staff?.full_name ||
+              flowBooking?.staff?.full_name ||
+              flowAny?.doctor ||
+              (stepDetail as any)?.room_info?.staff_name ||
+              (stepDetail as any)?.staff?.full_name ||
+              (stepDetail as any)?.doctor_name ||
+              (params.doctorName as string) ||
+              "Bác sĩ phụ trách";
+            const sTime =
+              stepDetail.flow?.booking?.slot?.start_time ||
+              (params.startTime as string) ||
+              "Đang xếp ca";
+
             setTicketData({
               queueNumber: qNum || "--",
               ticketCode: tCode || defaultTicketCode || stepDetail.step_id || "",
-              specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || (params.specialtyName as string) || "Tổng quát",
-              roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || (params.roomName as string) || "Đang xếp phòng",
-              startTime: stepDetail.flow?.booking?.slot?.start_time || (params.startTime as string) || "Đang xếp ca",
+              specialtyName: specName,
+              roomName: rName,
+              doctorName: docName,
+              startTime: sTime,
               patientName: (params.patientName as string) || "Bệnh nhân",
             });
           }
@@ -99,8 +134,9 @@ export function TicketDetailView() {
           setTicketData({
             queueNumber: (params.queueNumber as string) || "--",
             ticketCode: defaultTicketCode,
-            specialtyName: (params.specialtyName as string) || "Tổng quát",
+            specialtyName: (params.packageName as string) || (params.specialtyName as string) || "Khám chuyên khoa",
             roomName: (params.roomName as string) || "Đang xếp phòng",
+            doctorName: (params.doctorName as string) || "Bác sĩ phụ trách",
             startTime: (params.startTime as string) || "Đang xếp ca",
             patientName: (params.patientName as string) || "Bệnh nhân",
           });
@@ -122,8 +158,9 @@ export function TicketDetailView() {
   }, [stepId]);
 
   const queueNumber = ticketData?.queueNumber || (params.queueNumber as string) || "--";
-  const specialtyName = ticketData?.specialtyName || (params.specialtyName as string) || "Tổng quát";
+  const specialtyName = ticketData?.specialtyName || (params.packageName as string) || (params.specialtyName as string) || "Khám chuyên khoa";
   const roomName = ticketData?.roomName || (params.roomName as string) || "Đang xếp phòng";
+  const doctorName = ticketData?.doctorName || (params.doctorName as string) || "Bác sĩ phụ trách";
   const startTime = ticketData?.startTime || (params.startTime as string) || "Đang xếp ca";
   const patientName = ticketData?.patientName || (params.patientName as string) || "Bệnh nhân";
 
@@ -197,20 +234,19 @@ export function TicketDetailView() {
           className="flex-1 px-5 mt-5"
           contentContainerStyle={{ paddingBottom: 60 }}
         >
-          {/* Phiếu khám Card */}
-          <View className="bg-white rounded-[32px] border border-[#84AFEB]/30 shadow-lg shadow-black/5 overflow-hidden">
-            {/* Header của thẻ */}
-            <View className="bg-[#84AFEB]/10 flex-row items-center justify-center py-4 border-b border-[#84AFEB]/15">
-              <View className="bg-primary/20 w-7 h-7 rounded-lg items-center justify-center mr-2">
-                <Ionicons
-                  name="medical"
-                  size={14}
-                  color={Colors.primary}
-                />
-              </View>
-              <Text className="text-primary font-bold text-[14px]">
-                TriageFlowOPD
+          {/* Main Ticket Card */}
+          <View className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden mb-6">
+            {/* Status Top Strip */}
+            <View className="bg-emerald-50 px-6 py-3 border-b border-emerald-100 flex-row justify-between items-center">
+              <Text className="text-emerald-700 text-xs font-bold">
+                Phiếu khám hợp lệ
               </Text>
+              <View className="flex-row items-center gap-1.5">
+                <View className="w-2 h-2 rounded-full bg-emerald-500" />
+                <Text className="text-emerald-700 text-[11px] font-bold">
+                  Sẵn sàng
+                </Text>
+              </View>
             </View>
 
             {/* Nội dung chính */}
@@ -225,14 +261,14 @@ export function TicketDetailView() {
               {/* Bảng thông tin chi tiết */}
               <View className="w-full bg-[#84AFEB]/10 rounded-[24px] p-5 border border-[#84AFEB]/20 mb-6">
                 <View className="flex-row mb-4">
-                  {/* Cột trái: Chuyên khoa */}
+                  {/* Cột trái: Chuyên khoa / Gói khám */}
                   <View className="flex-1 pr-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
                       <Ionicons name="medical" size={12} color="#6B7280" />
-                      <Text className="text-gray-500 text-[11px] font-medium">Chuyên khoa</Text>
+                      <Text className="text-gray-500 text-[11px] font-medium">Dịch vụ / Gói khám</Text>
                     </View>
                     <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
-                      {specialtyName || "Tổng quát"}
+                      {specialtyName || "Khám chuyên khoa"}
                     </Text>
                   </View>
 
@@ -248,9 +284,20 @@ export function TicketDetailView() {
                   </View>
                 </View>
 
-                <View className="flex-row">
-                  {/* Cột trái: Thời gian bắt đầu */}
+                <View className="flex-row mb-4">
+                  {/* Cột trái: Bác sĩ phụ trách */}
                   <View className="flex-1 pr-2">
+                    <View className="flex-row items-center gap-1.5 mb-1">
+                      <Ionicons name="person-circle" size={12} color="#6B7280" />
+                      <Text className="text-gray-500 text-[11px] font-medium">Bác sĩ phụ trách</Text>
+                    </View>
+                    <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
+                      {doctorName || "Bác sĩ chuyên khoa"}
+                    </Text>
+                  </View>
+
+                  {/* Cột phải: Thời gian bắt đầu */}
+                  <View className="flex-1 pl-2">
                     <View className="flex-row items-center gap-1.5 mb-1">
                       <Ionicons name="time" size={12} color="#6B7280" />
                       <Text className="text-gray-500 text-[11px] font-medium">Thời gian bắt đầu</Text>
@@ -259,12 +306,14 @@ export function TicketDetailView() {
                       {startTime || "Đang xếp ca"}
                     </Text>
                   </View>
+                </View>
 
-                  {/* Cột phải: Bệnh nhân */}
-                  <View className="flex-1 pl-2">
-                    <View className="flex-row items-center gap-1.5 mb-1">
+                {/* Hàng 3: Bệnh nhân */}
+                <View className="pt-2 border-t border-[#84AFEB]/20">
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-1.5">
                       <Ionicons name="person" size={12} color="#6B7280" />
-                      <Text className="text-gray-500 text-[11px] font-medium">Bệnh nhân</Text>
+                      <Text className="text-gray-500 text-[11px] font-medium">Bệnh nhân:</Text>
                     </View>
                     <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
                       {patientName || "Bệnh nhân"}
@@ -273,25 +322,23 @@ export function TicketDetailView() {
                 </View>
               </View>
 
-              {/* Dotted divider */}
-              <View className="w-full border-t border-dashed border-gray-200 my-4" />
-
-              <Text className="text-gray-400 text-[11px] font-medium text-center mb-4">
-                Quét để cập nhật vị trí và lộ trình
-              </Text>
-
               {/* QR Code */}
-              <View className="bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm">
+              <View className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm items-center">
                 <Image
                   source={{ uri: qrImageUrl }}
                   className="w-44 h-44"
                   resizeMode="contain"
                 />
+                {ticketCode ? (
+                  <Text className="text-gray-800 text-[13px] font-black mt-3 tracking-wider text-center">
+                    Mã phiếu: {ticketCode}
+                  </Text>
+                ) : null}
               </View>
             </View>
 
             {/* Các nút hành động dưới card */}
-            <View className="mt-6 gap-y-3 pb-8">
+            <View className="mt-6 gap-y-3 pb-8 px-6">
               <AppButton
                 title="Theo dõi hàng đợi"
                 onPress={handleGoToTicketTab}

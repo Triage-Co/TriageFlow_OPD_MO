@@ -6,8 +6,10 @@ import {
   Pressable,
   FlatList,
   ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
-import { SymbolView } from "expo-symbols";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
 import { patientService } from "@/features/patient/services/patient.service";
 import { Patient } from "@/features/patient/types/patient.types";
@@ -60,6 +62,11 @@ export function PatientPickerModal({
     }
   };
 
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatientId(patient.patient_id);
+    onConfirm(patient.patient_id, patient.full_name);
+  };
+
   const handleConfirm = () => {
     if (!selectedPatientId) return;
     const selected = patients.find((p) => p.patient_id === selectedPatientId);
@@ -75,136 +82,279 @@ export function PatientPickerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/50 justify-center items-center px-6">
-        <View className="w-full bg-white rounded-[28px] overflow-hidden max-h-[80%] shadow-lg">
-          <View className="p-6">
-            {/* Header */}
-            <View className="flex-row justify-between items-center mb-5">
-              <Text className="text-gray-800 text-lg font-bold">Chọn bệnh nhân</Text>
-              <Pressable
-                onPress={onClose}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <SymbolView
-                  name={{ ios: "xmark.circle.fill", android: "cancel" }}
-                  size={24}
-                  tintColor="#9CA3AF"
-                />
-              </Pressable>
-            </View>
-
-            {/* Title & Desc */}
-            <Text className="text-gray-500 text-xs mb-4">
-              Vui lòng chọn hồ sơ bệnh nhân cần xem thông tin:
-            </Text>
-
-            {isLoading ? (
-              <View className="py-10 items-center justify-center">
-                <ActivityIndicator size="small" color={Colors.primary} />
-              </View>
-            ) : (
-              <FlatList
-                data={patients}
-                keyExtractor={(item) => item.patient_id}
-                showsVerticalScrollIndicator={false}
-                style={{ maxHeight: 250 }}
-                contentContainerStyle={{ paddingBottom: 10 }}
-                renderItem={({ item }) => {
-                  const isSelected = selectedPatientId === item.patient_id;
-
-                  let initials = "BN";
-                  if (item.full_name) {
-                    const parts = item.full_name.trim().split(" ");
-                    if (parts.length > 1) {
-                      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                    } else if (parts.length === 1) {
-                      initials = parts[0].substring(0, 2).toUpperCase();
-                    }
-                  }
-
-                  const formattedDob = item.dob
-                    ? item.dob.split("T")[0].split("-").reverse().join("/")
-                    : "";
-
-                  return (
-                    <Pressable
-                      onPress={() => setSelectedPatientId(item.patient_id)}
-                      className={`flex-row items-center p-3 rounded-2xl border mb-3 active:opacity-75 ${
-                        isSelected
-                          ? "bg-primary/5 border-primary"
-                          : "bg-white border-neutral-100"
-                      }`}
-                    >
-                      {/* Initials Avatar */}
-                      <View
-                        className={`w-10 h-10 rounded-xl items-center justify-center mr-3 ${
-                          isSelected ? "bg-primary/10" : "bg-neutral-100"
-                        }`}
-                      >
-                        <Text
-                          className={`font-bold text-sm ${
-                            isSelected ? "text-primary" : "text-gray-500"
-                          }`}
-                        >
-                          {initials}
-                        </Text>
-                      </View>
-
-                      {/* Patient Details */}
-                      <View className="flex-1">
-                        <Text
-                          className={`font-bold text-[14px] ${
-                            isSelected ? "text-primary" : "text-gray-800"
-                          }`}
-                        >
-                          {item.full_name}
-                        </Text>
-                        <View className="flex-row items-center gap-3 mt-0.5">
-                          <Text className="text-gray-400 text-[11px] font-medium">
-                            {item.gender?.toUpperCase() === "MALE" ? "Nam" : "Nữ"}
-                          </Text>
-                          <View className="w-1 h-1 rounded-full bg-gray-300" />
-                          <Text className="text-gray-400 text-[11px] font-medium">
-                            {formattedDob}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Radio Checkmark */}
-                      <View
-                        className={`w-5 h-5 rounded-full border items-center justify-center ${
-                          isSelected
-                            ? "border-primary bg-primary"
-                            : "border-gray-300 bg-white"
-                        }`}
-                      >
-                        {isSelected && (
-                          <SymbolView
-                            name={{ ios: "checkmark", android: "done" }}
-                            size={12}
-                            tintColor="#FFFFFF"
-                          />
-                        )}
-                      </View>
-                    </Pressable>
-                  );
-                }}
-              />
-            )}
-
-            {/* Confirm button */}
-            <Pressable
-              onPress={handleConfirm}
-              disabled={isLoading || patients.length === 0}
-              className={`w-full py-3.5 rounded-2xl items-center justify-center mt-4 active:opacity-90 ${
-                isLoading || patients.length === 0 ? "bg-gray-300" : "bg-primary"
-              }`}
+      <View style={styles.overlay}>
+        <View style={styles.modalCard}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Chọn bệnh nhân</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Text className="text-white font-bold text-[15px]">Xác nhận</Text>
-            </Pressable>
+              <Ionicons name="close-circle" size={26} color="#9CA3AF" />
+            </TouchableOpacity>
           </View>
+
+          {/* Desc */}
+          <Text style={styles.modalDesc}>
+            Vui lòng chạm để chọn hồ sơ bệnh nhân:
+          </Text>
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={patients}
+              keyExtractor={(item) => item.patient_id}
+              showsVerticalScrollIndicator={false}
+              style={styles.flatList}
+              contentContainerStyle={{ paddingBottom: 4 }}
+              renderItem={({ item }) => {
+                const isSelected = selectedPatientId === item.patient_id;
+
+                let initials = "BN";
+                if (item.full_name) {
+                  const parts = item.full_name.trim().split(" ");
+                  if (parts.length > 1) {
+                    initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                  } else if (parts.length === 1) {
+                    initials = parts[0].substring(0, 2).toUpperCase();
+                  }
+                }
+
+                const formattedDob = item.dob
+                  ? item.dob.split("T")[0].split("-").reverse().join("/")
+                  : "";
+
+                return (
+                  <TouchableOpacity
+                    onPress={() => handleSelectPatient(item)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.patientItem,
+                      isSelected ? styles.patientItemSelected : styles.patientItemUnselected,
+                    ]}
+                  >
+                    {/* Initials Avatar */}
+                    <View
+                      style={[
+                        styles.avatarBox,
+                        isSelected ? styles.avatarBoxSelected : styles.avatarBoxUnselected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.avatarText,
+                          isSelected ? styles.avatarTextSelected : styles.avatarTextUnselected,
+                        ]}
+                      >
+                        {initials}
+                      </Text>
+                    </View>
+
+                    {/* Patient Details */}
+                    <View style={styles.patientInfo}>
+                      <Text
+                        style={[
+                          styles.patientItemName,
+                          isSelected ? styles.patientItemNameSelected : styles.patientItemNameUnselected,
+                        ]}
+                      >
+                        {item.full_name}
+                      </Text>
+                      <View style={styles.patientSubRow}>
+                        <Text style={styles.patientSubText}>
+                          {item.gender?.toUpperCase() === "MALE" ? "Nam" : "Nữ"}
+                        </Text>
+                        <View style={styles.dot} />
+                        <Text style={styles.patientSubText}>
+                          {formattedDob}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Radio Checkmark */}
+                    <View
+                      style={[
+                        styles.radioBox,
+                        isSelected ? styles.radioBoxSelected : styles.radioBoxUnselected,
+                      ]}
+                    >
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              ListFooterComponent={
+                patients.length > 0 ? (
+                  <TouchableOpacity
+                    onPress={handleConfirm}
+                    activeOpacity={0.8}
+                    style={styles.confirmButton}
+                  >
+                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.confirmButtonText}>Xác nhận</Text>
+                  </TouchableOpacity>
+                ) : null
+              }
+            />
+          )}
         </View>
       </View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxHeight: "80%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  modalTitle: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalDesc: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginBottom: 14,
+  },
+  loadingContainer: {
+    paddingVertical: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flatList: {
+    flexGrow: 0,
+  },
+  patientItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 10,
+  },
+  patientItemSelected: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#3B82F6",
+  },
+  patientItemUnselected: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E5E7EB",
+  },
+  avatarBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  avatarBoxSelected: {
+    backgroundColor: "#DBEAFE",
+  },
+  avatarBoxUnselected: {
+    backgroundColor: "#F3F4F6",
+  },
+  avatarText: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  avatarTextSelected: {
+    color: "#1D4ED8",
+  },
+  avatarTextUnselected: {
+    color: "#4B5563",
+  },
+  patientInfo: {
+    flex: 1,
+  },
+  patientItemName: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  patientItemNameSelected: {
+    color: "#1D4ED8",
+  },
+  patientItemNameUnselected: {
+    color: "#111827",
+  },
+  patientSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 3,
+  },
+  patientSubText: {
+    color: "#6B7280",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#9CA3AF",
+  },
+  radioBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioBoxSelected: {
+    borderColor: "#2563EB",
+    backgroundColor: "#2563EB",
+  },
+  radioBoxUnselected: {
+    borderColor: "#D1D5DB",
+    backgroundColor: "#FFFFFF",
+  },
+  confirmButton: {
+    width: "100%",
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#84AFEB",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  confirmButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+});

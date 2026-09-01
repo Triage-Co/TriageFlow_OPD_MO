@@ -38,6 +38,7 @@ export function PaymentQrView() {
 
   const doctorName = params.doctorName as string;
   const specialtyName = params.specialtyName as string;
+  const roomName = params.roomName as string;
   const selectedDate = params.selectedDate as string;
   const slotTime = params.slotTime as string;
   const isPackageBooking = params.isPackageBooking === "true";
@@ -46,8 +47,10 @@ export function PaymentQrView() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [confirmedData, setConfirmedData] = useState<{
     queueNumber: string;
+    ticketCode?: string;
     specialtyName: string;
     roomName: string;
+    doctorName?: string;
     startTime: string;
     patientName: string;
     bookingId: string;
@@ -102,8 +105,10 @@ export function PaymentQrView() {
       }
       setConfirmedData({
         queueNumber: (params.queueNumber as string) || "GÓI KHÁM",
-        specialtyName: specialtyName || "Gói khám sức khỏe",
-        roomName: "Phòng Tiếp Nhận Ban Đầu",
+        ticketCode: (params.ticketCode as string) || (params.ticket_code as string) || "",
+        specialtyName: specialtyName || (params.packageName as string) || "Gói khám sức khỏe",
+        roomName: (params.roomName as string) || "Phòng khám gói",
+        doctorName: (params.doctorName as string) || "Bác sĩ phụ trách",
         startTime: slotTime || "Theo ca đã chọn",
         patientName: patientName || "",
         bookingId: bookingId || "",
@@ -131,11 +136,40 @@ export function PaymentQrView() {
 
     await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
 
+    const tCode =
+      (bookingResult as any)?.ticket_code ||
+      stepDetail.flow?.ticket_code ||
+      stepDetail.queues?.[0]?.ticket_code ||
+      (params.ticketCode as string) ||
+      (params.ticket_code as string) ||
+      "";
+    const specName =
+      (params.specialtyName as string) ||
+      stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name ||
+      (params.roomName as string) ||
+      specialtyName ||
+      "Khám chuyên khoa";
+    const rName =
+      (params.roomName as string) ||
+      stepDetail.flow?.booking?.slot?.shift?.room?.room_name ||
+      "Đang xếp phòng";
+    const docName =
+      (params.doctorName as string) ||
+      (stepDetail.flow?.booking?.slot?.shift as any)?.staff?.full_name ||
+      doctorName ||
+      "Bác sĩ phụ trách";
+    const sTime =
+      stepDetail.flow?.booking?.slot?.start_time ||
+      slotTime ||
+      "Đang xếp ca";
+
     setConfirmedData({
       queueNumber: bookingResult.queue?.queue_number || bookingResult.queue_number || "--",
-      specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || specialtyName || "",
-      roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || "",
-      startTime: stepDetail.flow?.booking?.slot?.start_time || slotTime || "",
+      ticketCode: tCode,
+      specialtyName: specName,
+      roomName: rName,
+      doctorName: docName,
+      startTime: sTime,
       patientName: patientName || "",
       bookingId: bookingId || "",
       stepId: stepId || "",
@@ -181,10 +215,16 @@ export function PaymentQrView() {
               </View>
             </View>
 
+            {roomName ? (
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-gray-400 text-[12px] font-medium">Phòng khám</Text>
+                <Text className="text-gray-700 text-[12px] font-bold">{roomName}</Text>
+              </View>
+            ) : null}
             <View className="flex-row justify-between mb-2">
               <Text className="text-gray-400 text-[12px] font-medium">Thời gian khám</Text>
               <Text className="text-gray-700 text-[12px] font-bold">
-                {slotTime} - {selectedDate}
+                {slotTime ? `${slotTime} - ` : ""}{selectedDate || "Hôm nay"}
               </Text>
             </View>
             <View className="flex-row justify-between mb-2">
@@ -210,43 +250,7 @@ export function PaymentQrView() {
 
             {/* Số tiền cần thanh toán */}
             <Text className="text-gray-400 text-[12px] font-semibold">Số tiền thanh toán</Text>
-            <Text className="text-primary text-[24px] font-extrabold mb-5">{formattedAmount}</Text>
-
-            {/* Chi tiết chuyển khoản */}
-            <View className="w-full bg-gray-50 rounded-[18px] p-4 gap-y-3">
-              <View className="flex-row justify-between items-center">
-                <Text className="text-gray-400 text-[12px] font-medium">Tên tài khoản</Text>
-                <Pressable
-                  onPress={() => copyToClipboard(accountName, "Tên tài khoản")}
-                  className="flex-row items-center gap-1 active:opacity-60"
-                >
-                  <Text className="text-gray-700 text-[12px] font-bold mr-1">{accountName}</Text>
-                  <Ionicons name="copy-outline" size={14} color={Colors.textMuted} />
-                </Pressable>
-              </View>
-
-              <View className="flex-row justify-between items-center">
-                <Text className="text-gray-400 text-[12px] font-medium">Số tài khoản</Text>
-                <Pressable
-                  onPress={() => copyToClipboard(accountNumber, "Số tài khoản")}
-                  className="flex-row items-center gap-1 active:opacity-60"
-                >
-                  <Text className="text-gray-700 text-[12px] font-bold mr-1">{accountNumber}</Text>
-                  <Ionicons name="copy-outline" size={14} color={Colors.textMuted} />
-                </Pressable>
-              </View>
-
-              <View className="flex-row justify-between items-center">
-                <Text className="text-gray-400 text-[12px] font-medium">Nội dung CK</Text>
-                <Pressable
-                  onPress={() => copyToClipboard(description, "Nội dung chuyển khoản")}
-                  className="flex-row items-center gap-1 active:opacity-60"
-                >
-                  <Text className="text-gray-700 text-[12px] font-bold mr-1">{description}</Text>
-                  <Ionicons name="copy-outline" size={14} color={Colors.textMuted} />
-                </Pressable>
-              </View>
-            </View>
+            <Text className="text-primary text-[24px] font-extrabold mb-2">{formattedAmount}</Text>
 
             {/* Option to Open in browser */}
             {checkoutUrl ? (

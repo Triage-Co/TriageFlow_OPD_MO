@@ -15,10 +15,11 @@ export function BookingSuccessView() {
   const queueNumber = params.queueNumber as string;
   const status = params.status as string;
   const doctorName = params.doctorName as string;
-  const specialtyName = params.specialtyName as string;
+  const specialtyName = (params.packageName as string) || (params.specialtyName as string) || "Khám chuyên khoa";
+  const roomName = params.roomName as string;
   const selectedDate = params.selectedDate as string;
   const slotTime = params.slotTime as string;
-  const bookingId = params.bookingId as string;
+  const bookingId = (params.ticketCode as string) || (params.bookingId as string);
 
   const getStatusLabel = (s: string) => {
     switch (s?.toUpperCase()) {
@@ -99,30 +100,41 @@ export function BookingSuccessView() {
               <View className="flex-row justify-between items-start">
                 <Text className="text-gray-400 text-[12px] font-medium">Bác sĩ khám</Text>
                 <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
-                  {doctorName}
+                  {doctorName || "Bác sĩ phụ trách"}
                 </Text>
               </View>
 
               <View className="flex-row justify-between items-start">
-                <Text className="text-gray-400 text-[12px] font-medium">Chuyên khoa</Text>
+                <Text className="text-gray-400 text-[12px] font-medium">Dịch vụ / Gói khám</Text>
                 <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
                   {specialtyName}
                 </Text>
               </View>
 
+              {roomName ? (
+                <View className="flex-row justify-between items-start">
+                  <Text className="text-gray-400 text-[12px] font-medium">Phòng khám</Text>
+                  <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
+                    {roomName}
+                  </Text>
+                </View>
+              ) : null}
+
               <View className="flex-row justify-between items-start">
                 <Text className="text-gray-400 text-[12px] font-medium">Thời gian khám</Text>
                 <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
-                  {slotTime} - {selectedDate}
+                  {slotTime ? `${slotTime} - ` : ""}{selectedDate}
                 </Text>
               </View>
 
-              <View className="flex-row justify-between items-start border-t border-gray-50 pt-3.5">
-                <Text className="text-gray-400 text-[12px] font-medium">Mã phiếu khám</Text>
-                <Text className="text-gray-700 text-[12px] font-semibold text-right">
-                  {bookingId}
-                </Text>
-              </View>
+              {bookingId ? (
+                <View className="flex-row justify-between items-start border-t border-gray-50 pt-3.5">
+                  <Text className="text-gray-400 text-[12px] font-medium">Mã phiếu khám</Text>
+                  <Text className="text-gray-700 text-[12px] font-semibold text-right">
+                    {bookingId}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </View>
 

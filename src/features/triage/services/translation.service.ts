@@ -191,6 +191,40 @@ Return ONLY a raw JSON object (no markdown, no backticks, no extra text) matchin
   ): Promise<DiagnosisQuestion | null> {
     if (!question) return null;
 
+    // Helper kiểm tra xem chuỗi có phải là tiếng Việt có dấu không
+    const isVietnamese = (str?: string | null): boolean => {
+      if (!str) return false;
+      const viRegex = /[àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i;
+      return viRegex.test(str);
+    };
+
+    // NẾU BACKEND ĐÃ DỊCH SẴN SANG TIẾNG VIỆT (ƯU TIÊN BE)
+    if (isVietnamese(question.text) || isVietnamese(question.textVi)) {
+      const translatedItemsList = (question.items || []).map((item) => {
+        const translatedChoices = (item.choices || []).map((choice) => ({
+          ...choice,
+          labelVi:
+            choice.labelVi ||
+            STATIC_EN_VI_DICTIONARY[choice.label] ||
+            STATIC_EN_VI_DICTIONARY[choice.id] ||
+            choice.label,
+        }));
+
+        return {
+          ...item,
+          nameVi: item.nameVi || item.name,
+          choices: translatedChoices,
+        };
+      });
+
+      return {
+        ...question,
+        textVi: question.textVi || question.text,
+        items: translatedItemsList,
+      };
+    }
+
+    // NẾU BE TRẢ VỀ TIẾNG ANH THÌ DÙNG BỘ DỊCH FALLBACK DỰ PHÒNG
     try {
       const apiKey = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
       if (!apiKey) {

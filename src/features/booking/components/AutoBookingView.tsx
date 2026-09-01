@@ -45,20 +45,29 @@ export function AutoBookingView() {
         if (!active) return;
 
         if (bookingResult) {
+          const paymentObj = (bookingResult as any).payment?.data || (bookingResult as any).payment || {};
+          const bDoctor = (bookingResult as any).doctor || "Bác sĩ phụ trách";
+          const bRoom = (bookingResult as any).room || "Phòng khám chỉ định AI";
+          const bTicketCode = (bookingResult as any).ticket_code || "";
+
           router.replace({
             pathname: "/(patient)/visit/payment-qr",
             params: {
               stepId: bookingResult.step_id,
-              bookingId: bookingResult.booking_id || bookingResult.data?.booking_id || "",
-              bin: bookingResult.payment.data.bin,
-              accountNumber: bookingResult.payment.data.accountNumber,
-              accountName: bookingResult.payment.data.accountName,
-              amount: bookingResult.payment.data.amount.toString(),
-              description: bookingResult.payment.data.description,
-              checkoutUrl: bookingResult.payment.data.checkoutUrl,
-              qrCode: bookingResult.payment.data.qrCode,
-              orderCode: bookingResult.payment.data.orderCode.toString(),
-              ordercode: bookingResult.payment.data.orderCode.toString(),
+              bookingId: bookingResult.booking_id || (bookingResult as any).data?.booking_id || "",
+              ticketCode: bTicketCode,
+              doctorName: bDoctor,
+              roomName: bRoom,
+              specialtyName: bRoom,
+              bin: paymentObj.bin || "",
+              accountNumber: paymentObj.accountNumber || "",
+              accountName: paymentObj.accountName || "",
+              amount: (paymentObj.amount || 0).toString(),
+              description: paymentObj.description || "Thanh toán xếp phòng tự động",
+              checkoutUrl: paymentObj.checkoutUrl || "",
+              qrCode: paymentObj.qrCode || "",
+              orderCode: (paymentObj.orderCode || "").toString(),
+              ordercode: (paymentObj.orderCode || "").toString(),
               patientName,
               patientId: finalPatientId,
               flowType: "auto",

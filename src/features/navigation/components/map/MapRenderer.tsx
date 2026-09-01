@@ -41,6 +41,8 @@ function RoomMesh({ room }: { room: RoomData3D }) {
   const targetRoom = useNavigationStore((s) => s.targetRoom);
   const selectedNodeId = useNavigationStore((s) => s.selectedNodeId);
   const setSelectedNodeId = useNavigationStore((s) => s.setSelectedNodeId);
+  const setSelectedRoom = useNavigationStore((s) => s.setSelectedRoom);
+  const activeFloor = useNavigationStore((s) => s.activeFloor);
 
   const isStart = startRoom && room.id === startRoom.id;
   const isTarget = targetRoom && room.id === targetRoom.id;
@@ -86,6 +88,13 @@ function RoomMesh({ room }: { room: RoomData3D }) {
 
             if (dist < 8) {
               setSelectedNodeId(room.id);
+              setSelectedRoom({
+                id: room.id,
+                roomCode: room.roomCode,
+                roomLabel: room.roomLabel,
+                floorNumber: activeFloor,
+                type: (room as any).type || "ROOM",
+              });
             }
             pointerStartRef.current = null;
           }}

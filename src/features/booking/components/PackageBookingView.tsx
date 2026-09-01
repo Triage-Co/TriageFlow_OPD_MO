@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  StyleSheet,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -20,7 +21,7 @@ import { AppButton } from "@/shared/components/AppButton";
 
 interface DateItem {
   dateStr: string; // YYYY-MM-DD
-  dayNum: string;  // e.g. "05"
+  dayNum: string; // e.g. "05"
   dayLabel: string; // e.g. "Th 4" or "Hôm nay"
 }
 
@@ -84,8 +85,31 @@ export function PackageBookingView() {
     setSelectedSlot(null);
     try {
       const res = await packageService.getRoomSlots(date);
-      const list = (res as any)?.data || res || [];
-      const available = (Array.isArray(list) ? list : []).filter(
+      console.log("[PackageBooking] getRoomSlots response:", JSON.stringify(res));
+      const raw = (res as any)?.data || res || [];
+      let list: any[] = [];
+      if (Array.isArray(raw)) {
+        list = raw;
+      } else if (raw && Array.isArray(raw.slots)) {
+        list = raw.slots;
+      } else if (raw && Array.isArray(raw.room_slots)) {
+        list = raw.room_slots;
+      } else if (raw && Array.isArray(raw.data)) {
+        list = raw.data;
+      }
+
+      const normalized: RoomSlot[] = list.map((s: any, idx: number) => ({
+        slot_id: s.slot_id || s.id || s.slotId || `slot-${idx}`,
+        slot_index: s.slot_index || s.slotIndex || idx,
+        shift_id: s.shift_id || s.shiftId || "",
+        start_time: s.start_time || s.startTime || "",
+        end_time: s.end_time || s.endTime || s.start_time || s.startTime || "",
+        capacity: typeof s.capacity === "number" ? s.capacity : 1,
+        max_capacity: typeof s.max_capacity === "number" ? s.max_capacity : 1,
+        status: s.status || "AVAILABLE",
+      }));
+
+      const available = normalized.filter(
         (s) => s.status === "AVAILABLE" || s.capacity > 0
       );
       setSlots(available);
@@ -103,12 +127,107 @@ export function PackageBookingView() {
     }
   }, [selectedDate]);
 
+  const morningSlots = useMemo(() => {
+    return slots.filter((slot) => {
+      const sTime = slot.start_time || (slot as any).startTime;
+      if (!sTime) return true;
+      const parts = sTime.split(":");
+      if (parts.length < 2) return true;
+      const slotHours = parseInt(parts[0], 10);
+      return slotHours < 12;
+    });
+  }, [slots]);
+
+  const afternoonSlots = useMemo(() => {
+    return slots.filter((slot) => {
+      const sTime = slot.start_time || (slot as any).startTime;
+      if (!sTime) return false;
+      const parts = sTime.split(":");
+      if (parts.length < 2) return false;
+      const slotHours = parseInt(parts[0], 10);
+      return slotHours >= 12;
+    });
+  }, [slots]);
+
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
+    setSelectedSlot(null);
   };
 
   const handleSelectSlot = (slot: RoomSlot) => {
+    if (slot.status === "FULL" || slot.capacity <= 0) return;
     setSelectedSlot(slot);
+  };
+
+  const now = new Date();
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const isToday = selectedDate === todayStr;
+
+  const renderSlotItem = (slot: RoomSlot) => {
+    const slotId = slot.slot_id || (slot as any).id || "";
+    const sTime = slot.start_time || (slot as any).startTime || "";
+    const eTime = slot.end_time || (slot as any).endTime || sTime;
+
+    let isPastSlot = false;
+    if (isToday && sTime) {
+      const parts = sTime.split(":");
+      if (parts.length >= 2) {
+        const slotHours = parseInt(parts[0], 10);
+        const slotMinutes = parseInt(parts[1], 10);
+        if (
+          slotHours < currentHours ||
+          (slotHours === currentHours && slotMinutes <= currentMinutes)
+        ) {
+          isPastSlot = true;
+        }
+      }
+    }
+
+    const isAvailable =
+      (slot.status === "AVAILABLE" || slot.capacity > 0) &&
+      slot.status !== "FULL" &&
+      !isPastSlot;
+    const isSelected = selectedSlot?.slot_id === slotId;
+
+    return (
+      <TouchableOpacity
+        key={slotId}
+        disabled={!isAvailable}
+        onPress={() => isAvailable && handleSelectSlot(slot)}
+        activeOpacity={0.7}
+        style={[
+          styles.slotButton,
+          isSelected ? styles.slotButtonSelected : !isAvailable ? styles.slotButtonDisabled : styles.slotButtonDefault,
+        ]}
+      >
+        <Text
+          style={[
+            styles.slotStartText,
+            isSelected ? styles.textWhite : !isAvailable ? styles.textDisabled : styles.textDark,
+          ]}
+        >
+          {sTime}
+        </Text>
+
+        <View
+          style={[
+            styles.slotDivider,
+            isSelected ? styles.slotDividerSelected : styles.slotDividerDefault,
+          ]}
+        />
+
+        <Text
+          style={[
+            styles.slotEndText,
+            isSelected ? styles.textWhite : !isAvailable ? styles.textDisabled : styles.textMuted,
+          ]}
+        >
+          {eTime}
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   const handleRegisterPackage = async () => {
@@ -132,11 +251,20 @@ export function PackageBookingView() {
       const paymentObj = rawData?.payment?.data || rawData?.payment || {};
 
       if (paymentObj && (paymentObj.qrCode || paymentObj.checkoutUrl || paymentObj.accountNumber)) {
+        const pkgDoctor = rawData?.doctor || "Bác sĩ phụ trách";
+        const pkgRoom =
+          rawData?.room ||
+          (selectedSlot as any)?.shift?.room?.room_name ||
+          (selectedSlot as any)?.room?.room_name ||
+          "Phòng khám gói";
+        const pkgTicketCode = rawData?.ticket_code || "";
+
         router.push({
           pathname: "/(patient)/visit/payment-qr",
           params: {
             stepId: rawData?.step_id || "",
             bookingId: bookingId,
+            ticketCode: pkgTicketCode,
             bin: paymentObj.bin || "",
             accountNumber: paymentObj.accountNumber || "",
             accountName: paymentObj.accountName || "",
@@ -147,7 +275,8 @@ export function PackageBookingView() {
             orderCode: (paymentObj.orderCode || "").toString(),
             ordercode: (paymentObj.orderCode || "").toString(),
             specialtyName: packageName,
-            doctorName: "Gói khám sức khỏe",
+            doctorName: pkgDoctor,
+            roomName: pkgRoom,
             selectedDate: selectedDate,
             slotTime: selectedSlot.start_time,
             patientName: patientName || "Bệnh nhân",
@@ -179,14 +308,16 @@ export function PackageBookingView() {
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
-    if (parts.length < 3) return dateStr;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
   };
 
   return (
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View className="flex-1 bg-gray-50/50">
+      <View className="flex-1 justify-between bg-[#F8FAFC]">
         {/* ── 1. HEADER ── */}
         <View
           style={{ paddingTop: Math.max(insets.top, 16) + 8 }}
@@ -247,21 +378,24 @@ export function PackageBookingView() {
                     key={item.dateStr}
                     onPress={() => handleSelectDate(item.dateStr)}
                     activeOpacity={0.7}
-                    className={`mx-1.5 py-3 px-4 rounded-2xl items-center justify-center min-w-[72px] border ${
-                      isSelected
-                        ? "bg-primary border-primary shadow-sm"
-                        : "bg-white border-slate-100 shadow-sm"
-                    }`}
+                    style={[
+                      styles.dateButton,
+                      isSelected ? styles.dateButtonSelected : styles.dateButtonDefault,
+                    ]}
                   >
                     <Text
-                      className="text-[11px] font-bold"
-                      style={{ color: isSelected ? "#FFFFFF" : "#94A3B8" }}
+                      style={[
+                        styles.dateLabelText,
+                        isSelected ? styles.textWhite : styles.textMuted,
+                      ]}
                     >
                       {item.dayLabel}
                     </Text>
                     <Text
-                      className="text-[17px] font-black mt-0.5"
-                      style={{ color: isSelected ? "#FFFFFF" : "#1E293B" }}
+                      style={[
+                        styles.dateNumText,
+                        isSelected ? styles.textWhite : styles.textDark,
+                      ]}
                     >
                       {item.dayNum}
                     </Text>
@@ -297,37 +431,42 @@ export function PackageBookingView() {
                 </Text>
               </View>
             ) : (
-              <View className="flex-row flex-wrap gap-2.5">
-                {slots.map((item) => {
-                  const isSelected = selectedSlot?.slot_id === item.slot_id;
-                  const isFull = item.status === "FULL" || item.capacity <= 0;
-
-                  return (
-                    <TouchableOpacity
-                      key={item.slot_id}
-                      onPress={() => !isFull && handleSelectSlot(item)}
-                      disabled={isFull}
-                      activeOpacity={0.7}
-                      style={{ width: "31%" }}
-                      className={`py-3 px-1 rounded-2xl items-center justify-center border shadow-sm ${
-                        isSelected
-                          ? "bg-primary border-primary"
-                          : isFull
-                          ? "bg-gray-100 border-gray-200 opacity-50"
-                          : "bg-white border-slate-100"
-                      }`}
-                    >
-                      <Text
-                        className="text-[13px] font-bold"
-                        style={{
-                          color: isSelected ? "#FFFFFF" : isFull ? "#94A3B8" : "#1E293B",
-                        }}
-                      >
-                        {item.start_time}
+              <View className="gap-6">
+                {/* ── BUỔI SÁNG ── */}
+                {morningSlots.length > 0 && (
+                  <View>
+                    <View className="flex-row items-center gap-2 mb-3">
+                      <View className="w-6 h-6 rounded-full bg-amber-50 items-center justify-center border border-amber-100">
+                        <Ionicons name="sunny-outline" size={13} color="#D97706" />
+                      </View>
+                      <Text className="text-gray-800 text-[13px] font-bold">
+                        Buổi sáng
                       </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                    </View>
+
+                    <View style={styles.slotsGrid}>
+                      {morningSlots.map((slot: RoomSlot) => renderSlotItem(slot))}
+                    </View>
+                  </View>
+                )}
+
+                {/* ── BUỔI CHIỀU ── */}
+                {afternoonSlots.length > 0 && (
+                  <View>
+                    <View className="flex-row items-center gap-2 mb-3">
+                      <View className="w-6 h-6 rounded-full bg-blue-50 items-center justify-center border border-blue-100">
+                        <Ionicons name="partly-sunny-outline" size={13} color={Colors.primary} />
+                      </View>
+                      <Text className="text-gray-800 text-[13px] font-bold">
+                        Buổi chiều
+                      </Text>
+                    </View>
+
+                    <View style={styles.slotsGrid}>
+                      {afternoonSlots.map((slot: RoomSlot) => renderSlotItem(slot))}
+                    </View>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -402,3 +541,90 @@ export function PackageBookingView() {
     </ScreenWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  dateButton: {
+    marginHorizontal: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 72,
+    borderWidth: 1,
+  },
+  dateButtonDefault: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#F1F5F9",
+  },
+  dateButtonSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  dateLabelText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  dateNumText: {
+    fontSize: 17,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+  slotsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  slotButton: {
+    width: "22.5%",
+    paddingVertical: 12,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  slotButtonDefault: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#F1F5F9",
+  },
+  slotButtonSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  slotButtonDisabled: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#F1F5F9",
+    opacity: 0.4,
+  },
+  slotStartText: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  slotDivider: {
+    width: 20,
+    height: 1.5,
+    marginVertical: 4,
+  },
+  slotDividerDefault: {
+    backgroundColor: "#E2E8F0",
+  },
+  slotDividerSelected: {
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+  },
+  slotEndText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  textWhite: {
+    color: "#FFFFFF",
+  },
+  textDark: {
+    color: "#1E293B",
+  },
+  textMuted: {
+    color: "#94A3B8",
+  },
+  textDisabled: {
+    color: "#CBD5E1",
+  },
+});

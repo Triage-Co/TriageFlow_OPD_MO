@@ -107,6 +107,11 @@ export function ProfileView() {
             onPress={() => router.push("/(patient)/profile/history")}
           />
           <ActionCard
+            iconName={{ ios: "doc.text", android: "receipt" }}
+            title="Hóa đơn & Viện phí"
+            onPress={() => router.push("/(patient)/invoice" as any)}
+          />
+          <ActionCard
             iconName={{ ios: "person.3", android: "people" }}
             title="Hồ Sơ Khám Bệnh"
             onPress={() => router.push("/(patient)/triage/patient-list" as any)}

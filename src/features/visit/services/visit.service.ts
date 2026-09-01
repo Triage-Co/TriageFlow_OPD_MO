@@ -54,11 +54,16 @@ class VisitService {
   }
 
   /**
-   * Lấy đơn thuốc theo ID phiên khám
+   * Lấy đơn thuốc theo ID phiên khám (bỏ qua Global Toast nếu chưa có đơn)
    */
   async getPrescriptionByVisitSession(visitSessionId: string): Promise<any> {
     try {
-      const response = await apiClient.get(`/api/prescription/visit-session/${encodeURIComponent(visitSessionId)}`);
+      const response = await apiClient.get(
+        `/api/prescription/visit-session/${encodeURIComponent(visitSessionId)}`,
+        {
+          skipGlobalToast: true,
+        } as any
+      );
       return response.data;
     } catch {
       // Khi phiên khám không có đơn thuốc hoặc chưa kê thuốc, trả về null êm đẹp

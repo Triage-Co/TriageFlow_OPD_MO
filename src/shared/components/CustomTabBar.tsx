@@ -22,6 +22,11 @@ export default function CustomTabBar({ state, descriptors, navigation }: CustomT
   const insets = useSafeAreaInsets();
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 20;
 
+  const currentOptions = descriptors[state.routes[state.index]?.key]?.options;
+  if (currentOptions?.tabBarStyle?.display === "none") {
+    return null;
+  }
+
   return (
     <View 
       className="absolute left-4 right-4 flex-row bg-primary rounded-[36px] py-2.5 px-3 items-center justify-between shadow-lg"

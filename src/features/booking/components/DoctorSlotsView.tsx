@@ -173,11 +173,21 @@ export function DoctorSlotsView() {
       const bookingResult = await submitBooking(patientId, selectedSlot.slot_id);
 
       if (bookingResult && !("error" in bookingResult)) {
+        const bTicketCode = (bookingResult as any)?.ticket_code || "";
+        const bRoom =
+          (bookingResult as any)?.room ||
+          (bookingResult as any)?.room_name ||
+          (selectedSlot as any)?.room?.room_name ||
+          (selectedSlot as any)?.shift?.room?.room_name ||
+          (params.roomName as string) ||
+          "";
+
         router.push({
           pathname: "/(patient)/visit/payment-qr",
           params: {
             stepId: bookingResult.step_id,
             bookingId: bookingResult.booking_id || bookingResult.data?.booking_id || "",
+            ticketCode: bTicketCode,
             bin: bookingResult.payment.data.bin,
             accountNumber: bookingResult.payment.data.accountNumber,
             accountName: bookingResult.payment.data.accountName,
@@ -189,6 +199,7 @@ export function DoctorSlotsView() {
             ordercode: bookingResult.payment.data.orderCode.toString(),
             doctorName,
             specialtyName,
+            roomName: bRoom,
             selectedDate: initialDate,
             slotTime: selectedSlot.start_time,
             patientName,
