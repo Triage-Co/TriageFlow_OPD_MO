@@ -14,6 +14,7 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
 import { maskCitizenId } from "@/shared/utils/string.utils";
 import { AppAlert } from "@/shared/utils/alert.utils";
+import { formatDate, toISODateString } from "@/shared/utils/date.utils";
 import {
   ActivityIndicator,
   FlatList,
@@ -109,26 +110,10 @@ export function PatientListView() {
     setIsEditVisible(true);
   };
 
-  const formatDisplayDate = (dateString?: string) => {
-    if (!dateString) return "";
-    try {
-      const date = new Date(dateString);
-      const d = String(date.getDate()).padStart(2, "0");
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const y = date.getFullYear();
-      return `${d}/${m}/${y}`;
-    } catch {
-      return dateString;
-    }
-  };
-
   const onChangeDob = (_: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      const y = selectedDate.getFullYear();
-      const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
-      const d = String(selectedDate.getDate()).padStart(2, "0");
-      setEditForm((prev) => ({ ...prev, dob: `${y}-${m}-${d}` }));
+      setEditForm((prev) => ({ ...prev, dob: toISODateString(selectedDate) }));
     }
   };
 
@@ -483,7 +468,7 @@ export function PatientListView() {
                   <Text
                     className={editForm.dob ? "text-sm text-neutral-800 font-medium" : "text-sm text-neutral-400"}
                   >
-                    {editForm.dob ? formatDisplayDate(editForm.dob) : "Chọn ngày sinh"}
+                    {editForm.dob ? formatDate(editForm.dob) : "Chọn ngày sinh"}
                   </Text>
                   <SymbolView
                     name={{ ios: "calendar", android: "calendar_today" }}
@@ -565,7 +550,7 @@ export function PatientListView() {
               <View className="flex-row justify-between">
                 <Text className="text-gray-400 text-xs">Ngày sinh</Text>
                 <Text className="text-gray-700 text-xs font-bold">
-                  {formatDisplayDate(selectedPatient?.dob)}
+                  {formatDate(selectedPatient?.dob)}
                 </Text>
               </View>
 

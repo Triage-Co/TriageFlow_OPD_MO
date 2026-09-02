@@ -1,3 +1,4 @@
+import { Colors } from "@/config/colors";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import type { Gender } from "@/features/auth/types/auth.types";
 import { useProfile } from "@/features/profile/hooks/useProfile";
@@ -139,7 +140,7 @@ export function UserProfileView() {
     return (
       <ScreenWrapper edges={["left", "right"]}>
         <StatusBar style="light" />
-        <LoadingView message="Đang tải thông tin hồ sơ..." color="#5B9BD5" className="flex-1 items-center justify-center bg-gray-50" />
+        <LoadingView message="Đang tải thông tin hồ sơ..." color={Colors.primary} className="flex-1 items-center justify-center bg-gray-50" />
       </ScreenWrapper>
     );
   }

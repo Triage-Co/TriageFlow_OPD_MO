@@ -51,12 +51,12 @@ export const PaymentQrModal: React.FC<PaymentQrModalProps> = ({
                 Mở ứng dụng ngân hàng và quét mã QR để đóng phí cho dịch vụ khám.
               </Text>
 
-              <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-md">
+              <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-md items-center justify-center">
                 {qrImageUrl ? (
                   <Image
                     source={{ uri: qrImageUrl }}
-                    className="w-52 h-52"
-                    resizeMode="contain"
+                    style={{ width: 200, height: 200 }}
+                    contentFit="contain"
                   />
                 ) : (
                   <View className="w-52 h-52 items-center justify-center bg-gray-50 rounded-xl">

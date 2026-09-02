@@ -19,7 +19,7 @@ export function useDoctorSlots(doctorId: string, date: string) {
       console.log(`[useDoctorSlots] API Success: received doctor details and ${slotCount} slots`);
       setDoctorDetail(data);
     } catch (err: any) {
-      console.error(`[useDoctorSlots] API Error:`, err.message || err);
+      console.log(`[useDoctorSlots] API Error:`, err.message || err);
       setError(getErrorMessage(err, "Không thể tải danh sách khung giờ khám"));
     } finally {
       setIsLoading(false);

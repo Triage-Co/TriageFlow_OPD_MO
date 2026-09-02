@@ -65,7 +65,6 @@ export function PatientPickerModal({
 
   const handleSelectPatient = (patient: Patient) => {
     setSelectedPatientId(patient.patient_id);
-    onConfirm(patient.patient_id, patient.full_name);
   };
 
   const handleConfirm = () => {

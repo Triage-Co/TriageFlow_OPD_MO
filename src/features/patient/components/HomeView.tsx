@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { ScrollView, View, Text, Pressable, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -5,12 +6,13 @@ import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
 import { patientService } from "@/features/patient/services/patient.service";
 import { Patient } from "@/features/patient/types/patient.types";
 import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
 import { getInitials } from "@/shared/utils/string.utils";
 import { AppAlert } from "@/shared/utils/alert.utils";
+
+import { HomeBannerCarousel } from "./HomeBannerCarousel";
 
 export function HomeView() {
   const { user } = useAuthContext();
@@ -79,10 +81,10 @@ export function HomeView() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-        
+
         <View className="bg-primary rounded-b-[36px] px-6 pt-14 pb-8 shadow-md">
           <View className="flex-row items-center justify-between">
-            
+
             <View className="flex-row items-center gap-3">
               <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center overflow-hidden">
                 {user?.avatar ? (
@@ -99,7 +101,10 @@ export function HomeView() {
               </View>
             </View>
 
-            <Pressable className="w-10 h-10 rounded-full bg-white/20 items-center justify-center relative active:opacity-80">
+            <Pressable
+              onPress={() => router.push("/(patient)/notification" as any)}
+              className="w-10 h-10 rounded-full bg-white/20 items-center justify-center relative active:opacity-80"
+            >
               <Ionicons name="notifications" size={22} color="white" />
             </Pressable>
           </View>
@@ -107,17 +112,6 @@ export function HomeView() {
 
         <View className="px-5 py-4 gap-4">
           <View className="flex-row gap-4">
-            
-            <Pressable
-              onPress={() => router.push("/appointment/my-appointments")}
-              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
-            >
-              <View className="mb-3.5 mt-1">
-                <Ionicons name="calendar-outline" size={42} color="#8B5CF6" />
-              </View>
-              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Lịch hẹn</Text>
-              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Hẹn từ ngày mai</Text>
-            </Pressable>
 
             <Pressable
               onPress={() => router.push("/(patient)/(tabs)/ticket")}
@@ -127,12 +121,23 @@ export function HomeView() {
                 <Ionicons name="document-text-outline" size={42} color="#2563EB" />
               </View>
               <Text className="text-[14px] text-gray-800 font-extrabold text-center">Phiếu khám</Text>
-              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Số thứ tự hôm nay</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Xem vé & Lịch hẹn</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/(patient)/profile/history" as any)}
+              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
+            >
+              <View className="mb-3.5 mt-1">
+                <Ionicons name="time-outline" size={42} color="#8B5CF6" />
+              </View>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Lịch sử khám</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Hồ sơ bệnh án</Text>
             </Pressable>
           </View>
 
           <View className="flex-row gap-4">
-            
+
             <Pressable
               onPress={() => router.push("/(patient)/(tabs)/navigation")}
               className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
@@ -151,7 +156,7 @@ export function HomeView() {
               <View className="mb-3.5 mt-1">
                 <Ionicons name="receipt-outline" size={42} color="#059669" />
               </View>
-              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Hóa đơn & Viện phí</Text>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Hóa đơn</Text>
               <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Lịch sử & Biên lai</Text>
             </Pressable>
           </View>
@@ -160,46 +165,30 @@ export function HomeView() {
         <View className="px-5 mb-6">
           <Pressable
             onPress={handleOpenBookingHub}
-            className="bg-primary rounded-[28px] px-6 py-6 flex-row items-center justify-between shadow-md shadow-primary/25 active:opacity-90 min-h-[112px]"
+            className="bg-primary rounded-[28px] px-6 py-6 items-center justify-center shadow-md shadow-primary/25 active:opacity-90 min-h-[112px]"
           >
-            <View className="flex-1 pr-3 justify-center">
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 34,
-                  fontWeight: "900",
-                  letterSpacing: -0.8,
-                  lineHeight: 38,
-                }}
-              >
-                Đặt Khám
-              </Text>
-              <Text className="text-white/90 text-[13px] mt-2 leading-5 font-semibold">
-                AI gợi ý chuyên khoa • Đặt khám • Gói sức khỏe
-              </Text>
-            </View>
-            <View className="w-14 h-14 rounded-full bg-white/20 items-center justify-center flex-shrink-0 ml-1">
-              <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
-            </View>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 34,
+                fontWeight: "900",
+                letterSpacing: -0.8,
+                lineHeight: 38,
+                textAlign: "center",
+              }}
+            >
+              Đặt Khám
+            </Text>
+            <Text className="text-white/90 text-[13px] mt-2 leading-5 font-semibold text-center">
+              AI gợi ý chuyên khoa • Đặt khám • Gói sức khỏe
+            </Text>
           </Pressable>
         </View>
 
-        <View className="px-5 mb-8">
-          <Text className="text-gray-800 text-[16px] font-bold mb-3">Mẹo sức khỏe</Text>
-          <View className="bg-amber-100/70 border border-amber-200/50 rounded-2xl p-5 flex-row items-center gap-4">
-            <Text className="text-4xl text-amber-500">🧡</Text>
-            <View className="flex-1">
-              <Text className="text-amber-900 text-sm font-bold">
-                Uống đủ 2L nước mỗi ngày
-              </Text>
-              <Text className="text-amber-800/80 text-xs mt-1 leading-[18px]">
-                Giúp cơ thể duy trì hoạt động tối ưu và tăng cường miễn dịch.
-              </Text>
-            </View>
-          </View>
-        </View>
+        {/* Banner Slider Carousel */}
+        <HomeBannerCarousel />
 
-        <View className="h-24" />
+        <View className="h-32" />
       </ScrollView>
 
       <PatientPickerModal

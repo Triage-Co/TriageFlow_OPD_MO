@@ -208,7 +208,7 @@ export function DoctorSlotsView() {
       <StatusBar style="dark" />
       <View className="flex-1 justify-between">
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          
+
           <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
             <TouchableOpacity
               onPress={() => router.back()}
@@ -283,7 +283,7 @@ export function DoctorSlotsView() {
               </View>
             ) : (
               <View className="gap-6">
-                
+
                 {morningSlots.length > 0 && (
                   <View>
                     <View className="flex-row items-center gap-2 mb-3">

@@ -1,5 +1,6 @@
 import React from "react";
-import { Modal, View, Text, Pressable, ScrollView, Image, ActivityIndicator } from "react-native";
+import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/config/colors";
 import { formatVND, getQrCodeUrl } from "@/shared/utils/string.utils";
@@ -44,14 +45,14 @@ export const ServiceOrderPaymentQrModal: React.FC<ServiceOrderPaymentQrModalProp
                   Quét mã QR dưới đây bằng ứng dụng ngân hàng của bạn để thanh toán đơn dịch vụ chỉ định.
                 </Text>
 
-                <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-md">
+                <View className="bg-white p-4 rounded-3xl border border-gray-100 shadow-md items-center justify-center">
                   {selectedServiceOrder.qr_code ? (
                     <Image
                       source={{
                         uri: getQrCodeUrl(selectedServiceOrder.qr_code),
                       }}
-                      className="w-52 h-52"
-                      resizeMode="contain"
+                      style={{ width: 200, height: 200 }}
+                      contentFit="contain"
                     />
                   ) : (
                     <View className="w-52 h-52 items-center justify-center bg-gray-50 rounded-xl">

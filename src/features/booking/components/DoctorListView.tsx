@@ -3,6 +3,7 @@ import { useDoctorList } from "@/features/booking/hooks/useDoctorList";
 import { Doctor } from "@/features/booking/types/doctor.types";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { getInitials } from "@/shared/utils/string.utils";
+import { toISODateString } from "@/shared/utils/date.utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,11 +31,9 @@ export function DoctorListView() {
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(today.getDate() + i);
-      const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, "0");
       const dateNum = String(d.getDate()).padStart(2, "0");
-
-      const fullDate = `${year}-${month}-${dateNum}`;
+      const fullDate = toISODateString(d);
       const day = String(d.getDate());
 
       const dayOfWeek = d.getDay();
@@ -83,13 +82,13 @@ export function DoctorListView() {
         onPress={() => handleSelectDoctor(item)}
         className="mx-5 mb-4 bg-white rounded-[24px] p-4 flex-row items-center border border-gray-100 shadow-sm active:opacity-90"
       >
-        
+
         <View className="w-14 h-14 rounded-full bg-[#84AFEB]/20 items-center justify-center mr-4">
           <Text className="text-primary text-[16px] font-bold">{initials}</Text>
         </View>
 
         <View className="flex-1">
-          
+
           <Text className="text-gray-800 text-[15px] font-bold">
             {doctorName}
           </Text>
@@ -118,7 +117,7 @@ export function DoctorListView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
       <View className="flex-1">
-        
+
         <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
           <Pressable
             onPress={() => router.back()}
@@ -204,32 +203,20 @@ export function DoctorListView() {
               Đang tìm kiếm bác sĩ trực ngày {selectedDate}...
             </Text>
           </View>
-        ) : error ? (
+        ) : error || doctors.length === 0 ? (
           <View className="flex-1 items-center justify-center px-10">
-            <Ionicons
-              name="alert-circle"
-              size={40}
-              color="#EF4444"
-            />
-            <Text className="text-gray-800 text-[14px] font-bold mt-3 text-center">
-              Lỗi tải dữ liệu
-            </Text>
-            <Text className="text-gray-400 text-[12px] font-medium mt-1 text-center">
-              {error}
-            </Text>
-          </View>
-        ) : doctors.length === 0 ? (
-          <View className="flex-1 items-center justify-center px-10">
-            <Ionicons
-              name="alert-circle"
-              size={40}
-              color="#9CA3AF"
-            />
-            <Text className="text-gray-800 text-[14px] font-bold mt-3 text-center">
+            <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center mb-3">
+              <Ionicons
+                name="calendar-outline"
+                size={30}
+                color="#94A3B8"
+              />
+            </View>
+            <Text className="text-gray-800 text-[15px] font-bold text-center">
               Không có bác sĩ trực
             </Text>
-            <Text className="text-gray-400 text-[12px] font-medium mt-1 text-center">
-              Không tìm thấy lịch trực của bác sĩ thuộc chuyên khoa này vào ngày {selectedDate}. Vui lòng chọn ngày khác (Thử chọn T5 ngày 9).
+            <Text className="text-gray-400 text-[12px] font-medium mt-1.5 text-center leading-5">
+              Chưa có lịch trực của bác sĩ vào ngày này. Vui lòng chọn một ngày khác.
             </Text>
           </View>
         ) : (

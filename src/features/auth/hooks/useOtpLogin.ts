@@ -3,7 +3,15 @@ import { otpService } from "@/features/auth/services/otp.service";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { getErrorMessage } from "@/shared/utils/error.utils";
 
-export function useOtpLogin() {
+export interface UseOtpLoginReturn {
+  isLoading: boolean;
+  error: string | null;
+  clearError: () => void;
+  sendOtp: (email: string) => Promise<boolean>;
+  verifyOtpLogin: (email: string, otp: string) => Promise<boolean>;
+}
+
+export function useOtpLogin(): UseOtpLoginReturn {
   const { loginWithToken } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

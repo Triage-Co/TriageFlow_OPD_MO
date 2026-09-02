@@ -18,7 +18,7 @@ export function useDoctorList(specialtyCode: string, date: string) {
       console.log(`[useDoctorList] API Success: received ${data.length} doctors`);
       setDoctors(data);
     } catch (err: any) {
-      console.error(`[useDoctorList] API Error:`, err.message || err);
+      console.log(`[useDoctorList] API Error:`, err.message || err);
       setError(getErrorMessage(err, "Không thể tải danh sách bác sĩ"));
     } finally {
       setIsLoading(false);

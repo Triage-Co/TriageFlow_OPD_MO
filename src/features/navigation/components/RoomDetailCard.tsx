@@ -63,17 +63,19 @@ export function RoomDetailCard({
 
       <View style={styles.actionsRow}>
         
+        {/* Nút Điểm đến */}
         <TouchableOpacity
           onPress={() => onNavigateTo(room)}
-          style={[styles.primaryActionBtn, isCurrentTarget && styles.disabledBtn]}
+          style={[styles.primaryActionBtn, isCurrentTarget && styles.targetActiveBtn]}
           activeOpacity={0.8}
         >
-          <Ionicons name="navigate" size={15} color="#FFFFFF" style={{ marginRight: 5 }} />
+          <Ionicons name="flag" size={14} color="#FFFFFF" style={{ marginRight: 5 }} />
           <Text style={styles.primaryActionText}>
-            {isCurrentTarget ? "Đang là đích" : "Chỉ đường"}
+            {isCurrentTarget ? "Điểm kết thúc" : "Điểm đến"}
           </Text>
         </TouchableOpacity>
 
+        {/* Nút Điểm đi */}
         <TouchableOpacity
           onPress={() => onSetStart(room)}
           style={[styles.secondaryActionBtn, isCurrentStart && styles.secondaryActiveBtn]}
@@ -178,7 +180,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryActionBtn: {
-    flex: 1.2,
+    flex: 1.1,
     height: 36,
     borderRadius: 11,
     backgroundColor: "#2563EB",
@@ -191,8 +193,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  disabledBtn: {
-    backgroundColor: "#93C5FD",
+  targetActiveBtn: {
+    backgroundColor: "#1D4ED8",
   },
   primaryActionText: {
     color: "#FFFFFF",

@@ -14,7 +14,6 @@ import { Colors } from "@/config/colors";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
 import { useInvoice } from "../hooks/useInvoice";
-import { BillingSummaryCard } from "./BillingSummaryCard";
 import { VisitBillingCard } from "./VisitBillingCard";
 
 export function PatientBillingView() {
@@ -37,7 +36,7 @@ export function PatientBillingView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
       <View className="flex-1 bg-gray-50">
-        
+
         <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -47,7 +46,7 @@ export function PatientBillingView() {
             <Ionicons name="arrow-back" size={22} color="white" />
           </TouchableOpacity>
           <Text className="text-white text-[18px] font-bold">
-            Hóa Đơn & Viện Phí
+            Hóa Đơn
           </Text>
           <TouchableOpacity
             onPress={() => setPickerVisible(true)}
@@ -90,11 +89,8 @@ export function PatientBillingView() {
             />
           }
           ListHeaderComponent={
-            <View className="mb-4">
-              
-              <BillingSummaryCard summary={billingData?.summary} />
-
-              <Text className="text-gray-800 text-[15px] font-bold mb-3 mt-1">
+            <View className="mb-2">
+              <Text className="text-gray-800 text-[15px] font-bold mb-2">
                 Danh Sách Đợt Khám ({visits.length})
               </Text>
             </View>

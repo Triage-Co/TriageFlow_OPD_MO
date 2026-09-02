@@ -13,7 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { Colors } from "@/config/colors";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { formatVND } from "@/shared/utils/string.utils";
-import { formatDateTimeWithDot as formatDate } from "@/shared/utils/date.utils";
+import { formatDateTimeWithDot } from "@/shared/utils/date.utils";
 import { useVisitInvoice } from "../hooks/useInvoice";
 
 export function VisitInvoiceDetailView() {
@@ -23,7 +23,6 @@ export function VisitInvoiceDetailView() {
 
   const { loading, visitDetail, refetch } = useVisitInvoice(patientId, bookingId);
 
-  const totalOrders = visitDetail?.orders?.length || 0;
   const totalSubItems =
     visitDetail?.orders?.reduce(
       (acc, ord) => acc + (ord.service_order_details?.length || 1),
@@ -34,7 +33,7 @@ export function VisitInvoiceDetailView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
       <View style={styles.container}>
-        
+
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -65,20 +64,16 @@ export function VisitInvoiceDetailView() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            
+
             <View style={styles.receiptContainer}>
-              
+
+              {/* Header ngày khám (Đã bỏ icon lịch) */}
               <View style={styles.receiptTopHeader}>
-                <View style={styles.dateRow}>
-                  <View style={styles.dateIconWrapper}>
-                    <Ionicons name="calendar" size={16} color={Colors.primary} />
-                  </View>
-                  <View>
-                    <Text style={styles.dateLabel}>Thời gian khám</Text>
-                    <Text style={styles.dateValue}>
-                      {formatDate(visitDetail.visit_date)}
-                    </Text>
-                  </View>
+                <View>
+                  <Text style={styles.dateLabel}>Thời gian khám</Text>
+                  <Text style={styles.dateValue}>
+                    {formatDateTimeWithDot(visitDetail.visit_date)}
+                  </Text>
                 </View>
 
                 <View style={styles.countBadge}>
@@ -110,18 +105,11 @@ export function VisitInvoiceDetailView() {
                         style={[
                           styles.orderGroupCard,
                           orderIdx < visitDetail.orders.length - 1 &&
-                            styles.orderGroupSpacing,
+                          styles.orderGroupSpacing,
                         ]}
                       >
-                        
+                        {/* Tiêu đề nhóm (Đã bỏ icon y tế) */}
                         <View style={styles.groupHeaderRow}>
-                          <View style={styles.groupIconBox}>
-                            <Ionicons
-                              name="medical"
-                              size={13}
-                              color={Colors.primary}
-                            />
-                          </View>
                           <Text style={styles.groupTitleText} numberOfLines={1}>
                             {order.name || `Chỉ định #${orderIdx + 1}`}
                           </Text>
@@ -179,10 +167,10 @@ export function VisitInvoiceDetailView() {
 
               <View style={styles.footerDivider} />
 
+              {/* Tổng cộng viện phí (Chuyển sang màu đen) */}
               <View style={styles.totalBox}>
                 <View style={styles.totalLeftCol}>
                   <Text style={styles.totalLabel}>TỔNG CỘNG VIỆN PHÍ</Text>
-                  <Text style={styles.totalSubtitle}>Đã bao gồm VAT & dịch vụ</Text>
                 </View>
                 <Text style={styles.totalValue}>
                   {formatVND(visitDetail.total_amount)}
@@ -260,7 +248,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  
+
   receiptContainer: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
@@ -280,19 +268,6 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#FFFFFF",
   },
-  dateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  dateIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: "#EFF6FF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   dateLabel: {
     fontSize: 11,
     color: "#94A3B8",
@@ -301,25 +276,25 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   dateValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "800",
     color: "#0F172A",
     marginTop: 2,
   },
   countBadge: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F1F5F9",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#DBEAFE",
+    borderColor: "#E2E8F0",
   },
   countBadgeText: {
     fontSize: 12,
     fontWeight: "800",
-    color: Colors.primary,
+    color: "#0F172A",
   },
-  
+
   notchDividerContainer: {
     position: "relative",
     flexDirection: "row",
@@ -357,7 +332,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     marginHorizontal: 16,
   },
-  
+
   itemsSection: {
     paddingHorizontal: 20,
     paddingTop: 10,
@@ -387,19 +362,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
   },
-  groupIconBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    backgroundColor: "#EFF6FF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-  },
   groupTitleText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#1E293B",
+    color: "#0F172A",
     flex: 1,
   },
   subItemsList: {
@@ -443,7 +409,7 @@ const styles = StyleSheet.create({
   groupSubtotalValue: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#334155",
+    color: "#0F172A",
   },
   emptyItemsText: {
     fontSize: 13,
@@ -456,7 +422,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#E2E8F0",
   },
-  
+
   totalBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -474,16 +440,10 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     letterSpacing: 0.5,
   },
-  totalSubtitle: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "500",
-    marginTop: 2,
-  },
   totalValue: {
     fontSize: 22,
     fontWeight: "900",
-    color: Colors.primary,
+    color: "#0F172A",
     letterSpacing: -0.5,
   },
 });

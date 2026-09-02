@@ -32,7 +32,7 @@ export function RecommendationView() {
   }
 
   const specialist = recommendation?.recommended_specialist || (recommendation as any)?.recommendedSpecialist;
-  const specialistName = specialist ? (specialist.nameVi || specialist.name) : "Khoa Nội tổng quát";
+  const specialistName = specialist?.nameVi || specialist?.name || "Khoa Nội tổng quát";
   const specialtyCode = specialist?.specialty_code || (recommendation as any)?.specialty_code || "SP_4";
 
   const handleSelectDoctor = () => {
@@ -108,14 +108,13 @@ export function RecommendationView() {
           </View>
         </View>
 
-        <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50 gap-2">
+        <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50 gap-2.5">
           <AppButton
             title="Chọn bác sĩ và đặt khám"
             onPress={handleSelectDoctor}
           />
           <AppButton
             title="Tự động xếp phòng khám"
-            variant="secondary"
             onPress={handleAutoAssignRoom}
           />
         </View>

@@ -16,7 +16,7 @@ export const patientService = {
     try {
       const response = await apiClient.get<PatientListResponse>("/api/patient/me", {
         skipGlobalToast: true,
-      } as any);
+      });
 
       if (response.data && Array.isArray(response.data.data)) {
         return response.data;

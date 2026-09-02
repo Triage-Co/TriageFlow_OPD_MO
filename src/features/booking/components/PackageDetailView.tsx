@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
-import { formatVND as formatPrice } from "@/shared/utils/string.utils";
+import { formatVND } from "@/shared/utils/string.utils";
 import { getStepVisualInfo } from "@/shared/utils/flow.utils";
 import { packageService } from "@/features/booking/services/package.service";
 import { ExamPackageDetail } from "@/features/booking/types/package.types";
@@ -141,7 +141,7 @@ export function PackageDetailView() {
                     Đơn giá trọn gói
                   </Text>
                   <Text className="text-primary text-[20px] font-black">
-                    {formatPrice(packageDetail.price)}
+                    {formatVND(packageDetail.price)}
                   </Text>
                 </View>
               </View>
@@ -210,7 +210,7 @@ export function PackageDetailView() {
                   Tổng chi phí
                 </Text>
                 <Text className="text-primary text-[18px] font-black mt-0.5">
-                  {formatPrice(packageDetail.price)}
+                  {formatVND(packageDetail.price)}
                 </Text>
               </View>
               <View className="w-44">

@@ -6,8 +6,9 @@ import { TimelineStepCard } from "@/features/visit/components/TimelineStepCard";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import { formatVND as formatCurrency } from "@/shared/utils/string.utils";
+import { formatVND } from "@/shared/utils/string.utils";
 import { formatDateTime } from "@/shared/utils/date.utils";
+import { PrescriptionDetailView } from "@/shared/components/PrescriptionDetailView";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -659,129 +660,7 @@ export function PatientHistoryView() {
                     className="flex-1"
                     contentContainerStyle={{ paddingBottom: 50 }}
                   >
-                    
-                    <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
-                      <View className="flex-row items-center gap-2 mb-3">
-                        <Ionicons name="receipt-outline" size={18} color={Colors.primary} />
-                        <Text className="text-gray-800 text-[15px] font-black">
-                          Thông tin đơn thuốc
-                        </Text>
-                      </View>
-
-                      <View className="bg-gray-50 rounded-2xl p-4 gap-2">
-                        <View className="flex-row justify-between items-center">
-                          <Text className="text-gray-400 text-xs font-semibold">Mã đơn thuốc:</Text>
-                          <Text className="text-gray-800 text-xs font-extrabold">
-                            {sessionPrescription.prescription_code || "—"}
-                          </Text>
-                        </View>
-                        {sessionPrescription.doctor?.full_name && (
-                          <View className="flex-row justify-between items-center">
-                            <Text className="text-gray-400 text-xs font-semibold">Bác sĩ kê đơn:</Text>
-                            <Text className="text-gray-800 text-xs font-bold">
-                              BS. {sessionPrescription.doctor.full_name}
-                            </Text>
-                          </View>
-                        )}
-                        <View className="flex-row justify-between items-center">
-                          <Text className="text-gray-400 text-xs font-semibold">Ngày kê đơn:</Text>
-                          <Text className="text-gray-800 text-xs font-bold">
-                            {formatDateTime(sessionPrescription.created_at)}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {sessionPrescription.diagnosis_note && (
-                      <View className="bg-blue-50 rounded-3xl p-5 border border-blue-100 shadow-sm mb-4">
-                        <View className="flex-row items-center gap-2 mb-2">
-                          <Ionicons name="information-circle" size={18} color="#3B82F6" />
-                          <Text className="text-blue-900 text-[14px] font-bold">
-                            Lời dặn của Bác sĩ
-                          </Text>
-                        </View>
-                        <Text className="text-blue-950 text-xs leading-[20px] font-medium pl-6">
-                          {sessionPrescription.diagnosis_note}
-                        </Text>
-                      </View>
-                    )}
-
-                    <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
-                      <View className="flex-row items-center justify-between mb-4">
-                        <View className="flex-row items-center gap-2">
-                          <Ionicons name="list" size={18} color={Colors.primary} />
-                          <Text className="text-gray-800 text-[15px] font-black">
-                            Danh mục thuốc ({sessionPrescription.prescriptionDetails?.length || 0})
-                          </Text>
-                        </View>
-                      </View>
-
-                      {sessionPrescription.prescriptionDetails &&
-                      sessionPrescription.prescriptionDetails.length > 0 ? (
-                        <View className="gap-3">
-                          {sessionPrescription.prescriptionDetails.map(
-                            (item: any, idx: number) => {
-                              const medicineName =
-                                item.medicine?.medicine_name || item.medicine_name || `Thuốc ${idx + 1}`;
-                              const unit = item.medicine?.unit || "Đơn vị";
-
-                              return (
-                                <View
-                                  key={item.prescription_detail_id || idx}
-                                  className="bg-gray-50 p-4 rounded-2xl border border-gray-100"
-                                >
-                                  <View className="flex-row justify-between items-start mb-2">
-                                    <View className="flex-1 mr-2">
-                                      <Text className="text-gray-800 text-[14px] font-bold">
-                                        {idx + 1}. {medicineName}
-                                      </Text>
-                                    </View>
-                                    <View className="bg-blue-100 px-2.5 py-0.5 rounded-md">
-                                      <Text className="text-primary text-[11px] font-black">
-                                        SL: {item.quantity} {unit}
-                                      </Text>
-                                    </View>
-                                  </View>
-
-                                  {item.dosage_instruction ? (
-                                    <View className="bg-white p-2.5 rounded-xl border border-gray-100 mt-1 mb-2">
-                                      <Text className="text-gray-500 text-[10px] font-bold uppercase mb-0.5">
-                                        Cách dùng:
-                                      </Text>
-                                      <Text className="text-gray-800 text-xs font-semibold">
-                                        {item.dosage_instruction}
-                                      </Text>
-                                    </View>
-                                  ) : null}
-
-                                  <View className="flex-row justify-between items-center pt-1 border-t border-gray-200">
-                                    <Text className="text-gray-400 text-[11px]">
-                                      Đơn giá: {formatCurrency(item.unit_price)}
-                                    </Text>
-                                    <Text className="text-gray-700 text-xs font-bold">
-                                      Thành tiền: {formatCurrency(item.sub_total || item.unit_price * item.quantity)}
-                                    </Text>
-                                  </View>
-                                </View>
-                              );
-                            }
-                          )}
-                        </View>
-                      ) : (
-                        <Text className="text-gray-400 text-xs text-center py-4">
-                          Chưa có chi tiết thuốc trong đơn.
-                        </Text>
-                      )}
-
-                      {typeof sessionPrescription.total_amount === "number" && (
-                        <View className="mt-4 pt-4 border-t border-gray-100 flex-row justify-between items-center">
-                          <Text className="text-gray-600 text-sm font-bold">Tổng tiền thuốc:</Text>
-                          <Text className="text-primary text-base font-black">
-                            {formatCurrency(sessionPrescription.total_amount)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                    <PrescriptionDetailView prescription={sessionPrescription} />
                   </ScrollView>
                 )}
               </View>

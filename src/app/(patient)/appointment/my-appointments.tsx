@@ -1,5 +1,5 @@
-import { MyAppointmentsView } from "@/features/appointment/components/MyAppointmentsView";
+import { Redirect } from "expo-router";
 
 export default function MyAppointmentsScreen() {
-  return <MyAppointmentsView />;
+  return <Redirect href="/(patient)/(tabs)/ticket" />;
 }

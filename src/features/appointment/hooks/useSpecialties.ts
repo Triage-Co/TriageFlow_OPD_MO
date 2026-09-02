@@ -12,12 +12,12 @@ export function useSpecialties() {
     setError(null);
     console.log("[useSpecialties] Calling API getSpecialties");
     try {
-      const data = await specialtyService.getSpecialties({page:1, limit: 100});
+      const data = await specialtyService.getSpecialties({ page: 1, limit: 100 });
       console.log(`[useSpecialties] API Success: received ${data.length} specialties`);
       setSpecialties(data);
     } catch (err: any) {
-      console.error("[useSpecialties] API Error:", err.message || err);
-      setError(err?.message || "Không thể tải danh sách chuyên khoa");
+      console.log("[useSpecialties] API Error:", err.message || err);
+      // setError(getErrorMessage(err, "Không thể tải danh sách chuyên khoa"));
     } finally {
       setIsLoading(false);
     }

@@ -5,6 +5,7 @@ import type {
   TranslatedSymptomSearchItem,
 } from "../types/triage.types";
 import { triageCacheService } from "./triage-cache.service";
+import { lookupSymptomInDatasets } from "./symptom-lookup.service";
 
 export const STATIC_EN_VI_DICTIONARY: Record<string, string> = {
   Yes: "Có",
@@ -24,20 +25,49 @@ export async function fetchGoogleTranslate(text: string, from = "en", to = "vi")
     return STATIC_EN_VI_DICTIONARY[trimmed];
   }
 
+  // 1. Thử endpoint chính của Google Translate
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(trimmed)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Google Translate status ${res.status}`);
-    const data = await res.json();
-    if (Array.isArray(data) && Array.isArray(data[0])) {
-      const translated = data[0].map((item: any) => item?.[0] || "").join("").trim();
-      return translated || trimmed;
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const textData = await res.text();
+      try {
+        const data = JSON.parse(textData);
+        if (Array.isArray(data) && Array.isArray(data[0])) {
+          const translated = data[0].map((item: any) => item?.[0] || "").join("").trim();
+          if (translated) return translated;
+        }
+      } catch {
+        // Not valid JSON
+      }
     }
-    return trimmed;
   } catch (err) {
-    console.warn("[Google Translate Fallback Error]:", err);
-    return trimmed;
+    // Thử endpoint dự phòng bên dưới
   }
+
+  // 2. Thử endpoint dự phòng (Google Chrome client)
+  try {
+    const backupUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=${from}&tl=${to}&q=${encodeURIComponent(trimmed)}`;
+    const res = await fetch(backupUrl, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const textData = await res.text();
+      try {
+        const data = JSON.parse(textData);
+        if (Array.isArray(data) && typeof data[0] === "string") {
+          return data[0].trim();
+        }
+        if (typeof data === "string") {
+          return data.trim();
+        }
+      } catch {
+        // Not valid JSON
+      }
+    }
+  } catch (err) {
+    // Return trimmed
+  }
+
+  return trimmed;
 }
 
 export class GoogleTranslationService {
@@ -48,6 +78,10 @@ export class GoogleTranslationService {
     if (!normalizedText) return "";
 
     if (symptomId) {
+      const fromDataset = lookupSymptomInDatasets(symptomId);
+      if (fromDataset && fromDataset.labelVi) {
+        return fromDataset.labelVi;
+      }
       const cached = triageCacheService.getTranslationCache(symptomId);
       if (cached && cached.vi) {
         return cached.vi;
@@ -112,22 +146,26 @@ export class GoogleTranslationService {
         await Promise.all(
           uncachedItems.map(async (item) => {
             const translated = await fetchGoogleTranslate(item.label);
-            if (translated) {
+            if (translated && translated !== item.label) {
               cachedTranslations.set(item.id, translated);
               triageCacheService.setTranslationCache(item.id, {
                 en: item.label,
                 vi: translated,
               });
+            } else {
+              cachedTranslations.set(item.id, translated || item.label);
             }
           })
         );
       }
 
-      return items.map((item) => ({
+      const results = items.map((item) => ({
         id: item.id,
         labelEn: item.label,
         labelVi: cachedTranslations.get(item.id) || item.label,
       }));
+
+      return results;
     } catch (error) {
       console.warn("[GoogleTranslationService] translateSymptomItems failed:", error);
       return items.map((item) => ({

@@ -38,12 +38,12 @@ export function ProfileView() {
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-        
+
         <View className="px-6 py-6 bg-primary">
           <Text className="text-white text-[24px] font-extrabold tracking-tight mb-5 mt-5">
             Hồ sơ cá nhân
           </Text>
-          
+
           <View className="mx-1 bg-white rounded-[24px] p-5 flex-row items-center gap-4 shadow shadow-black/5">
             <View className="bg-primary w-16 h-16 rounded-2xl items-center justify-center shadow-sm overflow-hidden">
               {user?.avatar ? (
@@ -100,7 +100,7 @@ export function ProfileView() {
           />
           <ActionCard
             iconName={{ ios: "doc.text", android: "receipt" }}
-            title="Hóa đơn & Viện phí"
+            title="Hóa đơn"
             onPress={() => router.push("/(patient)/invoice" as any)}
           />
           <ActionCard

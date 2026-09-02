@@ -14,8 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
-import { formatVND as formatPrice } from "@/shared/utils/string.utils";
-import { formatDate as formatDateDisplay } from "@/shared/utils/date.utils";
+import { formatVND } from "@/shared/utils/string.utils";
+import { formatDate, toISODateString } from "@/shared/utils/date.utils";
 import { packageService } from "@/features/booking/services/package.service";
 import { RoomSlot } from "@/features/booking/types/package.types";
 import { AppButton } from "@/shared/components/AppButton";
@@ -53,10 +53,8 @@ export function PackageBookingView() {
       const targetDate = new Date();
       targetDate.setDate(today.getDate() + i);
 
-      const year = targetDate.getFullYear();
-      const month = String(targetDate.getMonth() + 1).padStart(2, "0");
       const dayVal = String(targetDate.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${dayVal}`;
+      const dateStr = toISODateString(targetDate);
 
       let dayLabel = "";
       if (i === 0) {
@@ -250,6 +248,7 @@ export function PackageBookingView() {
 
       const rawData = (res as any)?.data || res || {};
       const bookingId = rawData?.booking_id || "";
+      const serviceOrderId = rawData?.service_order_id || "";
       const paymentObj = rawData?.payment?.data || rawData?.payment || {};
 
       if (paymentObj && (paymentObj.qrCode || paymentObj.checkoutUrl || paymentObj.accountNumber)) {
@@ -266,17 +265,18 @@ export function PackageBookingView() {
           params: {
             stepId: rawData?.step_id || "",
             bookingId: bookingId,
+            serviceOrderId: serviceOrderId,
             ticketCode: pkgTicketCode,
             bin: paymentObj.bin || "",
             accountNumber: paymentObj.accountNumber || "",
             accountName: paymentObj.accountName || "",
-            amount: (paymentObj.amount || packagePrice || 0).toString(),
+            amount: (paymentObj.amount || rawData?.amount || packagePrice || 0).toString(),
             description: paymentObj.description || `Thanh toán ${packageName}`,
             checkoutUrl: paymentObj.checkoutUrl || "",
             qrCode: paymentObj.qrCode || "",
             orderCode: (paymentObj.orderCode || "").toString(),
             ordercode: (paymentObj.orderCode || "").toString(),
-            specialtyName: packageName,
+            specialtyName: rawData?.package_name || packageName,
             doctorName: pkgDoctor,
             roomName: pkgRoom,
             selectedDate: selectedDate,
@@ -288,7 +288,7 @@ export function PackageBookingView() {
           },
         });
       } else {
-        const code = bookingId || rawData?.service_order_id || "";
+        const code = bookingId || serviceOrderId || "";
         setCreatedBookingCode(code);
         setIsSuccessModalVisible(true);
       }
@@ -340,7 +340,7 @@ export function PackageBookingView() {
                 {packageName}
               </Text>
               <Text className="text-primary text-[13px] font-bold mt-1">
-                Đơn giá: {formatPrice(packagePrice)}
+                Đơn giá: {formatVND(packagePrice)}
               </Text>
             </View>
             <View className="bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/60">
@@ -399,7 +399,7 @@ export function PackageBookingView() {
                 Chọn giờ khám
               </Text>
               <Text className="text-primary text-[12px] font-bold">
-                {formatDateDisplay(selectedDate)}
+                {formatDate(selectedDate)}
               </Text>
             </View>
 
@@ -465,7 +465,7 @@ export function PackageBookingView() {
             </Text>
             <Text className="text-gray-800 text-[15px] font-black mt-0.5" numberOfLines={1}>
               {selectedSlot
-                ? `${selectedSlot.start_time} (${formatDateDisplay(selectedDate)})`
+                ? `${selectedSlot.start_time} (${formatDate(selectedDate)})`
                 : "Chưa chọn khung giờ"}
             </Text>
           </View>

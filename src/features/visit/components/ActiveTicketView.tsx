@@ -2,7 +2,9 @@ import { Colors } from "@/config/colors";
 import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
+import { PrescriptionDetailView } from "@/shared/components/PrescriptionDetailView";
 import { visitService } from "../services/visit.service";
+import { doctorService } from "@/features/booking/services/doctor.service";
 import { invoiceService } from "@/features/invoice/services/invoice.service";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -10,11 +12,10 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { sortStepsTopologically } from "@/shared/utils/flow.utils";
 import { formatVND, getQrCodeUrl } from "@/shared/utils/string.utils";
-import { formatDateTime } from "@/shared/utils/date.utils";
+import { formatDateTime, formatDate } from "@/shared/utils/date.utils";
 import { AppAlert } from "@/shared/utils/alert.utils";
 import {
   ActivityIndicator,
-  Image,
   RefreshControl,
   ScrollView,
   Text,
@@ -22,6 +23,7 @@ import {
   Pressable,
   TouchableOpacity,
 } from "react-native";
+import { Image } from "expo-image";
 
 interface ActiveTicket {
   stepId: string;
@@ -103,88 +105,139 @@ export function ActiveTicketView() {
 
     const finalActiveStep = currentActiveStep || activeSteps[0] || sortedSteps[0];
 
+    const rootExamStep =
+      flow.steps?.find(
+        (s: any) =>
+          (!s.depends_on || s.depends_on.length === 0) &&
+          s.step_type !== "PAYMENT" &&
+          !s.step_name?.toLowerCase().startsWith("thanh toán") &&
+          (s.staff_info || s.specialty_info || s.room_info || s.room_id)
+      ) ||
+      flow.steps?.find(
+        (s: any) =>
+          s.step_type !== "PAYMENT" &&
+          !s.step_name?.toLowerCase().startsWith("thanh toán") &&
+          (s.staff_info || s.specialty_info || s.room_info)
+      );
+
     const examStep =
+      rootExamStep ||
       activeSteps.find(
-        (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.queues?.[0]?.queue_number
+        (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.staff_info?.full_name
       ) ||
       sortedSteps.find(
-        (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.queues?.[0]?.queue_number
+        (s: any) => s.specialty_info?.specialty_name || s.room_info?.room_name || s.staff_info?.full_name
       ) ||
       finalActiveStep;
 
+    // 2. Helper lấy queue hợp lệ: Lọc bỏ CANCELLED, lấy queue mới nhất theo thời gian
+    const getValidQueue = (step: any) => {
+      if (!step?.queues || !Array.isArray(step.queues) || step.queues.length === 0) return null;
+      const validQueues = step.queues.filter((q: any) => q.status !== "CANCELLED");
+      if (validQueues.length === 0) return null;
+      const sorted = [...validQueues].sort((a: any, b: any) => {
+        const timeA = new Date(a.created_at || a.enqueued_at || 0).getTime();
+        const timeB = new Date(b.created_at || b.enqueued_at || 0).getTime();
+        return timeB - timeA;
+      });
+      return sorted[0];
+    };
+
     if (finalActiveStep) {
-      const queueNumber = examStep?.queues?.[0]?.queue_number || "--";
+      const activeQueue =
+        getValidQueue(currentActiveStep) ||
+        getValidQueue(rootExamStep) ||
+        getValidQueue(examStep) ||
+        getValidQueue(finalActiveStep);
+
+      const queueNumber = activeQueue?.queue_number || "--";
       const ticketCode =
         flow.ticket_code ||
-        examStep?.queues?.[0]?.ticket_code ||
+        activeQueue?.ticket_code ||
         finalActiveStep?.ticket_code ||
         examStep?.ticket_code ||
         finalActiveStep?.qr_text ||
         flow.flow_id ||
         "";
+
       const specialtyName =
+        rootExamStep?.specialty_info?.specialty_name ||
+        examStep?.specialty_info?.specialty_name ||
+        finalActiveStep?.specialty_info?.specialty_name ||
         flow.booking?.package?.package_name ||
         flow.package_name ||
-        examStep?.specialty_info?.specialty_name ||
+        rootExamStep?.step_name ||
         examStep?.step_name ||
         "Khám chuyên khoa";
+
       const roomName =
+        rootExamStep?.room_info?.room_name ||
+        examStep?.room_info?.room_name ||
+        finalActiveStep?.room_info?.room_name ||
         flow.booking?.slot?.shift?.room?.room_name ||
         flow.booking?.room?.room_name ||
         flow.room ||
-        examStep?.room_info?.room_name ||
-        examStep?.room?.room_name ||
+        rootExamStep?.room_name ||
         examStep?.room_name ||
-        finalActiveStep?.room_info?.room_name ||
-        finalActiveStep?.room?.room_name ||
         finalActiveStep?.room_name ||
         "Đang xếp phòng";
+
       const doctorName =
+        rootExamStep?.staff_info?.full_name ||
+        examStep?.staff_info?.full_name ||
+        finalActiveStep?.staff_info?.full_name ||
         flow.booking?.slot?.shift?.staff?.full_name ||
         flow.booking?.staff?.full_name ||
         flow.doctor ||
-        examStep?.room_info?.staff_name ||
+        rootExamStep?.staff?.full_name ||
         examStep?.staff?.full_name ||
+        rootExamStep?.doctor_name ||
         examStep?.doctor_name ||
-        finalActiveStep?.room_info?.staff_name ||
-        finalActiveStep?.doctor_name ||
         "Bác sĩ phụ trách";
 
-      let startTimeStr = flow.booking?.slot?.start_time || "Đang xếp ca";
-      if (startTimeStr === "Đang xếp ca" && flow.create_at) {
-        const timeParts = flow.create_at.split("T")[1];
-        if (timeParts) {
-          startTimeStr = timeParts.substring(0, 5); 
-        }
-      }
+      const currentStepId = finalActiveStep.step_id;
 
       setActiveTicket({
-        stepId: finalActiveStep.step_id,
+        stepId: currentStepId,
         patientName: patientName,
         queueNumber: queueNumber,
         ticketCode: ticketCode,
         specialtyName: specialtyName,
         roomName: roomName,
         doctorName: doctorName,
-        startTime: startTimeStr,
+        startTime: flow.booking?.slot?.start_time || "Đang xếp ca",
         status: flow.status || "IN_PROGRESS",
       });
+      const targetStepId = rootExamStep?.step_id || examStep?.step_id || currentStepId;
+      if (targetStepId) {
+        doctorService
+          .getStepDetail(targetStepId, { skipGlobalToast: true } as any)
+          .then((res: any) => {
+            const sDetail = res?.data || res;
+            const slot = sDetail?.flow?.booking?.slot || sDetail?.booking?.slot;
+            if (slot && slot.start_time) {
+              const timeStr = slot.start_time;
+              setActiveTicket((prev) => (prev ? { ...prev, startTime: timeStr } : null));
+            }
+          })
+          .catch((err) => {
+            console.log("[ActiveTicketView] fetch step detail error:", err);
+          });
+      }
     } else {
       setActiveTicket(null);
     }
   }, []);
 
   const todayFlows = useMemo(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
     const filtered = allFlows.filter((flow: any) => {
-      const examDate = getFlowExamDate(flow);
-      const isToday = examDate === todayStr;
       const isValidStatus =
         flow.status === "IN_PROGRESS" ||
+        flow.status === "CONFIRMED" ||
+        flow.status === "PENDING" ||
         flow.status === "COMPLETED" ||
-        flow.status === "FINISHED" ||
-        flow.status === "CONFIRMED";
-      return isToday && isValidStatus;
+        flow.status === "FINISHED";
+      return isValidStatus;
     });
 
     return filtered.sort((a: any, b: any) => {
@@ -236,7 +289,7 @@ export function ActiveTicketView() {
             : null
         );
       } else {
-        
+
         setPrescription(null);
       }
     } catch (err) {
@@ -262,7 +315,7 @@ export function ActiveTicketView() {
           return;
         }
       }
-      
+
       const res = await invoiceService.getPatientBilling(patientId);
       if (res?.data?.visits && res.data.visits.length > 0) {
         setVisitInvoice(res.data.visits[0]);
@@ -362,7 +415,7 @@ export function ActiveTicketView() {
 
   const handleGoToClinicalRoute = () => {
     if (!activeFlow) {
-      AppAlert.info("Không tìm thấy dữ liệu lộ trình của phiếu khám hôm nay.");
+      AppAlert.info("Không tìm thấy dữ liệu lộ trình của phiếu khám này.");
       return;
     }
     router.push({
@@ -389,7 +442,7 @@ export function ActiveTicketView() {
       />
 
       <View className="flex-1">
-        
+
         <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
           <Text className="text-white text-[18px] font-bold">
             Phiếu Khám Y Tế
@@ -402,23 +455,6 @@ export function ActiveTicketView() {
             <Ionicons name="people" size={22} color="white" />
           </TouchableOpacity>
         </View>
-
-        {selectedPatientName ? (
-          <View className="bg-primary/10 px-5 py-2 flex-row items-center justify-between border-b border-[#84AFEB]/20">
-            <View className="flex-row items-center gap-1.5 flex-1 pr-2">
-              <Ionicons name="person-circle-outline" size={16} color={Colors.primary} />
-              <Text className="text-gray-700 text-xs font-medium" numberOfLines={1}>
-                Đang xem: <Text className="font-bold text-gray-900">{selectedPatientName}</Text>
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => setIsPatientModalVisible(true)}
-              className="bg-white/80 px-2 py-1 rounded-md border border-[#84AFEB]/30"
-            >
-              <Text className="text-primary text-[10px] font-bold">Đổi hồ sơ</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
 
         <View
           style={{
@@ -456,7 +492,7 @@ export function ActiveTicketView() {
                 color: selectedTab === "today" ? Colors.primary : "#6B7280",
               }}
             >
-              Hôm nay
+              Phiếu khám
             </Text>
           </TouchableOpacity>
 
@@ -518,13 +554,13 @@ export function ActiveTicketView() {
                 color: selectedTab === "invoice" ? Colors.primary : "#6B7280",
               }}
             >
-              Viện phí
+              Hóa đơn
             </Text>
           </TouchableOpacity>
         </View>
 
         {selectedTab === "today" ? (
-          
+
           isLoading ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -547,10 +583,10 @@ export function ActiveTicketView() {
             >
               <View className="mb-4">
                 <Text className="text-gray-800 text-[16px] font-bold">
-                  Chọn Lượt Khám Hôm Nay
+                  Chọn Lượt Khám
                 </Text>
                 <Text className="text-gray-400 text-xs mt-1 leading-[18px]">
-                  Hồ sơ của {selectedPatientName} hiện có nhiều lượt khám hôm nay. Vui lòng chọn một lượt để xem phiếu khám:
+                  Hồ sơ của {selectedPatientName} hiện có nhiều lượt khám. Vui lòng chọn một lượt để xem phiếu khám:
                 </Text>
               </View>
 
@@ -578,8 +614,8 @@ export function ActiveTicketView() {
                       <View className="flex-row items-center gap-2 mb-1.5">
                         <View
                           className={`px-2 py-0.5 rounded-full border ${isCompleted
-                              ? "bg-emerald-50 border-emerald-200"
-                              : "bg-blue-50 border-blue-100"
+                            ? "bg-emerald-50 border-emerald-200"
+                            : "bg-blue-50 border-blue-100"
                             }`}
                         >
                           <Text
@@ -629,28 +665,29 @@ export function ActiveTicketView() {
                   />
                 }
               >
-                <View className="bg-white rounded-[32px] border border-[#84AFEB]/30 shadow-lg shadow-black/5 overflow-hidden">
-                  
-                  <View className="bg-[#84AFEB]/10 flex-row items-center justify-between px-5 py-4 border-b border-[#84AFEB]/15">
+                <View className="bg-white rounded-[28px] border border-[#84AFEB]/30 shadow-md shadow-black/5 overflow-hidden">
+
+                  {/* Header vé */}
+                  <View className="bg-[#84AFEB]/10 flex-row items-center justify-between px-5 py-3.5 border-b border-[#84AFEB]/15">
                     <View className="flex-row items-center">
                       <View className="bg-primary/20 w-7 h-7 rounded-lg items-center justify-center mr-2">
                         <Ionicons name="medical" size={14} color={Colors.primary} />
                       </View>
-                      <Text className="text-primary font-bold text-[14px]">
-                        TriageFlowOPD
+                      <Text className="text-primary font-black text-[14px] tracking-wide">
+                        TriageFlow OPD
                       </Text>
                     </View>
 
                     <View
-                      className={`px-2.5 py-0.5 rounded-full border ${activeTicket.status === "COMPLETED" || activeTicket.status === "FINISHED"
-                          ? "bg-emerald-50 border-emerald-200"
-                          : "bg-blue-50 border-blue-200"
+                      className={`px-3 py-1 rounded-full border ${activeTicket.status === "COMPLETED" || activeTicket.status === "FINISHED"
+                        ? "bg-emerald-50 border-emerald-200"
+                        : "bg-blue-50 border-blue-200"
                         }`}
                     >
                       <Text
                         className={`text-[10px] font-bold ${activeTicket.status === "COMPLETED" || activeTicket.status === "FINISHED"
-                            ? "text-emerald-700"
-                            : "text-blue-700"
+                          ? "text-emerald-700"
+                          : "text-blue-700"
                           }`}
                       >
                         {activeTicket.status === "COMPLETED" || activeTicket.status === "FINISHED"
@@ -660,88 +697,123 @@ export function ActiveTicketView() {
                     </View>
                   </View>
 
-                  <View className="p-6 items-center">
-                    <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-1.5">
-                      Số thứ tự
+                  {/* Thân vé */}
+                  <View className="px-5 pt-5 pb-4 items-center">
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "800",
+                        color: "#94A3B8",
+                        letterSpacing: 2,
+                        textTransform: "uppercase",
+                        marginBottom: 4,
+                      }}
+                    >
+                      SỐ THỨ TỰ CỦA BẠN
                     </Text>
-                    <Text className="text-gray-800 text-[52px] font-black leading-none mb-6">
+
+                    <Text
+                      style={{
+                        fontSize: 76,
+                        fontWeight: "900",
+                        color: "#0F172A",
+                        lineHeight: 84,
+                        marginVertical: 6,
+                        textAlign: "center",
+                      }}
+                    >
                       {activeTicket.queueNumber}
                     </Text>
 
-                    <View className="w-full bg-[#84AFEB]/10 rounded-[24px] p-5 border border-[#84AFEB]/20 mb-6">
-                      <View className="flex-row mb-4">
-                        
+                    {/* Khung thông tin 2x2 */}
+                    <View className="w-full bg-[#F8FAFC] rounded-[22px] p-4 border border-gray-100">
+                      {/* Hàng 1: Phòng khám & Bác sĩ */}
+                      <View className="flex-row pb-3.5 border-b border-gray-100">
                         <View className="flex-1 pr-2">
                           <View className="flex-row items-center gap-1.5 mb-1">
-                            <Ionicons name="medical" size={12} color="#6B7280" />
-                            <Text className="text-gray-500 text-[11px] font-medium">Dịch vụ / Gói khám</Text>
+                            <Ionicons name="location" size={13} color={Colors.primary} />
+                            <Text className="text-gray-400 text-[11px] font-semibold">Phòng khám</Text>
                           </View>
-                          <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
-                            {activeTicket.specialtyName}
+                          <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={2}>
+                            {activeTicket.roomName}
                           </Text>
                         </View>
 
                         <View className="flex-1 pl-2">
                           <View className="flex-row items-center gap-1.5 mb-1">
-                            <Ionicons name="location" size={12} color="#6B7280" />
-                            <Text className="text-gray-500 text-[11px] font-medium">Phòng khám</Text>
-                          </View>
-                          <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
-                            {activeTicket.roomName}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View className="flex-row mb-4">
-                        
-                        <View className="flex-1 pr-2">
-                          <View className="flex-row items-center gap-1.5 mb-1">
-                            <Ionicons name="person-circle" size={12} color="#6B7280" />
-                            <Text className="text-gray-500 text-[11px] font-medium">Bác sĩ phụ trách</Text>
+                            <Ionicons name="person-circle" size={13} color={Colors.primary} />
+                            <Text className="text-gray-400 text-[11px] font-semibold">Bác sĩ phụ trách</Text>
                           </View>
                           <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
                             {activeTicket.doctorName || "Bác sĩ chuyên khoa"}
                           </Text>
                         </View>
+                      </View>
 
-                        <View className="flex-1 pl-2">
+                      {/* Hàng 2: Giờ vào khám & Ngày khám */}
+                      <View className="flex-row py-3.5 border-b border-gray-100">
+                        <View className="flex-1 pr-2">
                           <View className="flex-row items-center gap-1.5 mb-1">
-                            <Ionicons name="time" size={12} color="#6B7280" />
-                            <Text className="text-gray-500 text-[11px] font-medium">Thời gian đăng ký</Text>
+                            <Ionicons name="time" size={13} color={Colors.primary} />
+                            <Text className="text-gray-400 text-[11px] font-semibold">Giờ vào khám</Text>
                           </View>
                           <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
                             {activeTicket.startTime}
                           </Text>
                         </View>
-                      </View>
 
-                      <View className="pt-2 border-t border-[#84AFEB]/20">
-                        <View className="flex-row items-center justify-between">
-                          <View className="flex-row items-center gap-1.5">
-                            <Ionicons name="person" size={12} color="#6B7280" />
-                            <Text className="text-gray-500 text-[11px] font-medium">Bệnh nhân:</Text>
+                        <View className="flex-1 pl-2">
+                          <View className="flex-row items-center gap-1.5 mb-1">
+                            <Ionicons name="calendar" size={13} color={Colors.primary} />
+                            <Text className="text-gray-400 text-[11px] font-semibold">Ngày khám</Text>
                           </View>
                           <Text className="text-gray-800 text-[13px] font-extrabold" numberOfLines={1}>
+                            {formatDate(getFlowExamDate(activeFlow)) || "--"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Hàng 3: Bệnh nhân */}
+                      <View className="pt-3">
+                        <View className="flex-row items-center justify-between">
+                          <View className="flex-row items-center gap-1.5">
+                            <Ionicons name="person" size={13} color={Colors.primary} />
+                            <Text className="text-gray-400 text-[11px] font-semibold">Bệnh nhân:</Text>
+                          </View>
+                          <Text className="text-gray-900 text-[13px] font-black" numberOfLines={1}>
                             {activeTicket.patientName}
                           </Text>
                         </View>
                       </View>
                     </View>
+                  </View>
 
-                    <View className="w-full border-t border-dashed border-gray-200 my-4" />
+                  {/* Vết cắt vé bán nguyệt & Đường kẻ đứt nét */}
+                  <View className="relative w-full my-1 justify-center">
+                    <View className="w-full border-t border-dashed border-gray-200" />
+                    <View className="absolute -left-3 top-1/2 -mt-3 w-6 h-6 rounded-full bg-[#F3F4F6] border-r border-[#84AFEB]/30" />
+                    <View className="absolute -right-3 top-1/2 -mt-3 w-6 h-6 rounded-full bg-[#F3F4F6] border-l border-[#84AFEB]/30" />
+                  </View>
 
-                    <View className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm items-center">
+                  {/* Mã QR */}
+                  <View className="p-5 items-center">
+                    <View className="bg-white p-4 rounded-[22px] border border-gray-100 shadow-sm items-center justify-center">
                       <Image
                         source={{ uri: qrImageUrl }}
-                        className="w-44 h-44"
-                        resizeMode="contain"
+                        style={{ width: 170, height: 170 }}
+                        contentFit="contain"
                       />
                       {activeTicket.ticketCode ? (
-                        <Text className="text-gray-800 text-[13px] font-black mt-3 tracking-wider text-center">
-                          Mã phiếu: {activeTicket.ticketCode}
-                        </Text>
+                        <View className="mt-3 bg-gray-50 px-3.5 py-1 rounded-full border border-gray-100">
+                          <Text className="text-gray-700 text-[12px] font-black tracking-wider text-center">
+                            Mã vé: {activeTicket.ticketCode}
+                          </Text>
+                        </View>
                       ) : null}
                     </View>
+                    <Text className="text-gray-400 text-[11px] font-medium text-center mt-3">
+                      Xuất trình mã này tại quầy tiếp nhận hoặc cửa phòng khám
+                    </Text>
                   </View>
                 </View>
 
@@ -754,42 +826,35 @@ export function ActiveTicketView() {
               </ScrollView>
             </View>
           ) : (
-            
-            <View className="flex-1 justify-between px-6 py-12 items-center">
-              <View className="flex-1 items-center justify-center">
-                <View className="w-24 h-24 rounded-full bg-[#84AFEB]/10 items-center justify-center mb-6">
-                  <Ionicons
-                    name={!selectedPatientId ? "person-outline" : "ticket-outline"}
-                    size={36}
-                    color={Colors.primary}
-                  />
-                </View>
-                <Text className="text-gray-800 text-[18px] font-extrabold mb-2 text-center">
-                  {!selectedPatientId
-                    ? "Chưa chọn hồ sơ bệnh nhân"
-                    : "Không có phiếu khám hôm nay"}
-                </Text>
-                <Text className="text-gray-400 text-[13px] font-medium text-center px-4 leading-[20px]">
-                  {selectedPatientName
-                    ? `Hồ sơ ${selectedPatientName} chưa có lượt khám nào trong ngày hôm nay.`
-                    : "Vui lòng chọn hồ sơ bệnh nhân để xem phiếu khám."}
-                </Text>
 
-                {!selectedPatientId && (
-                  <TouchableOpacity
-                    onPress={() => setIsPatientModalVisible(true)}
-                    activeOpacity={0.8}
-                    className="mt-6 bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2 shadow-sm shadow-primary/30"
-                  >
-                    <Ionicons name="people" size={18} color="white" />
-                    <Text className="text-white font-bold text-sm">Chọn hồ sơ bệnh nhân</Text>
-                  </TouchableOpacity>
-                )}
+            <View className="flex-1 justify-center items-center px-6 py-12">
+              <View className="w-20 h-20 rounded-full bg-blue-50 items-center justify-center mb-4">
+                <Ionicons
+                  name={!selectedPatientId ? "person-outline" : "ticket-outline"}
+                  size={36}
+                  color="#2563EB"
+                />
               </View>
+              <Text className="text-gray-900 text-base font-bold text-center">
+                {!selectedPatientId
+                  ? "Chưa chọn hồ sơ bệnh nhân"
+                  : "Chưa có phiếu khám"}
+              </Text>
+
+              {!selectedPatientId && (
+                <TouchableOpacity
+                  onPress={() => setIsPatientModalVisible(true)}
+                  activeOpacity={0.8}
+                  className="mt-6 bg-primary px-6 py-3 rounded-xl flex-row items-center gap-2 shadow-sm shadow-primary/30"
+                >
+                  <Ionicons name="people" size={18} color="white" />
+                  <Text className="text-white font-bold text-sm">Chọn hồ sơ bệnh nhân</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )
         ) : selectedTab === "prescription" ? (
-          
+
           isLoadingPrescription ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -810,122 +875,26 @@ export function ActiveTicketView() {
                 />
               }
             >
-              
-              <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
-                <View className="flex-row items-center gap-2.5 mb-3">
-                  <View className="w-10 h-10 rounded-2xl bg-blue-50 items-center justify-center">
-                    <Ionicons name="receipt" size={20} color="#2563EB" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-gray-900 text-[16px] font-extrabold">
-                      Đơn Thuốc Phiên Khám
-                    </Text>
-                    <Text className="text-gray-400 text-[11px] mt-0.5">
-                      Mã đơn: {prescription.prescription_code || "—"}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="bg-gray-50 rounded-2xl p-4 gap-2.5 border border-gray-100">
-                  {prescription.doctor?.full_name && (
-                    <View className="flex-row justify-between items-center">
-                      <Text className="text-gray-500 text-xs font-medium">Bác sĩ kê đơn:</Text>
-                      <Text className="text-gray-900 text-xs font-bold">
-                        BS. {prescription.doctor.full_name}
-                      </Text>
-                    </View>
-                  )}
-                  <View className="flex-row justify-between items-center">
-                    <Text className="text-gray-500 text-xs font-medium">Ngày kê đơn:</Text>
-                    <Text className="text-gray-900 text-xs font-bold">
-                      {formatDateTime(prescription.created_at)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {prescription.diagnosis_note && (
-                <View className="bg-blue-50/70 rounded-3xl p-5 border border-blue-100 shadow-sm mb-4">
-                  <View className="flex-row items-center gap-2 mb-2">
-                    <Ionicons name="information-circle" size={18} color="#2563EB" />
-                    <Text className="text-blue-900 text-[14px] font-bold">
-                      Chẩn đoán & Lời dặn của Bác sĩ
-                    </Text>
-                  </View>
-                  <Text className="text-blue-950 text-xs leading-[20px] font-medium pl-6">
-                    {prescription.diagnosis_note}
-                  </Text>
-                </View>
-              )}
-
-              <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
-                <View className="flex-row items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                  <Ionicons name="medkit" size={18} color={Colors.primary} />
-                  <Text className="text-gray-900 text-[15px] font-bold">
-                    Danh mục thuốc ({prescription.prescriptionDetails?.length || 0})
-                  </Text>
-                </View>
-
-                {prescription.prescriptionDetails && prescription.prescriptionDetails.length > 0 ? (
-                  <View className="gap-3">
-                    {prescription.prescriptionDetails.map((item: any, idx: number) => {
-                      const medicineName =
-                        item.medicine?.medicine_name || item.medicine_name || `Thuốc ${idx + 1}`;
-                      const unit = item.medicine?.unit || "Đơn vị";
-
-                      return (
-                        <View
-                          key={item.prescription_detail_id || idx}
-                          className="bg-gray-50 p-4 rounded-2xl border border-gray-100"
-                        >
-                          <View className="flex-row justify-between items-start mb-2">
-                            <Text className="text-gray-900 text-[14px] font-bold flex-1 mr-2">
-                              {idx + 1}. {medicineName}
-                            </Text>
-                            <View className="bg-blue-100 px-2.5 py-0.5 rounded-md">
-                              <Text className="text-primary text-[11px] font-black">
-                                SL: {item.quantity} {unit}
-                              </Text>
-                            </View>
-                          </View>
-
-                          {item.dosage_instruction && (
-                            <Text className="text-gray-600 text-xs leading-[18px]">
-                              {item.dosage_instruction}
-                            </Text>
-                          )}
-                        </View>
-                      );
-                    })}
-                  </View>
-                ) : (
-                  <Text className="text-gray-400 text-xs text-center py-4">
-                    Không có chi tiết danh mục thuốc.
-                  </Text>
-                )}
-              </View>
+              <PrescriptionDetailView prescription={prescription} />
             </ScrollView>
           ) : (
-            
+
             <View className="flex-1 justify-center items-center px-6 py-12">
               <View className="w-20 h-20 rounded-full bg-blue-50 items-center justify-center mb-4">
                 <Ionicons name="medkit-outline" size={36} color="#2563EB" />
               </View>
-              <Text className="text-gray-900 text-base font-bold mb-1.5 text-center">
-                Chưa có đơn thuốc của phiên khám này
-              </Text>
-              <Text className="text-gray-400 text-xs text-center px-6 leading-5">
-                Bác sĩ đang thực hiện ca khám hoặc chưa hoàn tất kê đơn. Đơn thuốc sẽ xuất hiện tại đây ngay khi bác sĩ hoàn thành.
+              <Text className="text-gray-900 text-base font-bold text-center">
+                Chưa có đơn thuốc
               </Text>
             </View>
           )
         ) : (
-          
+
           isLoadingInvoice ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator size="large" color={Colors.primary} />
               <Text className="text-gray-400 text-[12px] font-medium mt-3">
-                Đang tải thông tin viện phí của phiên khám...
+                Đang tải thông tin hóa đơn...
               </Text>
             </View>
           ) : visitInvoice ? (
@@ -941,7 +910,7 @@ export function ActiveTicketView() {
                 />
               }
             >
-              
+
               <View className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm mb-4">
                 <View className="flex-row items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                   <Ionicons name="list-outline" size={18} color={Colors.primary} />
@@ -985,7 +954,7 @@ export function ActiveTicketView() {
                 )}
 
                 <View className="mt-4 pt-3 border-t border-gray-100 flex-row justify-between items-center">
-                  <Text className="text-gray-900 text-sm font-black">Tổng cộng viện phí:</Text>
+                  <Text className="text-gray-900 text-sm font-black">Tổng cộng hóa đơn:</Text>
                   <Text className="text-primary text-lg font-black">
                     {formatVND(visitInvoice.total_amount)}
                   </Text>
@@ -993,16 +962,13 @@ export function ActiveTicketView() {
               </View>
             </ScrollView>
           ) : (
-            
+
             <View className="flex-1 justify-center items-center px-6 py-12">
               <View className="w-20 h-20 rounded-full bg-blue-50 items-center justify-center mb-4">
                 <Ionicons name="receipt-outline" size={36} color="#2563EB" />
               </View>
-              <Text className="text-gray-900 text-base font-bold mb-1.5 text-center">
-                Chưa có thông tin viện phí của phiên khám này
-              </Text>
-              <Text className="text-gray-400 text-xs text-center px-6 leading-5">
-                Các khoản chi phí dịch vụ khám, xét nghiệm và thuốc sẽ hiển thị tại đây ngay khi bác sĩ chỉ định.
+              <Text className="text-gray-900 text-base font-bold text-center">
+                Chưa có hóa đơn
               </Text>
             </View>
           )

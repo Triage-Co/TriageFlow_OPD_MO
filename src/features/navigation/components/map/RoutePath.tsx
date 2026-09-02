@@ -159,7 +159,7 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
       const [lng, lat] = node.coords;
       const x = lng * 111320 - centerShiftX;
       const z = -(lat * 110540) - centerShiftZ;
-      return new THREE.Vector3(x, 0.3, z);
+      return new THREE.Vector3(x, 0.45, z);
     });
 
     const uniquePoints: THREE.Vector3[] = [];
@@ -180,7 +180,7 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
 
     try {
       const createdCurve = new THREE.CatmullRomCurve3(uniquePoints);
-      const createdTube = new THREE.TubeGeometry(createdCurve, 64, 0.35, 8, false);
+      const createdTube = new THREE.TubeGeometry(createdCurve, 64, 0.4, 8, false);
       return {
         tubeGeometry: createdTube,
         curve: createdCurve,
@@ -212,10 +212,9 @@ export function RoutePath({ path, centerShiftX, centerShiftZ, activeFloor }: Rou
       
       <mesh geometry={tubeGeometry}>
         <meshBasicMaterial
-          color="#38BDF8"
+          color="#0284C7"
           transparent
-          opacity={0.85}
-          depthWrite={false}
+          opacity={0.92}
         />
       </mesh>
 

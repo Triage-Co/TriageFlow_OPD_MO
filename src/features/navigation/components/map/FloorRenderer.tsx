@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { useBuildingMap } from "../../hooks/useBuildingMap";
 import { MapRenderer } from "./MapRenderer";
 
+import { useNavigationStore } from "../../store/useNavigationStore";
+
 interface FloorRendererProps {
   floorLevel: number;
   activeFloor: number;
@@ -10,8 +12,9 @@ interface FloorRendererProps {
 
 export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
   const isActive = floorLevel === activeFloor;
+  const activeBuildingId = useNavigationStore((s) => s.activeBuildingId);
 
-  const { data, loading, error } = useBuildingMap(floorLevel);
+  const { data, loading, error } = useBuildingMap(floorLevel, activeBuildingId || undefined);
 
   const floorData3D = data?.floorData3D;
 
@@ -38,9 +41,7 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
       {slabMesh ? (
         <mesh position={[0, -0.5, 0]} geometry={slabMesh}>
           <meshLambertMaterial
-            color="#ffffff"
-            transparent
-            opacity={0.9}
+            color="#e2e8f0"
           />
         </mesh>
       ) : (

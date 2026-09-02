@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { Colors } from "@/config/colors";
-import { formatVND as formatPrice } from "@/shared/utils/string.utils";
+import { formatVND } from "@/shared/utils/string.utils";
 import { packageService } from "@/features/booking/services/package.service";
 import { ExamPackage } from "@/features/booking/types/package.types";
 
@@ -36,7 +36,10 @@ export function PackageSelectView() {
     try {
       const res = await packageService.getAllPackages();
       const list = (res as any)?.data || res || [];
-      setPackages(Array.isArray(list) ? list : []);
+      const activeList = Array.isArray(list)
+        ? list.filter((pkg: ExamPackage) => pkg.is_active === true)
+        : [];
+      setPackages(activeList);
     } catch (err: any) {
       console.error("[PackageSelect] Error fetching packages:", err);
       setError("Không thể tải danh sách gói khám. Vui lòng thử lại!");
@@ -49,8 +52,10 @@ export function PackageSelectView() {
     fetchPackages();
   }, []);
 
-  const filteredPackages = (packages || []).filter((item) =>
-    (item?.package_name || "").toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPackages = (packages || []).filter(
+    (item) =>
+      item?.is_active === true &&
+      (item?.package_name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSelectPackage = (pkg: ExamPackage) => {
@@ -96,7 +101,7 @@ export function PackageSelectView() {
           ) : null}
           
           <Text className="text-primary text-[16px] font-black mt-3">
-            {formatPrice(item.price)}
+            {formatVND(item.price)}
           </Text>
         </View>
 

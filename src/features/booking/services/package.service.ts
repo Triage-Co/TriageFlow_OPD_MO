@@ -9,7 +9,13 @@ import {
 class PackageService {
   async getAllPackages(): Promise<ExamPackage[]> {
     const response = await apiClient.get<ExamPackage[]>("/api/exam-package");
-    return response.data;
+    const raw = response.data;
+    const list = Array.isArray((raw as any)?.data)
+      ? (raw as any).data
+      : Array.isArray(raw)
+      ? raw
+      : [];
+    return list.filter((pkg: ExamPackage) => pkg.is_active === true);
   }
 
   async getPackageDetail(id: string): Promise<ExamPackageDetail> {

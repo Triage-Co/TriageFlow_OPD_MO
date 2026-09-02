@@ -16,7 +16,7 @@ import { patientService } from "@/features/patient/services/patient.service";
 import { visitService } from "@/features/visit/services/visit.service";
 import { Patient } from "@/features/patient/types/patient.types";
 import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
-import { formatDate } from "@/shared/utils/date.utils";
+import { formatDate, toISODateString } from "@/shared/utils/date.utils";
 
 const getFlowExamDate = (flow: any): string => {
   if (flow.date) {
@@ -49,12 +49,16 @@ export function MyAppointmentsView() {
 
   const fetchAppointments = useCallback(async (patientId: string, showLoading = true) => {
     if (showLoading) setIsLoading(true);
+    console.log(`[LỊCH HẸN KHÁM BỆNH - GỌI API] Đang lấy danh sách phiếu hẹn cho bệnh nhân ID: ${patientId}`);
     try {
       const res = await visitService.getActiveFlow(patientId);
+      console.log(`==================== [API GET /api/flow/patient/${patientId}/active] ====================`);
+      console.log(`Kết quả trả về từ API (Raw Response):`, JSON.stringify(res, null, 2));
+
       if (res?.data && Array.isArray(res.data)) {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split("T")[0];
+        const tomorrowStr = toISODateString(tomorrow);
 
         const upcomingFlows = res.data.filter((flow: any) => {
           const examDate = getFlowExamDate(flow);
@@ -65,12 +69,19 @@ export function MyAppointmentsView() {
           return getFlowExamDate(a).localeCompare(getFlowExamDate(b));
         });
 
+        console.log(`Tổng số flow nhận được từ API: ${res.data.length}`);
+        console.log(`Số lịch hẹn tương lai (từ ngày mai ${tomorrowStr} trở đi): ${upcomingFlows.length}`);
+        console.log(`Danh sách lịch hẹn sắp tới:`, JSON.stringify(upcomingFlows, null, 2));
+        console.log(`========================================================================================`);
+
         setAppointments(upcomingFlows);
       } else {
+        console.log(`[LỊCH HẸN KHÁM BỆNH] Không có dữ liệu lịch hẹn trả về (res.data rỗng hoặc không phải mảng).`);
+        console.log(`========================================================================================`);
         setAppointments([]);
       }
     } catch (err) {
-      console.log("Error fetching appointments:", err);
+      console.error("[LỊCH HẸN KHÁM BỆNH - LỖI GỌI API]:", err);
       setAppointments([]);
     } finally {
       setIsLoading(false);

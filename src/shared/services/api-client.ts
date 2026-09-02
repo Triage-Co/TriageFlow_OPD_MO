@@ -1,5 +1,12 @@
-import axios from "axios";
+import axios, { AxiosRequestConfig } from "axios";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
+
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    skipGlobalToast?: boolean;
+    _retry?: boolean;
+  }
+}
 import {
   getAccessToken,
   setAccessToken,
@@ -61,11 +68,15 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    const requestUrl = originalRequest?.url || "";
+    const isAuthRequest =
+      (requestUrl.includes("/api/auth/") || requestUrl.includes("/auth/")) &&
+      !requestUrl.includes("/logout");
+
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes("/api/auth/refresh") &&
-      !originalRequest.url?.includes("/api/auth/login")
+      !isAuthRequest
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -131,7 +142,6 @@ apiClient.interceptors.response.use(
       "Đã xảy ra lỗi, vui lòng thử lại.";
 
     const config = error?.config;
-    const isAuthRequest = config?.url?.includes("/api/auth/") && !config?.url?.includes("/api/auth/logout");
     const shouldSkipToast = config?.skipGlobalToast || isAuthRequest;
 
     if (!shouldSkipToast) {

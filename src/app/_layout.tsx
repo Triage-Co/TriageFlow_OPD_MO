@@ -11,7 +11,10 @@ LogBox.ignoreLogs([
   "THREE.Clock: This module has been deprecated",
   "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.",
   "[Reanimated] Reading from `value` during component render",
+  "[useDoctorList]",
+  "API Error",
 ]);
+LogBox.ignoreAllLogs(true);
 
 const originalLog = console.log;
 console.log = (...args) => {

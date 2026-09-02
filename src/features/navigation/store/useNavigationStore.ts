@@ -26,6 +26,7 @@ interface NavigationState {
       dest?: { x: number; y: number; z: number };
     } | null
   ) => void;
+  resetNavigation: () => void;
 }
 
 export const useNavigationStore = create<NavigationState>((set) => ({
@@ -45,4 +46,13 @@ export const useNavigationStore = create<NavigationState>((set) => ({
   setRouteData: (data) => set({ routeData: data }),
   marker3DPositions: null,
   setMarker3DPositions: (pos) => set({ marker3DPositions: pos }),
+  resetNavigation: () =>
+    set({
+      startRoom: null,
+      targetRoom: null,
+      routeData: null,
+      selectedRoom: null,
+      selectedNodeId: null,
+      marker3DPositions: null,
+    }),
 }));

@@ -281,7 +281,7 @@ export function MapRenderer({ featureCollection }: MapRendererProps) {
         >
           <boxGeometry args={[1, 1, 1]} />
           <meshLambertMaterial
-            color="#ffffff"
+            color="#94a3b8"
           />
         </instancedMesh>
       )}

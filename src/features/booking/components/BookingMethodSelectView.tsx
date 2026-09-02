@@ -134,7 +134,7 @@ export function BookingMethodSelectView() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}
       >
-        
+
         <View
           style={{
             backgroundColor: "#FFFFFF",
@@ -163,7 +163,6 @@ export function BookingMethodSelectView() {
               <Ionicons name="person" size={20} color="#2563EB" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 11, color: "#94A3B8", fontWeight: "500" }}>Khám cho:</Text>
               <Text
                 style={{ fontSize: 16, fontWeight: "700", color: "#0F172A", marginTop: 2 }}
                 numberOfLines={1}
@@ -193,54 +192,40 @@ export function BookingMethodSelectView() {
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#2563EB" }}>
               Đổi hồ sơ
             </Text>
-            <Ionicons name="chevron-down" size={14} color="#2563EB" />
           </Pressable>
         </View>
 
         <Pressable
           onPress={handleSelectAITriage}
           style={{
-            backgroundColor: "#F0F7FF",
+            backgroundColor: "#F8FAFC",
             borderWidth: 1,
-            borderColor: "#B8D0F5",
-            borderRadius: 28,
-            padding: 20,
+            borderColor: "#E2E8F0",
+            borderRadius: 24,
+            padding: 16,
           }}
           className="active:opacity-90 shadow-sm"
         >
-          
-          <View className="flex-row items-center justify-between mb-4">
-            <View
-              style={{ backgroundColor: "#84AFEB" }}
-              className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm"
-            >
-              <Ionicons name="bulb" size={24} color="#FFFFFF" />
-            </View>
-            <View
-              style={{ backgroundColor: "#84AFEB" }}
-              className="px-3 py-1 rounded-full flex-row items-center gap-1"
-            >
-              <Ionicons name="bulb" size={11} color="#FFFFFF" />
-              <Text className="text-[10px] font-extrabold text-white uppercase tracking-wider">GỢI Ý AI 3D</Text>
-            </View>
+          <View
+            style={{ backgroundColor: "#EFF6FF", borderWidth: 1, borderColor: "#DBEAFE" }}
+            className="w-12 h-12 rounded-2xl items-center justify-center mb-3"
+          >
+            <Ionicons name="bulb" size={24} color="#2563EB" />
           </View>
 
-          <Text className="text-[19px] font-bold text-gray-900">AI Gợi Ý Chuyên Khoa</Text>
-          <Text className="text-xs text-gray-600 leading-5 mt-1.5 mb-5">
-            Phân tích triệu chứng & chỉ điểm vị trí đau trên mô hình cơ thể 3D để tìm đúng bác sĩ.
+          <Text className="text-[16px] font-bold text-gray-900">AI Gợi Ý Chuyên Khoa</Text>
+          <Text className="text-xs text-gray-500 leading-5 mt-1 mb-3">
+            Phân tích triệu chứng & chỉ điểm vị trí đau.
           </Text>
 
-          <View
-            style={{ backgroundColor: "#84AFEB", borderRadius: 16 }}
-            className="py-3.5 px-4 flex-row items-center justify-between shadow-sm"
-          >
-            <Text className="text-sm font-bold text-white">Bắt đầu khám cùng AI</Text>
-            <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+          <View className="flex-row items-center gap-1">
+            <Text className="text-xs font-bold text-blue-600">Bắt đầu khám cùng AI</Text>
+            <Ionicons name="chevron-forward" size={14} color="#2563EB" />
           </View>
         </Pressable>
 
         <View className="flex-row gap-3.5">
-          
+
           <Pressable
             onPress={handleSelectSpecialty}
             style={{

@@ -2,7 +2,15 @@ import { useState, useCallback } from "react";
 import { forgotPasswordService } from "@/features/auth/services/forgot-password.service";
 import { getErrorMessage } from "@/shared/utils/error.utils";
 
-export function useForgotPassword() {
+export interface UseForgotPasswordReturn {
+  isLoading: boolean;
+  error: string | null;
+  clearError: () => void;
+  sendForgotPasswordOtp: (email: string) => Promise<boolean>;
+  verifyForgotPasswordOtp: (email: string, otp: string, password: string) => Promise<boolean>;
+}
+
+export function useForgotPassword(): UseForgotPasswordReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

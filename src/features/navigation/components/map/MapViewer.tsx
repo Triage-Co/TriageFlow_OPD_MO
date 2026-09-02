@@ -22,7 +22,7 @@ function CameraController({ activeFloor }: { activeFloor: number }) {
       ctrl.target.set(0, 0, 0);
     }
 
-    camera.position.set(0, 180, 0.001);
+    camera.position.set(0, 140, 90);
     camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
 
@@ -81,10 +81,14 @@ function ScreenMarkerTracker({
 }) {
   const { camera, size } = useThree();
   const marker3DPositions = useNavigationStore((s) => s.marker3DPositions);
+  const lastPosRef = useRef<{ start?: string; dest?: string }>({});
 
   useFrame(() => {
     if (!marker3DPositions) {
-      onUpdate({});
+      if (lastPosRef.current.start || lastPosRef.current.dest) {
+        lastPosRef.current = {};
+        onUpdate({});
+      }
       return;
     }
 
@@ -95,15 +99,24 @@ function ScreenMarkerTracker({
 
       if (vec.z > 1) return { x: 0, y: 0, visible: false };
 
-      const x = ((vec.x + 1) * size.width) / 2;
-      const y = ((-vec.y + 1) * size.height) / 2;
+      const x = Math.round(((vec.x + 1) * size.width) / 2);
+      const y = Math.round(((-vec.y + 1) * size.height) / 2);
       return { x, y, visible: true };
     };
 
-    onUpdate({
-      start: projectPoint(marker3DPositions.start),
-      dest: projectPoint(marker3DPositions.dest),
-    });
+    const startPt = projectPoint(marker3DPositions.start);
+    const destPt = projectPoint(marker3DPositions.dest);
+
+    const startKey = startPt ? `${startPt.x}-${startPt.y}-${startPt.visible}` : "";
+    const destKey = destPt ? `${destPt.x}-${destPt.y}-${destPt.visible}` : "";
+
+    if (
+      startKey !== lastPosRef.current.start ||
+      destKey !== lastPosRef.current.dest
+    ) {
+      lastPosRef.current = { start: startKey, dest: destKey };
+      onUpdate({ start: startPt, dest: destPt });
+    }
   });
 
   return null;
@@ -148,13 +161,12 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
   return (
     <View style={styles.container}>
       <Canvas
-        camera={{ position: [0, 180, 0.001], fov: 50, up: [0, 1, 0] }}
+        camera={{ position: [0, 200, 120], fov: 50, up: [0, 1, 0] }}
         style={styles.canvas}
-        frameloop="demand"
-        gl={{ antialias: false, powerPreference: "high-performance" }}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
       >
         <Suspense fallback={null}>
-          <ambientLight intensity={0.75} />
+          <ambientLight intensity={0.8} />
           <directionalLight
             position={[10, 30, 20]}
             intensity={1.2}
@@ -172,17 +184,17 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
           ref={controlsRef}
           makeDefault
           minPolarAngle={0}
-          maxPolarAngle={Math.PI / 2.4}
+          maxPolarAngle={Math.PI / 2.2}
           enableRotate={controlMode === "rotate"}
           enableZoom={true}
           enablePan={controlMode === "pan"}
-          maxDistance={350}
+          maxDistance={450}
           minDistance={15}
-          zoomSpeed={1.8}
-          rotateSpeed={1.1}
-          panSpeed={1.3}
+          zoomSpeed={1.5}
+          rotateSpeed={1.0}
+          panSpeed={1.2}
           enableDamping={true}
-          dampingFactor={0.06}
+          dampingFactor={0.08}
           touches={{
             ONE: controlMode === "pan" ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE,
             TWO: THREE.TOUCH.DOLLY_PAN,
@@ -225,7 +237,7 @@ export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewe
       )}
 
       <View style={[styles.toggleContainer, { top: topOffset, right: hasMultipleFloors ? 72 : 16 }]}>
-        
+
         <TouchableOpacity
           style={[
             styles.toggleButton,

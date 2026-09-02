@@ -24,8 +24,8 @@ export function useBuildingMap(floorNumber: number, buildingId: string = HARDCOD
   }, []);
 
   useEffect(() => {
-    if (cache.has(cacheKey)) {
-      const cachedData = cache.get(cacheKey)!;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
       setData(cachedData);
       setRawMap(cachedData.rawMap ?? null);
       setLoading(false);

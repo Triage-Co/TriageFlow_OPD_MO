@@ -1,6 +1,7 @@
 import { Colors } from "@/config/colors";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
+import { visitService } from "@/features/visit/services/visit.service";
 import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { AppAlert } from "@/shared/utils/alert.utils";
@@ -35,6 +36,7 @@ export function PaymentQrView() {
   const checkoutUrl = params.checkoutUrl as string;
   const qrCode = params.qrCode as string;
   const patientName = params.patientName as string;
+  const patientId = (params.patientId as string) || "";
   const orderCode = (params.orderCode || params.ordercode) as string;
 
   const doctorName = params.doctorName as string;
@@ -44,29 +46,12 @@ export function PaymentQrView() {
   const slotTime = params.slotTime as string;
   const isPackageBooking = params.isPackageBooking === "true";
 
-  const [paymentChecked, setPaymentChecked] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [confirmedData, setConfirmedData] = useState<{
-    queueNumber: string;
-    ticketCode?: string;
-    specialtyName: string;
-    roomName: string;
-    doctorName?: string;
-    startTime: string;
-    patientName: string;
-    bookingId: string;
-    stepId: string;
-    patientId: string;
-  } | null>(null);
 
   const handleViewTicket = () => {
     setShowSuccessModal(false);
-    if (confirmedData) {
-      router.push({
-        pathname: "/(patient)/visit/ticket-screen",
-        params: confirmedData,
-      });
-    }
+    router.replace("/(patient)/(tabs)/ticket");
   };
 
   const amount = parseInt(amountStr || "0", 10);
@@ -98,23 +83,51 @@ export function PaymentQrView() {
   };
 
   const handleConfirmPayment = async () => {
-    if (isPackageBooking || !stepId) {
-      if (stepId) {
-        await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
+    if (isPackageBooking) {
+      if (!patientId) {
+        AppAlert.error("Không tìm thấy mã bệnh nhân để xác nhận.");
+        return;
       }
-      setConfirmedData({
-        queueNumber: (params.queueNumber as string) || "GÓI KHÁM",
-        ticketCode: (params.ticketCode as string) || (params.ticket_code as string) || "",
-        specialtyName: specialtyName || (params.packageName as string) || "Gói khám sức khỏe",
-        roomName: (params.roomName as string) || "Phòng khám gói",
-        doctorName: (params.doctorName as string) || "Bác sĩ phụ trách",
-        startTime: slotTime || "Theo ca đã chọn",
-        patientName: patientName || "",
-        bookingId: bookingId || "",
-        stepId: stepId || "",
-        patientId: (params.patientId as string) || "",
-      });
-      setShowSuccessModal(true);
+
+      setIsCheckingPayment(true);
+      try {
+        const activeRes = await visitService.getActiveFlow(patientId);
+        const activeData = activeRes?.data || activeRes;
+        const activeFlow = Array.isArray(activeData) ? activeData[0] : activeData;
+
+        if (activeFlow && (activeFlow.flow_id || activeFlow.ticket_code)) {
+          const foundStepId =
+            activeFlow.steps?.[0]?.step_id ||
+            stepId ||
+            "";
+
+          if (foundStepId) {
+            await bookingStorageService.saveActiveBookingStep(foundStepId, patientName || "");
+          }
+
+          setShowSuccessModal(true);
+          return;
+        } else {
+          AppAlert.info(
+            "Hệ thống chưa ghi nhận giao dịch thanh toán cho gói khám này. Nếu bạn đã chuyển khoản, vui lòng đợi 1-2 phút rồi bấm lại nút xác nhận.",
+            "Chưa nhận được thanh toán"
+          );
+          return;
+        }
+      } catch (err: any) {
+        console.error("[PaymentQrView] Error checking active package flow:", err);
+        AppAlert.info(
+          "Hệ thống chưa ghi nhận giao dịch thanh toán cho gói khám này. Nếu bạn đã chuyển khoản, vui lòng đợi 1-2 phút rồi bấm lại nút xác nhận.",
+          "Chưa nhận được thanh toán"
+        );
+        return;
+      } finally {
+        setIsCheckingPayment(false);
+      }
+    }
+
+    if (!stepId) {
+      AppAlert.error("Không tìm thấy mã bước tiếp nhận để xác nhận thanh toán.");
       return;
     }
 
@@ -133,46 +146,6 @@ export function PaymentQrView() {
     }
 
     await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
-
-    const tCode =
-      (bookingResult as any)?.ticket_code ||
-      stepDetail.flow?.ticket_code ||
-      stepDetail.queues?.[0]?.ticket_code ||
-      (params.ticketCode as string) ||
-      (params.ticket_code as string) ||
-      "";
-    const specName =
-      (params.specialtyName as string) ||
-      stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name ||
-      (params.roomName as string) ||
-      specialtyName ||
-      "Khám chuyên khoa";
-    const rName =
-      (params.roomName as string) ||
-      stepDetail.flow?.booking?.slot?.shift?.room?.room_name ||
-      "Đang xếp phòng";
-    const docName =
-      (params.doctorName as string) ||
-      (stepDetail.flow?.booking?.slot?.shift as any)?.staff?.full_name ||
-      doctorName ||
-      "Bác sĩ phụ trách";
-    const sTime =
-      stepDetail.flow?.booking?.slot?.start_time ||
-      slotTime ||
-      "Đang xếp ca";
-
-    setConfirmedData({
-      queueNumber: bookingResult.queue?.queue_number || bookingResult.queue_number || "--",
-      ticketCode: tCode,
-      specialtyName: specName,
-      roomName: rName,
-      doctorName: docName,
-      startTime: sTime,
-      patientName: patientName || "",
-      bookingId: bookingId || "",
-      stepId: stepId || "",
-      patientId: (params.patientId as string) || "",
-    });
     setShowSuccessModal(true);
   };
 
@@ -181,7 +154,7 @@ export function PaymentQrView() {
       <StatusBar style="dark" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          
+
           <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
             <Pressable
               onPress={() => router.back()}
@@ -235,12 +208,12 @@ export function PaymentQrView() {
           </View>
 
           <View className="mx-5 bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm items-center mb-6">
-            
-            <View className="bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm mb-5">
+
+            <View className="bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm mb-5 items-center justify-center">
               <Image
                 source={{ uri: qrImageUrl }}
-                className="w-52 h-52"
-                resizeMode="contain"
+                style={{ width: 220, height: 220 }}
+                contentFit="contain"
               />
             </View>
 
@@ -262,8 +235,8 @@ export function PaymentQrView() {
         <View className="px-5 pb-12 pt-4 bg-white border-t border-gray-50">
           <AppButton
             title="Tôi đã thanh toán xong"
-            isLoading={isFetchingStepDetail || isFetchingResult}
-            disabled={isFetchingStepDetail || isFetchingResult}
+            isLoading={isFetchingStepDetail || isFetchingResult || isCheckingPayment}
+            disabled={isFetchingStepDetail || isFetchingResult || isCheckingPayment}
             onPress={handleConfirmPayment}
           />
         </View>
@@ -276,7 +249,7 @@ export function PaymentQrView() {
         >
           <View className="flex-1 justify-center items-center bg-black/50 px-6">
             <View className="bg-white w-full rounded-[28px] overflow-hidden shadow-2xl max-w-sm relative">
-              
+
               <View style={{ backgroundColor: "#82A9F5" }} className="h-24 w-full justify-center items-end px-5">
                 <View className="bg-white px-3 py-1 rounded-full shadow-sm">
                   <Text className="text-gray-900 text-xs font-bold">Đã thanh toán</Text>
@@ -284,7 +257,7 @@ export function PaymentQrView() {
               </View>
 
               <View className="items-center px-6 pt-12 pb-8 bg-white">
-                
+
                 <Text style={{ color: "#6C94EC" }} className="text-[20px] font-bold text-center mb-8 mt-4">
                   Thanh toán thành công!
                 </Text>

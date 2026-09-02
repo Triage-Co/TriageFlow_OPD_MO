@@ -24,7 +24,6 @@ export function InterviewView() {
     isLoading,
     error,
     answerQuestion,
-    triggerRecommendation,
     clearSession,
   } = useTriage();
 
@@ -83,10 +82,6 @@ export function InterviewView() {
     }
   };
 
-  const handleSeeRecommendation = async () => {
-    await triggerRecommendation();
-  };
-
   const handleQuit = async () => {
     await clearSession();
     router.replace("/(patient)/triage/body-map");
@@ -102,7 +97,7 @@ export function InterviewView() {
     )
     : false;
 
-  if ((!currentQuestion || shouldStop) && isLoading) {
+  if (!currentQuestion || shouldStop) {
     return (
       <ScreenWrapper>
         <View className="flex-1 items-center justify-center bg-[#F8FAFC]">
@@ -113,19 +108,6 @@ export function InterviewView() {
           <Text className="text-gray-400 text-xs mt-1.5 text-center font-medium">
             Hệ thống AI đang xử lý, vui lòng chờ trong giây lát
           </Text>
-        </View>
-      </ScreenWrapper>
-    );
-  }
-
-  if (!currentQuestion && !shouldStop && !isLoading) {
-    return (
-      <ScreenWrapper>
-        <View className="flex-1 items-center justify-center p-5 bg-[#F8FAFC]">
-          <Text className="text-gray-500 text-center text-[14px] font-medium mb-4">
-            Không tìm thấy câu hỏi chẩn đoán hoặc phiên hỏi bệnh đã kết thúc.
-          </Text>
-          <AppButton title="Quay lại Trang chủ" onPress={handleQuit} />
         </View>
       </ScreenWrapper>
     );
@@ -179,24 +161,6 @@ export function InterviewView() {
               <Text className="text-red-600 text-[12px] font-medium text-center">
                 {error}
               </Text>
-            </View>
-          )}
-
-          {shouldStop && !currentQuestion && (
-            <View className="flex-1 items-center justify-center px-4">
-              <View className="bg-green-50 border border-green-100 rounded-[20px] p-6 items-center w-full">
-                <SymbolView
-                  name={{ ios: "checkmark.circle.fill", android: "check_circle" }}
-                  size={48}
-                  tintColor="#16A34A"
-                />
-                <Text className="text-green-800 text-[17px] font-bold mt-3 text-center">
-                  Khảo sát hoàn tất!
-                </Text>
-                <Text className="text-green-700 text-[13px] text-center mt-2 leading-5">
-                  Hệ thống AI đã thu thập đủ thông tin. Nhấn nút bên dưới để xem đề xuất chuyên khoa phù hợp.
-                </Text>
-              </View>
             </View>
           )}
 
@@ -374,20 +338,12 @@ export function InterviewView() {
         </View>
 
         <View className="px-5 pb-[58px] pt-3 bg-white border-t border-gray-50">
-          {shouldStop ? (
-            <AppButton
-              title="Xem đề xuất chuyên khoa"
-              isLoading={isLoading}
-              onPress={handleSeeRecommendation}
-            />
-          ) : (
-            <AppButton
-              title="Tiếp theo"
-              disabled={!isAllAnswered || isLoading}
-              isLoading={isLoading}
-              onPress={handleNext}
-            />
-          )}
+          <AppButton
+            title="Tiếp theo"
+            disabled={!isAllAnswered || isLoading}
+            isLoading={isLoading}
+            onPress={handleNext}
+          />
         </View>
       </View>
     </ScreenWrapper>

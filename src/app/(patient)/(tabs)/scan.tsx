@@ -6,13 +6,10 @@ import {
   ActivityIndicator,
   Dimensions,
   StyleSheet,
-  ScrollView,
 } from "react-native";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -23,11 +20,11 @@ import Animated, {
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { AppAlert } from "@/shared/utils/alert.utils";
 import { Colors } from "@/config/colors";
-import { usePatient } from "@/features/patient/hooks/usePatient";
-import { useAuthContext } from "@/features/auth/context/AuthContext";
-import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
-import { maskCitizenId, getInitials, formatGenderLabel, getQrCodeUrl } from "@/shared/utils/string.utils";
-import { calculateAgeFromDob } from "@/shared/utils/date.utils";
+import { useNavigationStore } from "@/features/navigation/store/useNavigationStore";
+import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
+import { doctorService } from "@/features/booking/services/doctor.service";
+import { showGlobalToast } from "@/shared/components/ToastProvider";
+import { stripRoomName } from "@/shared/utils/string.utils";
 
 let CameraView: any = null;
 let useCameraPermissions: any = null;
@@ -61,58 +58,29 @@ const LASER_MAX_TRAVEL = VIEWFINDER_SIZE - 4;
 
 export default function ScanScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { user } = useAuthContext();
-  const { patients, fetchPatients, isLoading } = usePatient();
-  const [activeTab, setActiveTab] = useState<"personal" | "scan">("personal");
-
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
 
   const hookToUse = isCameraAvailable && useCameraPermissions ? useCameraPermissions : useMockCameraPermissions;
   const [permission, requestPermission] = hookToUse();
 
   const [scanned, setScanned] = useState(false);
-
   const translateY = useSharedValue(0);
 
   useEffect(() => {
-    fetchPatients();
-  }, [fetchPatients]);
-
-  useEffect(() => {
-    if (patients && patients.length > 0) {
-      if (!selectedPatientId || !patients.some((p) => p.patient_id === selectedPatientId)) {
-        setSelectedPatientId(patients[0].patient_id);
-      }
-    }
-  }, [patients, selectedPatientId]);
-
-  const handleConfirmPatient = (patientId: string) => {
-    setSelectedPatientId(patientId);
-    setIsPatientModalVisible(false);
-  };
-
-  useEffect(() => {
-    if (activeTab === "scan" && isCameraAvailable && permission && !permission.granted && permission.canAskAgain) {
+    if (isCameraAvailable && permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
-  }, [activeTab, permission]);
+  }, [permission]);
 
   useEffect(() => {
-    if (activeTab === "scan") {
-      translateY.value = withRepeat(
-        withSequence(
-          withTiming(LASER_MAX_TRAVEL, { duration: 2000 }),
-          withTiming(0, { duration: 2000 })
-        ),
-        -1,
-        false
-      );
-    } else {
-      translateY.value = 0;
-    }
-  }, [activeTab]);
+    translateY.value = withRepeat(
+      withSequence(
+        withTiming(LASER_MAX_TRAVEL, { duration: 2000 }),
+        withTiming(0, { duration: 2000 })
+      ),
+      -1,
+      false
+    );
+  }, []);
 
   const laserStyle = useAnimatedStyle(() => {
     return {
@@ -120,58 +88,105 @@ export default function ScanScreen() {
     };
   });
 
-  const activePatient =
-    patients?.find((p) => p.patient_id === selectedPatientId) ||
-    (patients && patients.length > 0 ? patients[0] : null);
-
-  const formatDobVi = (dobString?: string): string => {
-    if (!dobString) return "Chưa cập nhật";
-    const date = new Date(dobString);
-    if (isNaN(date.getTime())) return dobString;
-    const monthsVi = [
-      "tháng 1", "tháng 2", "tháng 3", "tháng 4", "tháng 5", "tháng 6",
-      "tháng 7", "tháng 8", "tháng 9", "tháng 10", "tháng 11", "tháng 12"
-    ];
-    return `${date.getDate()} ${monthsVi[date.getMonth()]} năm ${date.getFullYear()}`;
-  };
-
-  const patientName = activePatient?.full_name || user?.full_name || "Chưa cập nhật";
-  const initials = getInitials(patientName, "PT");
-  const patientCode = activePatient?.patient_id
-    ? `BN-${activePatient.patient_id.substring(0, 8).toUpperCase()}`
-    : "Chưa có mã hồ sơ";
-  const patientGender = formatGenderLabel(activePatient?.gender, "Chưa cập nhật");
-  const patientAge = activePatient?.dob ? calculateAgeFromDob(activePatient.dob) : null;
-  const patientDob = formatDobVi(activePatient?.dob);
-  const patientPhone = user?.phone || "Chưa cập nhật";
-  const patientInsurance = activePatient?.medical_coverage_id
-    ? `BHYT: ${activePatient.medical_coverage_id}`
-    : "Chưa liên kết BHYT";
-
-  const patientCitizenId = activePatient?.citizen_id
-    ? maskCitizenId(activePatient.citizen_id)
-    : user?.citizen_id
-      ? maskCitizenId(user.citizen_id)
-      : "Chưa cập nhật";
-
-  const qrData = activePatient?.citizen_id || activePatient?.patient_id || user?.citizen_id || user?.id || "";
-  const qrCodeUrl = qrData ? getQrCodeUrl(qrData, 300) : null;
-
-  const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 20;
-  const subTabBarBottom = bottomOffset + 68;
-
-  const handleBarcodeScanned = ({ data }: { data: string }) => {
+  const handleBarcodeScanned = async ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
-    AppAlert.info(
-      `Đã quét mã Checkpoint thành công! Dữ liệu: ${data}`,
-      "Checkpoint Check-in",
-      () => setScanned(false)
-    );
+
+    try {
+      let scannedRoomCode = "";
+      let scannedRoomName = "";
+      let scannedRoomId = "";
+
+      // Hỗ trợ cả định dạng JSON lẫn Text prefix
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed && typeof parsed === "object") {
+          scannedRoomCode = parsed.roomCode || parsed.room_code || parsed.code || "";
+          scannedRoomName = parsed.roomName || parsed.room_name || parsed.name || "";
+          scannedRoomId = parsed.roomId || parsed.room_id || parsed.id || "";
+        }
+      } catch {
+        if (data.startsWith("CHECKPOINT:")) {
+          const content = data.replace("CHECKPOINT:", "").trim();
+          const parts = content.split("|");
+          scannedRoomCode = parts[0] || "";
+          scannedRoomName = parts[1] || "";
+          scannedRoomId = parts[2] || "";
+        } else if (data === "CHECKPOINT-MOCK-LOCATION-3F") {
+          scannedRoomCode = "G2.1.ELEVATORS";
+          scannedRoomName = "Khu Thang Máy";
+          scannedRoomId = "elevators-t1";
+        } else {
+          scannedRoomCode = data.trim();
+        }
+      }
+
+      if (!scannedRoomCode && !scannedRoomName && !scannedRoomId) {
+        showGlobalToast("Mã QR không đúng định dạng Checkpoint bệnh viện!", "error");
+        setScanned(false);
+        return;
+      }
+
+      // Giữ nguyên Điểm đến (Target Room) đã chọn trước đó hoặc lấy từ Phiếu khám hôm nay
+      const storeTargetRoom = useNavigationStore.getState().targetRoom;
+      let targetRoomName = storeTargetRoom?.roomLabel || "";
+      let targetRoomCode = storeTargetRoom?.roomCode || "";
+      let targetRoomId = storeTargetRoom?.id || "";
+
+      if (!targetRoomName && !targetRoomId && !targetRoomCode) {
+        try {
+          const activeBooking = await bookingStorageService.getActiveBookingStep();
+          if (activeBooking) {
+            const stepDetail = await doctorService.getStepDetail(activeBooking.stepId, { skipGlobalToast: true });
+            if (stepDetail?.data) {
+              const room = (stepDetail.data as any).flow?.booking?.slot?.shift?.room;
+              if (room) {
+                targetRoomName = stripRoomName(room.room_name || "");
+                targetRoomCode = room.room_code || "";
+                targetRoomId = room.room_id || "";
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("[ScanScreen] Không lấy được phòng khám từ active booking:", err);
+        }
+      }
+
+      showGlobalToast(
+        `Đã định vị tại: ${scannedRoomName || scannedRoomCode}`,
+        "success"
+      );
+
+      // Chuyển sang Bản đồ với Điểm đi (Start Room) vừa quét và Điểm đến (Target Room)
+      router.push({
+        pathname: "/(patient)/(tabs)/navigation",
+        params: {
+          startRoomCode: scannedRoomCode,
+          startRoomName: scannedRoomName,
+          startRoomId: scannedRoomId,
+          targetRoomCode: targetRoomCode,
+          targetRoomName: targetRoomName,
+          targetRoomId: targetRoomId,
+          _t: String(Date.now()),
+        },
+      });
+    } catch (error) {
+      console.error("[ScanScreen] Lỗi khi xử lý QR Checkpoint:", error);
+      showGlobalToast("Không thể xử lý mã QR này. Vui lòng thử lại!", "error");
+    } finally {
+      setTimeout(() => setScanned(false), 2000);
+    }
   };
 
   const handleMockScanClick = () => {
-    handleBarcodeScanned({ data: "CHECKPOINT-MOCK-LOCATION-3F" });
+    handleBarcodeScanned({
+      data: JSON.stringify({
+        type: "CHECKPOINT",
+        roomCode: "G2.1.ELEVATORS",
+        roomName: "Khu Thang Máy",
+        roomId: "elevators-t1",
+      }),
+    });
   };
 
   const handleBack = () => {
@@ -180,322 +195,118 @@ export default function ScanScreen() {
 
   return (
     <ScreenWrapper edges={["left", "right"]}>
-      <View className="flex-1">
-        {activeTab === "scan" ? (
+      <View className="flex-1 bg-black relative">
+        <StatusBar style="light" />
 
-          <View className="flex-1 bg-black relative">
-            <StatusBar style="light" />
-
-            {isCameraAvailable && CameraView ? (
-              permission?.granted ? (
-                <CameraView
-                  style={StyleSheet.absoluteFill}
-                  facing="back"
-                  barcodeScannerSettings={{
-                    barcodeTypes: ["qr"],
-                  }}
-                  onBarcodeScanned={handleBarcodeScanned}
-                />
-              ) : null
-            ) : (
-              
-              <Pressable
-                onPress={handleMockScanClick}
-                style={StyleSheet.absoluteFill}
-                className="bg-slate-900 items-center justify-center"
-              >
-                <Ionicons name="camera-outline" size={48} color="#475569" className="opacity-40" />
-                <Text className="text-slate-500 text-xs text-center mt-3 px-12 leading-5">
-                  [Chế độ giả lập] Bấm bất kỳ đâu trên màn hình này để quét
-                </Text>
-              </Pressable>
-            )}
-
-            <View className="absolute top-0 left-0 right-0 flex-row items-center justify-between px-5 pt-12 pb-4 z-10 bg-black/20">
-              <Pressable
-                onPress={handleBack}
-                className="w-10 h-10 rounded-full bg-white/10 items-center justify-center active:opacity-75"
-              >
-                <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-              </Pressable>
-              <Text className="text-white text-[18px] font-bold font-sans">Quét QR Checkpoint</Text>
-              <View className="w-10" />
-            </View>
-
-            <View className="flex-1 items-center justify-center px-10 pb-40 z-10">
-              {!isCameraAvailable ? (
-
-                <View className="items-center justify-center bg-black/75 p-6 rounded-3xl border border-white/10 w-full shadow-lg">
-                  <Ionicons name="alert-circle-outline" size={48} color="#EAB308" className="mb-4" />
-                  <Text className="text-white text-center font-bold text-[15px] mb-2">
-                    Yêu cầu Rebuild lại ứng dụng (APK)
-                  </Text>
-                  <Text className="text-gray-400 text-center text-xs mb-6 px-3 leading-5">
-                    Vì bạn chạy dưới dạng Dev Client, để mở camera sau thực tế, bạn cần đóng Metro server và chạy lệnh sau để build lại APK native:{"\n"}
-                    <Text className="text-primary font-bold">npx expo run:android</Text>
-                  </Text>
-                  <Pressable
-                    onPress={handleMockScanClick}
-                    className="bg-primary px-6 py-3 rounded-2xl active:opacity-90 shadow-sm w-full items-center"
-                  >
-                    <Text className="text-white font-bold text-sm">Chạy chế độ giả lập để test</Text>
-                  </Pressable>
-                </View>
-              ) : !permission ? (
-                <ActivityIndicator size="large" color={Colors.primary} />
-              ) : !permission.granted ? (
-
-                <View className="items-center justify-center bg-black/70 p-6 rounded-3xl border border-white/10 w-full shadow-lg">
-                  <Ionicons name="camera-outline" size={48} color="#FFFFFF" className="mb-4" />
-                  <Text className="text-white text-center font-bold text-base mb-2">
-                    Yêu cầu quyền truy cập Camera
-                  </Text>
-                  <Text className="text-gray-400 text-center text-xs mb-6 px-4 leading-5">
-                    Ứng dụng cần sử dụng camera của bạn để quét mã QR tại các điểm checkpoint trong bệnh viện.
-                  </Text>
-                  <Pressable
-                    onPress={requestPermission}
-                    className="bg-primary px-6 py-3 rounded-2xl active:opacity-90 shadow-sm"
-                  >
-                    <Text className="text-white font-bold text-sm">Cấp quyền camera</Text>
-                  </Pressable>
-                </View>
-              ) : (
-
-                <>
-                  <View
-                    style={{ width: VIEWFINDER_SIZE, height: VIEWFINDER_SIZE }}
-                    className="relative justify-center items-center bg-transparent"
-                  >
-                    
-                    <View className="absolute top-0 left-0 w-8 h-8 border-t-[4px] border-l-[4px] border-white rounded-tl-[16px] z-10" />
-                    <View className="absolute top-0 right-0 w-8 h-8 border-t-[4px] border-r-[4px] border-white rounded-tr-[16px] z-10" />
-                    <View className="absolute bottom-0 left-0 w-8 h-8 border-b-[4px] border-l-[4px] border-white rounded-bl-[16px] z-10" />
-                    <View className="absolute bottom-0 right-0 w-8 h-8 border-b-[4px] border-r-[4px] border-white rounded-br-[16px] z-10" />
-
-                    <View
-                      style={{ width: VIEWFINDER_SIZE - 8, height: VIEWFINDER_SIZE - 8 }}
-                      className="bg-transparent rounded-[12px] overflow-hidden"
-                    />
-
-                    <Animated.View
-                      style={[
-                        styles.laserLine,
-                        laserStyle,
-                      ]}
-                      className="absolute top-0 left-1 right-1 h-[3px] bg-[#10B981] z-10"
-                    />
-                  </View>
-
-                  <View className="bg-black/50 px-5 py-2.5 rounded-full mt-8 shadow-sm">
-                    <Text className="text-white text-xs font-bold leading-5">
-                      Đặt mã QR vào khung để quét
-                    </Text>
-                  </View>
-                </>
-              )}
-            </View>
-          </View>
+        {isCameraAvailable && CameraView ? (
+          permission?.granted ? (
+            <CameraView
+              style={StyleSheet.absoluteFill}
+              facing="back"
+              barcodeScannerSettings={{
+                barcodeTypes: ["qr"],
+              }}
+              onBarcodeScanned={handleBarcodeScanned}
+            />
+          ) : null
         ) : (
-          
-          <View className="flex-1">
-            <StatusBar style="dark" />
-
-            <View className="absolute top-0 left-0 right-0 h-44 bg-[#84AFEB]/30 rounded-b-[40px] z-0" />
-
-            <View className="flex-row items-center justify-between px-5 pt-12 pb-4 z-10">
-              <Pressable
-                onPress={handleBack}
-                className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm active:opacity-75"
-              >
-                <Ionicons name="chevron-back" size={20} color={Colors.neutral700} />
-              </Pressable>
-              <Text className="text-gray-800 text-[18px] font-bold">QR Cá Nhân</Text>
-              <View className="w-10" />
-            </View>
-
-            {isLoading ? (
-              <View className="flex-1 items-center justify-center">
-                <ActivityIndicator size="large" color={Colors.primary} />
-              </View>
-            ) : !activePatient ? (
-              <View className="flex-1 px-6 pt-10 items-center justify-center">
-                <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm w-full items-center">
-                  <View className="w-16 h-16 rounded-full bg-blue-50 items-center justify-center mb-4">
-                    <Ionicons name="qr-code-outline" size={32} color={Colors.primary} />
-                  </View>
-                  <Text className="text-gray-800 text-[18px] font-bold mb-2 text-center">
-                    Chưa có hồ sơ bệnh nhân
-                  </Text>
-                  <Text className="text-gray-400 text-xs text-center leading-5 mb-6 px-4">
-                    Tài khoản của bạn chưa có hồ sơ bệnh nhân nào. Vui lòng tạo hồ sơ để được cấp mã QR cá nhân và phục vụ khám bệnh.
-                  </Text>
-                  <Pressable
-                    onPress={() => router.push("/(patient)/triage/patient-list")}
-                    className="bg-primary px-6 py-3.5 rounded-2xl active:opacity-90 shadow-sm w-full items-center"
-                  >
-                    <Text className="text-white font-bold text-sm">+ Tạo hồ sơ bệnh nhân</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ) : (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 160 }}
-                className="flex-1 z-10"
-              >
-                <View className="gap-4">
-                  
-                  <View className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
-                    
-                    <View className="flex-row items-center justify-between mb-2">
-                      <Text className="text-gray-400 text-xs font-bold uppercase tracking-wider">
-                        Hồ sơ khám bệnh
-                      </Text>
-                      {patients && patients.length > 1 ? (
-                        <Pressable
-                          onPress={() => setIsPatientModalVisible(true)}
-                          className="flex-row items-center bg-blue-50 px-3 py-1 rounded-full border border-blue-100/60 active:opacity-75"
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Ionicons name="people-outline" size={13} color={Colors.primary} style={{ marginRight: 4 }} />
-                          <Text className="text-primary text-xs font-bold mr-1">Đổi hồ sơ</Text>
-                          <Ionicons name="chevron-down" size={12} color={Colors.primary} />
-                        </Pressable>
-                      ) : null}
-                    </View>
-
-                    <View className="flex-row items-center">
-                      <View className="w-14 h-14 rounded-full bg-blue-50 border border-blue-100/50 items-center justify-center mr-4 overflow-hidden">
-                        {user?.avatar ? (
-                          <Image
-                            source={{ uri: user.avatar }}
-                            style={{ width: 56, height: 56 }}
-                            contentFit="cover"
-                          />
-                        ) : (
-                          <Text className="text-primary text-[18px] font-bold">
-                            {initials}
-                          </Text>
-                        )}
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-gray-800 text-[17px] font-extrabold" numberOfLines={1}>
-                          {patientName}
-                        </Text>
-                        <Text className="text-gray-400 text-[12px] font-semibold mt-0.5">
-                          {patientCode}
-                        </Text>
-                        <View className="flex-row items-center mt-1.5">
-                          <View className="bg-blue-50/70 border border-blue-100/30 px-3 py-0.5 rounded-full mr-2">
-                            <Text className="text-primary text-[10px] font-extrabold">{patientGender}</Text>
-                          </View>
-                          {patientAge !== null ? (
-                            <View className="bg-slate-50 border border-slate-100 px-3 py-0.5 rounded-full">
-                              <Text className="text-gray-400 text-[10px] font-bold">{patientAge} tuổi</Text>
-                            </View>
-                          ) : null}
-                        </View>
-                      </View>
-                    </View>
-
-                    <View className="h-[1px] bg-slate-100 w-full my-4" />
-
-                    <View className="gap-2.5">
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-gray-400 text-[13px] font-medium">Số CCCD</Text>
-                        <Text className="text-gray-800 text-[13px] font-bold font-mono">{patientCitizenId}</Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-gray-400 text-[13px] font-medium">Ngày sinh</Text>
-                        <Text className="text-gray-800 text-[13px] font-bold">{patientDob}</Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-gray-400 text-[13px] font-medium">Điện thoại</Text>
-                        <Text className="text-gray-800 text-[13px] font-bold">{patientPhone}</Text>
-                      </View>
-                      <View className="flex-row justify-between items-center">
-                        <Text className="text-gray-400 text-[13px] font-medium">Bảo hiểm</Text>
-                        <Text className={`${activePatient?.medical_coverage_id ? "text-green-600 font-extrabold" : "text-gray-400 font-semibold"} text-[13px]`}>
-                          {patientInsurance}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {qrCodeUrl ? (
-                    <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm items-center justify-center py-8">
-                      
-                      <View className="p-3 bg-white border border-slate-100 rounded-3xl shadow-sm mb-4">
-                        <Image
-                          source={{ uri: qrCodeUrl }}
-                          style={{ width: 180, height: 180 }}
-                          resizeMode="contain"
-                        />
-                      </View>
-                      <Text className="text-gray-400 text-xs text-center font-medium">
-                        Mã định danh dùng cho quét tiếp đón tại viện
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              </ScrollView>
-            )}
-          </View>
+          <Pressable
+            onPress={handleMockScanClick}
+            style={StyleSheet.absoluteFill}
+            className="bg-slate-900 items-center justify-center"
+          >
+            <Ionicons name="camera-outline" size={48} color="#475569" className="opacity-40" />
+            <Text className="text-slate-500 text-xs text-center mt-3 px-12 leading-5">
+              [Chế độ giả lập] Bấm bất kỳ đâu trên màn hình này để quét
+            </Text>
+          </Pressable>
         )}
 
-        <View
-          style={{ bottom: subTabBarBottom }}
-          className="absolute left-5 right-5 z-20"
-        >
-          <View className="bg-white rounded-[24px] border border-slate-100 shadow-lg flex-row items-center h-16 p-1.5 justify-between">
+        {/* Top Header */}
+        <View className="absolute top-0 left-0 right-0 flex-row items-center justify-between px-5 pt-12 pb-4 z-10 bg-black/30">
+          <Pressable
+            onPress={handleBack}
+            className="w-10 h-10 rounded-full bg-white/15 items-center justify-center active:opacity-75"
+          >
+            <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+          </Pressable>
+          <Text className="text-white text-[18px] font-bold">Quét QR Checkpoint</Text>
+          <View className="w-10" />
+        </View>
 
-            <Pressable
-              onPress={() => setActiveTab("personal")}
-              className="flex-1 items-center justify-center py-2"
-            >
-              <Ionicons
-                name={activeTab === "personal" ? "grid" : "grid-outline"}
-                size={20}
-                color={activeTab === "personal" ? "#1E293B" : "#94A3B8"}
-              />
-              <Text
-                style={{ fontSize: 10 }}
-                className={`font-bold mt-1 ${activeTab === "personal" ? "text-slate-800" : "text-slate-400"
-                  }`}
-              >
-                Mã Cá Nhân
+        {/* Viewfinder & Laser Area */}
+        <View className="flex-1 items-center justify-center px-10 pb-20 z-10">
+          {!isCameraAvailable ? (
+            <View className="items-center justify-center bg-black/75 p-6 rounded-3xl border border-white/10 w-full shadow-lg">
+              <Ionicons name="alert-circle-outline" size={48} color="#EAB308" className="mb-4" />
+              <Text className="text-white text-center font-bold text-[15px] mb-2">
+                Yêu cầu Rebuild lại ứng dụng (APK)
               </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("scan")}
-              className="flex-1 items-center justify-center py-2"
-            >
-              <Ionicons
-                name={activeTab === "scan" ? "scan" : "scan-outline"}
-                size={20}
-                color={activeTab === "scan" ? "#10B981" : "#94A3B8"}
-              />
-              <Text
-                style={{ fontSize: 10 }}
-                className={`font-bold mt-1 ${activeTab === "scan" ? "text-emerald-500" : "text-slate-400"
-                  }`}
-              >
-                Quét QR
+              <Text className="text-gray-400 text-center text-xs mb-6 px-3 leading-5">
+                Vì bạn chạy dưới dạng Dev Client, để mở camera sau thực tế, bạn cần đóng Metro server và chạy lệnh sau để build lại APK native:{"\n"}
+                <Text className="text-primary font-bold">npx expo run:android</Text>
               </Text>
-            </Pressable>
+              <Pressable
+                onPress={handleMockScanClick}
+                className="bg-primary px-6 py-3 rounded-2xl active:opacity-90 shadow-sm w-full items-center"
+              >
+                <Text className="text-white font-bold text-sm">Chạy chế độ giả lập để test</Text>
+              </Pressable>
+            </View>
+          ) : !permission ? (
+            <ActivityIndicator size="large" color={Colors.primary} />
+          ) : !permission.granted ? (
+            <View className="items-center justify-center bg-black/70 p-6 rounded-3xl border border-white/10 w-full shadow-lg">
+              <Ionicons name="camera-outline" size={48} color="#FFFFFF" className="mb-4" />
+              <Text className="text-white text-center font-bold text-base mb-2">
+                Yêu cầu quyền truy cập Camera
+              </Text>
+              <Text className="text-gray-400 text-center text-xs mb-6 px-4 leading-5">
+                Ứng dụng cần sử dụng camera của bạn để quét mã QR tại các điểm checkpoint trong bệnh viện.
+              </Text>
+              <Pressable
+                onPress={requestPermission}
+                className="bg-primary px-6 py-3 rounded-2xl active:opacity-90 shadow-sm"
+              >
+                <Text className="text-white font-bold text-sm">Cấp quyền camera</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <View
+                style={{ width: VIEWFINDER_SIZE, height: VIEWFINDER_SIZE }}
+                className="relative justify-center items-center bg-transparent"
+              >
+                {/* 4 Corner Markers */}
+                <View className="absolute top-0 left-0 w-8 h-8 border-t-[4px] border-l-[4px] border-white rounded-tl-[16px] z-10" />
+                <View className="absolute top-0 right-0 w-8 h-8 border-t-[4px] border-r-[4px] border-white rounded-tr-[16px] z-10" />
+                <View className="absolute bottom-0 left-0 w-8 h-8 border-b-[4px] border-l-[4px] border-white rounded-bl-[16px] z-10" />
+                <View className="absolute bottom-0 right-0 w-8 h-8 border-b-[4px] border-r-[4px] border-white rounded-br-[16px] z-10" />
 
-          </View>
+                <View
+                  style={{ width: VIEWFINDER_SIZE - 8, height: VIEWFINDER_SIZE - 8 }}
+                  className="bg-transparent rounded-[12px] overflow-hidden"
+                />
+
+                {/* Animated Laser Line */}
+                <Animated.View
+                  style={[
+                    styles.laserLine,
+                    laserStyle,
+                  ]}
+                  className="absolute top-0 left-1 right-1 h-[3px] bg-[#10B981] z-10"
+                />
+              </View>
+
+              <View className="bg-black/50 px-5 py-2.5 rounded-full mt-8 shadow-sm">
+                <Text className="text-white text-xs font-bold leading-5">
+                  Đặt mã QR vào khung để quét
+                </Text>
+              </View>
+            </>
+          )}
         </View>
       </View>
-
-      <PatientPickerModal
-        visible={isPatientModalVisible}
-        onClose={() => setIsPatientModalVisible(false)}
-        onConfirm={handleConfirmPatient}
-        selectedPatientId={selectedPatientId}
-      />
     </ScreenWrapper>
   );
 }

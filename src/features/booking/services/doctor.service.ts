@@ -11,6 +11,7 @@ class DoctorService {
   async getDoctorsBySpecialty(specialtyCode: string, dateTime: string): Promise<Doctor[]> {
     const response = await apiClient.get(`/api/doctor/specialty/clinical`, {
       params: { specialty_code: specialtyCode, date_time: dateTime },
+      skipGlobalToast: true,
     });
     return response.data?.data || response.data || [];
   }
@@ -18,6 +19,7 @@ class DoctorService {
   async getDoctorSlots(doctorId: string, date: string): Promise<DoctorDetail> {
     const response = await apiClient.get(`/api/doctor/${doctorId}/slot`, {
       params: { date },
+      skipGlobalToast: true,
     });
     return response.data?.data || response.data;
   }

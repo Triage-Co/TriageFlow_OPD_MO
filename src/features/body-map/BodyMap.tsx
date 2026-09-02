@@ -72,7 +72,7 @@ export function BodyMap({
         />
 
         <Text className="text-primary text-[16px] font-medium">
-          Rotate model
+          Xoay mô hình
         </Text>
       </Pressable>
     </View>

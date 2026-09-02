@@ -18,16 +18,25 @@ import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+interface RegisterFormData {
+  userName: string;
+  email: string;
+  phone: string;
+  gender: Gender | "";
+  password: string;
+  confirmPassword: string;
+}
+
 export function RegisterForm() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const { register, isLoading, error, clearError } = useRegister();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<RegisterFormData>({
     userName: "",
     email: "",
     phone: "",
-    gender: "" as Gender | "",
+    gender: "",
     password: "",
     confirmPassword: "",
   });

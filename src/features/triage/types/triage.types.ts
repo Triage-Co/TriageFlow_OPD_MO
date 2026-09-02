@@ -7,6 +7,20 @@ export interface Evidence {
   name?: string;
 }
 
+export interface ParseMentionItem {
+  id: string;
+  name: string;
+  common_name?: string;
+  orth?: string;
+  choice_id: EvidenceChoiceId;
+  type?: string;
+}
+
+export interface ParseResponse {
+  mentions: ParseMentionItem[];
+  obvious?: boolean;
+}
+
 export interface SymptomSearchItem {
   id: string;
   label: string;

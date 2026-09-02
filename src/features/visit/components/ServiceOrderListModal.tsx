@@ -65,7 +65,7 @@ export const ServiceOrderListModal: React.FC<ServiceOrderListModalProps> = ({
                         <Text className="text-amber-800 text-[10px] font-bold">Chờ thanh toán</Text>
                       </View>
                       <Text className="text-gray-400 text-[10px] font-semibold">
-                        Ngày tạo: {order.created_at ? new Date(order.created_at).toLocaleString("vi-VN") : "---"}
+                        Ngày tạo: {formatDateTime(order.created_at, "---")}
                       </Text>
                     </View>
 

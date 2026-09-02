@@ -120,6 +120,7 @@ export default function NavigationScreen() {
     setSelectedNodeId,
     routeData,
     setRouteData,
+    resetNavigation,
   } = useNavigationStore();
 
   const { rawMap } = useBuildingMap(activeFloor, activeBuildingId || undefined);
@@ -143,9 +144,17 @@ export default function NavigationScreen() {
 
   useEffect(() => {
     async function initAutoRouting() {
+      // Chỉ tự động định tuyến khi người dùng chủ động bấm "Chỉ đường" (có truyền param phòng đích hoặc thời điểm kích hoạt)
+      const hasExplicitTarget = Boolean(targetRoomName || targetRoomId || targetRoomCode);
+      const hasExplicitStart = Boolean(startRoomName || startRoomId || startRoomCode);
+
+      if (!hasExplicitTarget && !hasExplicitStart && !triggerTime) {
+        return;
+      }
+
       try {
         let resolvedTargetRoomName = targetRoomName;
-        let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c"; 
+        let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c";
 
         if (resolvedTargetRoomName || targetRoomId) {
           const activeBooking = await bookingStorageService.getActiveBookingStep();
@@ -157,19 +166,6 @@ export default function NavigationScreen() {
                 resolvedBuildingId;
             }
           }
-        } else {
-          const activeBooking = await bookingStorageService.getActiveBookingStep();
-          if (!activeBooking) return;
-
-          const stepDetail = await fetchStepDetail(activeBooking.stepId, { skipGlobalToast: true });
-          if (!stepDetail) return;
-
-          resolvedTargetRoomName = stepDetail.flow?.booking?.slot?.shift?.room?.room_name;
-          if (!resolvedTargetRoomName) return;
-
-          resolvedBuildingId =
-            (stepDetail.flow?.booking?.slot?.shift?.room as any)?.floor?.buildingId ||
-            resolvedBuildingId;
         }
 
         setActiveBuildingId(resolvedBuildingId);
@@ -181,14 +177,15 @@ export default function NavigationScreen() {
         let foundTarget: RoomOption | null = null;
         let foundStart: RoomOption | null = null;
 
-        foundTarget = findRoomInFloors(
-          mapData.floors,
-          targetRoomId,
-          targetRoomCode,
-          resolvedTargetRoomName
-        );
+        if (hasExplicitTarget) {
+          foundTarget = findRoomInFloors(
+            mapData.floors,
+            targetRoomId,
+            targetRoomCode,
+            resolvedTargetRoomName
+          );
+        }
 
-        const hasExplicitStart = Boolean(startRoomName || startRoomId || startRoomCode);
         if (hasExplicitStart) {
           foundStart = findRoomInFloors(
             mapData.floors,
@@ -198,53 +195,17 @@ export default function NavigationScreen() {
           );
         }
 
-        const isExplicitTarget = Boolean(targetRoomName || targetRoomId || targetRoomCode);
-
-        if (!isExplicitTarget && !hasExplicitStart) {
-          for (const floor of mapData.floors) {
-            const room = floor.rooms?.find((r: any) => {
-              const l = (r.roomLabel || "").toLowerCase();
-              return l.includes("sảnh") || l.includes("tiếp nhận") || l.includes("nhà thuốc");
-            });
-            if (room) {
-              foundStart = {
-                id: room.id,
-                roomCode: room.roomCode,
-                roomLabel: room.roomLabel,
-                floorNumber: floor.floorNumber,
-                type: room.type,
-              };
-              break;
-            }
-          }
-
-          if (!foundStart && mapData.floors.length > 0) {
-            const firstFloor =
-              mapData.floors.find((f: any) => f.floorNumber === 1) || mapData.floors[0];
-            if (firstFloor && firstFloor.rooms?.length > 0) {
-              const room = firstFloor.rooms[0];
-              foundStart = {
-                id: room.id,
-                roomCode: room.roomCode,
-                roomLabel: room.roomLabel,
-                floorNumber: firstFloor.floorNumber,
-                type: room.type,
-              };
-            }
-          }
-        }
-
         if (foundTarget) {
           setTargetRoom(foundTarget);
           if (foundStart) {
             setStartRoom(foundStart);
             setActiveFloor(foundStart.floorNumber);
-          } else if (isExplicitTarget) {
+          } else {
             setStartRoom(null);
             setRouteData(null);
             setActiveFloor(foundTarget.floorNumber);
           }
-        } else if (isExplicitTarget) {
+        } else if (hasExplicitTarget) {
           showGlobalToast(
             `Không tìm thấy phòng "${stripRoomName(resolvedTargetRoomName || targetRoomName || "")}" trên bản đồ. Vui lòng chọn thủ công!`,
             "error"
@@ -253,6 +214,7 @@ export default function NavigationScreen() {
 
         if (foundStart && !foundTarget) {
           setStartRoom(foundStart);
+          setActiveFloor(foundStart.floorNumber);
         }
       } catch (err) {
         console.warn("[NavigationScreen] Auto-routing error:", err);
@@ -306,9 +268,7 @@ export default function NavigationScreen() {
   };
 
   const handleReset = () => {
-    setStartRoom(null);
-    setTargetRoom(null);
-    setRouteData(null);
+    resetNavigation();
   };
 
   const totalDistance = Math.round(routeData?.totalDistance || routeData?.distance || 0);
@@ -451,20 +411,6 @@ export default function NavigationScreen() {
             }}
             onNavigateTo={(room) => {
               setTargetRoom(room);
-              if (!startRoom) {
-                const firstFloor =
-                  rawMap?.floors?.find((f: any) => f.floorNumber === 1) || rawMap?.floors?.[0];
-                const defaultStart = firstFloor?.rooms?.[0];
-                if (defaultStart) {
-                  setStartRoom({
-                    id: defaultStart.id,
-                    roomCode: defaultStart.roomCode,
-                    roomLabel: defaultStart.roomLabel,
-                    floorNumber: firstFloor.floorNumber,
-                    type: defaultStart.type || "ROOM",
-                  });
-                }
-              }
               setSelectedRoom(null);
               setSelectedNodeId(null);
             }}

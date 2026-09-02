@@ -4,6 +4,7 @@ import { AppAlert } from "@/shared/utils/alert.utils";
 import { visitService } from "../services/visit.service";
 import { sortStepsTopologically } from "@/shared/utils/flow.utils";
 import { getQrCodeUrl } from "@/shared/utils/string.utils";
+import { toISODateString } from "@/shared/utils/date.utils";
 
 export function useClinicalRoute() {
   const params = useLocalSearchParams();
@@ -47,7 +48,7 @@ export function useClinicalRoute() {
       }
     }
     try {
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = toISODateString(new Date());
       const response = await visitService.getActiveFlow(patientId, todayStr);
       if (response && response.data && response.data.length > 0) {
         
