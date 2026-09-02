@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber/native";
 import { OrbitControls } from "@react-three/drei/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as THREE from "three";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigationStore } from "../../store/useNavigationStore";
 import { FloorRenderer } from "./FloorRenderer";
 import { useBuildingMap } from "../../hooks/useBuildingMap";
@@ -21,9 +22,8 @@ function CameraController({ activeFloor }: { activeFloor: number }) {
       ctrl.target.set(0, 0, 0);
     }
 
-    // Góc chiếu thẳng đứng 90 độ từ trên đỉnh xuống bao quát toàn bộ bản đồ (zoom rộng)
-    camera.position.set(0, 200, 0.001);
-    camera.up.set(0, 0, -1);
+    camera.position.set(0, 140, 90);
+    camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
 
     if (ctrl) {
@@ -71,11 +71,75 @@ function CameraController({ activeFloor }: { activeFloor: number }) {
   return null;
 }
 
-export function MapViewer() {
-  const { activeFloor, activeBuildingId } = useNavigationStore();
+function ScreenMarkerTracker({
+  onUpdate,
+}: {
+  onUpdate: (data: {
+    start?: { x: number; y: number; visible: boolean };
+    dest?: { x: number; y: number; visible: boolean };
+  }) => void;
+}) {
+  const { camera, size } = useThree();
+  const marker3DPositions = useNavigationStore((s) => s.marker3DPositions);
+  const lastPosRef = useRef<{ start?: string; dest?: string }>({});
+
+  useFrame(() => {
+    if (!marker3DPositions) {
+      if (lastPosRef.current.start || lastPosRef.current.dest) {
+        lastPosRef.current = {};
+        onUpdate({});
+      }
+      return;
+    }
+
+    const projectPoint = (pt?: { x: number; y: number; z: number }) => {
+      if (!pt) return undefined;
+      const vec = new THREE.Vector3(pt.x, pt.y, pt.z);
+      vec.project(camera);
+
+      if (vec.z > 1) return { x: 0, y: 0, visible: false };
+
+      const x = Math.round(((vec.x + 1) * size.width) / 2);
+      const y = Math.round(((-vec.y + 1) * size.height) / 2);
+      return { x, y, visible: true };
+    };
+
+    const startPt = projectPoint(marker3DPositions.start);
+    const destPt = projectPoint(marker3DPositions.dest);
+
+    const startKey = startPt ? `${startPt.x}-${startPt.y}-${startPt.visible}` : "";
+    const destKey = destPt ? `${destPt.x}-${destPt.y}-${destPt.visible}` : "";
+
+    if (
+      startKey !== lastPosRef.current.start ||
+      destKey !== lastPosRef.current.dest
+    ) {
+      lastPosRef.current = { start: startKey, dest: destKey };
+      onUpdate({ start: startPt, dest: destPt });
+    }
+  });
+
+  return null;
+}
+
+interface MapViewerProps {
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+}
+
+export function MapViewer({ isFullscreen = false, onToggleFullscreen }: MapViewerProps) {
+  const insets = useSafeAreaInsets();
+  const { activeFloor, activeBuildingId, startRoom, targetRoom } = useNavigationStore();
   const { data, rawMap, loading, error } = useBuildingMap(activeFloor, activeBuildingId || undefined);
   const controlsRef = useRef<any>(null);
   const [controlMode, setControlMode] = useState<"pan" | "rotate">("pan");
+  const [screenMarkers, setScreenMarkers] = useState<{
+    start?: { x: number; y: number; visible: boolean };
+    dest?: { x: number; y: number; visible: boolean };
+  }>({});
+
+  const topOffset = insets.top > 0 ? insets.top + 12 : 52;
+  const hasMultipleFloors = !!(rawMap?.floors && rawMap.floors.length > 1);
 
   if (loading && !data) {
     return (
@@ -94,33 +158,15 @@ export function MapViewer() {
     );
   }
 
-  const handleTouchReset = () => {
-    const ctrl = controlsRef.current;
-    if (ctrl) {
-      if (ctrl.pointers) {
-        ctrl.pointers = [];
-      }
-      ctrl.state = -1;
-      ctrl.update();
-    }
-  };
-
-  const hasMultipleFloors = !!(rawMap?.floors && rawMap.floors.length > 1);
-
   return (
-    <View
-      style={styles.container}
-      onTouchEnd={handleTouchReset}
-      onTouchCancel={handleTouchReset}
-    >
+    <View style={styles.container}>
       <Canvas
-        camera={{ position: [0, 150, 0.001], fov: 50, up: [0, 0, -1] }}
+        camera={{ position: [0, 200, 120], fov: 50, up: [0, 1, 0] }}
         style={styles.canvas}
-        frameloop="demand"
-        gl={{ antialias: false, powerPreference: "high-performance" }}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
       >
         <Suspense fallback={null}>
-          <ambientLight intensity={0.75} />
+          <ambientLight intensity={0.8} />
           <directionalLight
             position={[10, 30, 20]}
             intensity={1.2}
@@ -131,23 +177,24 @@ export function MapViewer() {
           </group>
 
           <CameraController activeFloor={activeFloor} />
+          <ScreenMarkerTracker onUpdate={setScreenMarkers} />
         </Suspense>
 
         <OrbitControls
           ref={controlsRef}
           makeDefault
           minPolarAngle={0}
-          maxPolarAngle={Math.PI / 2.1}
+          maxPolarAngle={Math.PI / 2.2}
           enableRotate={controlMode === "rotate"}
           enableZoom={true}
           enablePan={controlMode === "pan"}
-          maxDistance={400}
-          minDistance={10}
-          zoomSpeed={1.8}
-          rotateSpeed={1.1}
-          panSpeed={1.3}
+          maxDistance={450}
+          minDistance={15}
+          zoomSpeed={1.5}
+          rotateSpeed={1.0}
+          panSpeed={1.2}
           enableDamping={true}
-          dampingFactor={0.06}
+          dampingFactor={0.08}
           touches={{
             ONE: controlMode === "pan" ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE,
             TWO: THREE.TOUCH.DOLLY_PAN,
@@ -155,8 +202,42 @@ export function MapViewer() {
         />
       </Canvas>
 
-      {/* Floating control mode toggle button (circular, vertical stack next to floor switcher) */}
-      <View style={[styles.toggleContainer, { right: hasMultipleFloors ? 72 : 16 }]}>
+      {screenMarkers.start?.visible && startRoom && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.floatingMarkerContainer,
+            { left: screenMarkers.start.x, top: screenMarkers.start.y },
+          ]}
+        >
+          <View style={styles.startBadgeTag}>
+            <View style={styles.badgeStartDot} />
+            <Text style={styles.startBadgeText} numberOfLines={1}>
+              {startRoom.roomLabel}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {screenMarkers.dest?.visible && targetRoom && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.floatingMarkerContainer,
+            { left: screenMarkers.dest.x, top: screenMarkers.dest.y },
+          ]}
+        >
+          <View style={styles.destBadgeTag}>
+            <View style={styles.badgeDestDot} />
+            <Text style={styles.destBadgeText} numberOfLines={1}>
+              {targetRoom.roomLabel}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.toggleContainer, { top: topOffset, right: hasMultipleFloors ? 72 : 16 }]}>
+
         <TouchableOpacity
           style={[
             styles.toggleButton,
@@ -186,6 +267,20 @@ export function MapViewer() {
             color={controlMode === "rotate" ? "#ffffff" : "#4b5563"}
           />
         </TouchableOpacity>
+
+        {onToggleFullscreen && (
+          <TouchableOpacity
+            style={[styles.toggleButton, styles.inactiveButton]}
+            onPress={onToggleFullscreen}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={isFullscreen ? "contract" : "scan-outline"}
+              size={20}
+              color="#2563EB"
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -195,6 +290,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
+    position: "relative",
   },
   canvas: {
     flex: 1,
@@ -220,8 +316,6 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     position: "absolute",
-    top: 16,
-    right: 72, // Đặt thẳng hàng và ngay cạnh Floor Switcher
     flexDirection: "column",
     gap: 8,
     zIndex: 30,
@@ -244,5 +338,66 @@ const styles = StyleSheet.create({
   },
   inactiveButton: {
     backgroundColor: "#ffffff",
+  },
+  floatingMarkerContainer: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 20,
+    transform: [{ translateX: -80 }, { translateY: -40 }],
+  },
+  startBadgeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#166534",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#86EFAC",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  destBadgeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#991B1B",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#FCA5A5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  badgeStartDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#4ADE80",
+  },
+  badgeDestDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#F87171",
+  },
+  startBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  destBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });

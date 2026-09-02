@@ -8,14 +8,15 @@ import { useNavigationStore } from "@/features/navigation/store/useNavigationSto
 import { useBuildingMap } from "@/features/navigation/hooks/useBuildingMap";
 import { fetchRoute } from "@/features/navigation/services/map.service";
 import { RoomPickerModal } from "@/features/navigation/components/RoomPickerModal";
+import { RoomDetailCard } from "@/features/navigation/components/RoomDetailCard";
 import { RoomOption } from "@/features/navigation/types/map.types";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { stripRoomName } from "@/shared/utils/string.utils";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
 
-// Helper to match a room across floors in building map
 function findRoomInFloors(
   floors: any[],
   roomId?: string,
@@ -33,7 +34,7 @@ function findRoomInFloors(
 
   for (const floor of floors) {
     const room = floor.rooms?.find((r: any) => {
-      // 1. Match by ID if provided
+      
       if (roomId && (r.id === roomId || r.roomId === roomId)) {
         return true;
       }
@@ -52,12 +53,10 @@ function findRoomInFloors(
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
 
-      // 2. Match by Room Code (e.g. "P101", "XQ01")
       if (targetCodeLower && rCode === targetCodeLower) {
         return true;
       }
 
-      // 3. Match by Normalized & Stripped Room Label
       if (normName) {
         if (rCode === normName) return true;
         if (normLabel === normName) return true;
@@ -88,6 +87,7 @@ function findRoomInFloors(
 }
 
 export default function NavigationScreen() {
+  const navigation = useNavigation();
   const params = useLocalSearchParams<{
     targetRoomName?: string;
     targetRoomId?: string;
@@ -115,8 +115,12 @@ export default function NavigationScreen() {
     setStartRoom,
     targetRoom,
     setTargetRoom,
+    selectedRoom,
+    setSelectedRoom,
+    setSelectedNodeId,
     routeData,
     setRouteData,
+    resetNavigation,
   } = useNavigationStore();
 
   const { rawMap } = useBuildingMap(activeFloor, activeBuildingId || undefined);
@@ -124,13 +128,33 @@ export default function NavigationScreen() {
 
   const [modalType, setModalType] = useState<"start" | "target" | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: { display: isFullscreen ? "none" : "flex" },
+    });
+    return () => {
+      navigation.setOptions({
+        tabBarStyle: { display: "flex" },
+      });
+    };
+  }, [isFullscreen, navigation]);
 
   useEffect(() => {
     async function initAutoRouting() {
+      // Chỉ tự động định tuyến khi người dùng chủ động bấm "Chỉ đường" (có truyền param phòng đích hoặc thời điểm kích hoạt)
+      const hasExplicitTarget = Boolean(targetRoomName || targetRoomId || targetRoomCode);
+      const hasExplicitStart = Boolean(startRoomName || startRoomId || startRoomCode);
+
+      if (!hasExplicitTarget && !hasExplicitStart && !triggerTime) {
+        return;
+      }
+
       try {
         let resolvedTargetRoomName = targetRoomName;
-        let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c"; // Default building
+        let resolvedBuildingId = "00b03ef8-7702-4b08-a07e-ec887432453c";
 
         if (resolvedTargetRoomName || targetRoomId) {
           const activeBooking = await bookingStorageService.getActiveBookingStep();
@@ -142,19 +166,6 @@ export default function NavigationScreen() {
                 resolvedBuildingId;
             }
           }
-        } else {
-          const activeBooking = await bookingStorageService.getActiveBookingStep();
-          if (!activeBooking) return;
-
-          const stepDetail = await fetchStepDetail(activeBooking.stepId, { skipGlobalToast: true });
-          if (!stepDetail) return;
-
-          resolvedTargetRoomName = stepDetail.flow?.booking?.slot?.shift?.room?.room_name;
-          if (!resolvedTargetRoomName) return;
-
-          resolvedBuildingId =
-            (stepDetail.flow?.booking?.slot?.shift?.room as any)?.floor?.buildingId ||
-            resolvedBuildingId;
         }
 
         setActiveBuildingId(resolvedBuildingId);
@@ -166,16 +177,15 @@ export default function NavigationScreen() {
         let foundTarget: RoomOption | null = null;
         let foundStart: RoomOption | null = null;
 
-        // 1. Match Target Room
-        foundTarget = findRoomInFloors(
-          mapData.floors,
-          targetRoomId,
-          targetRoomCode,
-          resolvedTargetRoomName
-        );
+        if (hasExplicitTarget) {
+          foundTarget = findRoomInFloors(
+            mapData.floors,
+            targetRoomId,
+            targetRoomCode,
+            resolvedTargetRoomName
+          );
+        }
 
-        // 2. Match Start Room if explicitly passed from previous step
-        const hasExplicitStart = Boolean(startRoomName || startRoomId || startRoomCode);
         if (hasExplicitStart) {
           foundStart = findRoomInFloors(
             mapData.floors,
@@ -185,56 +195,17 @@ export default function NavigationScreen() {
           );
         }
 
-        const isExplicitTarget = Boolean(targetRoomName || targetRoomId || targetRoomCode);
-
-        // Only search for default start point if target was NOT explicitly requested via step click AND no explicit start room
-        if (!isExplicitTarget && !hasExplicitStart) {
-          for (const floor of mapData.floors) {
-            const room = floor.rooms?.find((r: any) => {
-              const l = (r.roomLabel || "").toLowerCase();
-              return l.includes("sảnh") || l.includes("tiếp nhận") || l.includes("nhà thuốc");
-            });
-            if (room) {
-              foundStart = {
-                id: room.id,
-                roomCode: room.roomCode,
-                roomLabel: room.roomLabel,
-                floorNumber: floor.floorNumber,
-                type: room.type,
-              };
-              break;
-            }
-          }
-
-          if (!foundStart && mapData.floors.length > 0) {
-            const firstFloor =
-              mapData.floors.find((f: any) => f.floorNumber === 1) || mapData.floors[0];
-            if (firstFloor && firstFloor.rooms?.length > 0) {
-              const room = firstFloor.rooms[0];
-              foundStart = {
-                id: room.id,
-                roomCode: room.roomCode,
-                roomLabel: room.roomLabel,
-                floorNumber: firstFloor.floorNumber,
-                type: room.type,
-              };
-            }
-          }
-        }
-
         if (foundTarget) {
           setTargetRoom(foundTarget);
           if (foundStart) {
-            // Set start room from previous step
             setStartRoom(foundStart);
             setActiveFloor(foundStart.floorNumber);
-          } else if (isExplicitTarget) {
-            // Step 1: No previous room, user can choose origin or scan QR
+          } else {
             setStartRoom(null);
             setRouteData(null);
             setActiveFloor(foundTarget.floorNumber);
           }
-        } else if (isExplicitTarget) {
+        } else if (hasExplicitTarget) {
           showGlobalToast(
             `Không tìm thấy phòng "${stripRoomName(resolvedTargetRoomName || targetRoomName || "")}" trên bản đồ. Vui lòng chọn thủ công!`,
             "error"
@@ -243,6 +214,7 @@ export default function NavigationScreen() {
 
         if (foundStart && !foundTarget) {
           setStartRoom(foundStart);
+          setActiveFloor(foundStart.floorNumber);
         }
       } catch (err) {
         console.warn("[NavigationScreen] Auto-routing error:", err);
@@ -250,61 +222,94 @@ export default function NavigationScreen() {
     }
 
     initAutoRouting();
-  }, [targetRoomName, targetRoomId, targetRoomCode, startRoomName, startRoomId, startRoomCode, triggerTime]);
+  }, [
+    targetRoomName,
+    targetRoomId,
+    targetRoomCode,
+    startRoomName,
+    startRoomId,
+    startRoomCode,
+    triggerTime,
+  ]);
 
-  
   useEffect(() => {
-    if (startRoom && targetRoom) {
+    async function calculatePath() {
+      if (!startRoom || !targetRoom) {
+        setRouteData(null);
+        return;
+      }
       setRouteLoading(true);
-      fetchRoute(startRoom.id, "ROOM", targetRoom.id, "ROOM")
-        .then((data) => {
-          setRouteData(data);
-        })
-        .catch((err) => {
-          console.warn("[NavigationScreen] fetchRoute error:", err);
+      try {
+        const route = await fetchRoute(startRoom.id, "ROOM", targetRoom.id, "ROOM");
+        if (route) {
+          setRouteData(route);
+        } else {
           setRouteData(null);
-        })
-        .finally(() => {
-          setRouteLoading(false);
-        });
-    } else {
-      setRouteData(null);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tìm đường đi:", error);
+        setRouteData(null);
+      } finally {
+        setRouteLoading(false);
+      }
     }
+
+    calculatePath();
   }, [startRoom, targetRoom]);
 
-  const handleReset = () => {
-    setStartRoom(null);
-    setTargetRoom(null);
-    setRouteData(null);
+  const handleSwapRooms = () => {
+    if (!startRoom && !targetRoom) return;
+    const temp = startRoom;
+    setStartRoom(targetRoom);
+    setTargetRoom(temp);
+    if (targetRoom) {
+      setActiveFloor(targetRoom.floorNumber);
+    }
   };
+
+  const handleReset = () => {
+    resetNavigation();
+  };
+
+  const totalDistance = Math.round(routeData?.totalDistance || routeData?.distance || 0);
+  const estimatedMinutes = Math.max(1, Math.round(totalDistance / 40));
+
+  const insets = useSafeAreaInsets();
+  const topOffset = isFullscreen
+    ? (insets.top > 0 ? insets.top + 12 : 52)
+    : (insets.top > 0 ? insets.top + 58 : 96);
 
   return (
     <ScreenWrapper edges={["left", "right"]}>
-      <View className="flex-1 bg-[#F8FAFC] relative">
-        <MapHeader />
+      <View style={[styles.container, isFullscreen && styles.fullscreenContainer]}>
+        
+        {!isFullscreen && <MapHeader />}
 
-        {/* Hospital 3D Canvas View */}
-        <MapViewer />
+        <MapViewer
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+        />
 
-        {/* Dynamic Floor Switcher (floating side list from rawMap.floors) */}
         {rawMap?.floors && rawMap.floors.length > 1 && (
-          <View className="absolute right-4 top-24 z-20 flex-col items-center">
-            {rawMap?.floors
-              ?.slice()
-              ?.sort((a, b) => a.floorNumber - b.floorNumber)
-              ?.map((f) => (
+          <View style={[styles.floorSwitcher, { top: topOffset }]}>
+            {rawMap.floors
+              .slice()
+              .sort((a, b) => a.floorNumber - b.floorNumber)
+              .map((f) => (
                 <TouchableOpacity
                   key={f.id}
                   onPress={() => setActiveFloor(f.floorNumber)}
-                  style={{
-                    backgroundColor: activeFloor === f.floorNumber ? "#3b82f6" : "#ffffff",
-                    borderColor: activeFloor === f.floorNumber ? "#3b82f6" : "#e5e7eb",
-                  }}
-                  className="w-10 h-10 rounded-full items-center justify-center border shadow-md mb-2 active:scale-95"
+                  style={[
+                    styles.floorButton,
+                    activeFloor === f.floorNumber ? styles.floorButtonActive : styles.floorButtonInactive,
+                  ]}
+                  activeOpacity={0.8}
                 >
                   <Text
-                    style={{ color: activeFloor === f.floorNumber ? "#ffffff" : "#374151" }}
-                    className="text-xs font-extrabold"
+                    style={[
+                      styles.floorButtonText,
+                      activeFloor === f.floorNumber ? styles.floorTextActive : styles.floorTextInactive,
+                    ]}
                   >
                     T{f.floorNumber}
                   </Text>
@@ -313,72 +318,110 @@ export default function NavigationScreen() {
           </View>
         )}
 
-        {/* Compact Floating Routing Panel (Top-Left Corner) */}
-        <View className="absolute left-4 top-24 z-20 w-[190px] bg-white/95 rounded-[20px] border border-gray-100 shadow-md p-3">
-          <View className="flex-row items-center justify-between pb-2 border-b border-gray-50 mb-2">
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons name="navigate" size={14} color="#3b82f6" />
-              <Text className="text-gray-800 text-[11px] font-black tracking-tight">Chỉ đường</Text>
+        <View style={[styles.kioskCard, { top: topOffset }]}>
+          
+          <View style={styles.kioskCardHeader}>
+            <View style={styles.kioskHeaderLeft}>
+              <Ionicons name="navigate-circle" size={18} color="#2563EB" />
+              <Text style={styles.kioskHeaderTitle}>Lộ trình di chuyển</Text>
             </View>
-            {(startRoom || targetRoom) && (
-              <TouchableOpacity onPress={handleReset} activeOpacity={0.7}>
-                <Ionicons name="refresh" size={12} color="#EF4444" />
+
+            <View style={styles.kioskHeaderActions}>
+              <TouchableOpacity
+                onPress={() => setIsPanelExpanded(!isPanelExpanded)}
+                style={styles.iconBtn}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={isPanelExpanded ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#64748B"
+                />
               </TouchableOpacity>
-            )}
-          </View>
-
-          <View className="space-y-2">
-            {/* Start location picker */}
-            <TouchableOpacity
-              onPress={() => setModalType("start")}
-              activeOpacity={0.7}
-              className={`flex-row items-center justify-between px-2.5 py-1.5 rounded-lg border ${
-                startRoom ? "bg-emerald-50/20 border-emerald-100" : "bg-gray-50 border-gray-100"
-              }`}
-            >
-              <Text className="text-[10px] font-bold text-gray-700 truncate flex-1 mr-1">
-                {startRoom ? `${startRoom.roomLabel}` : "Điểm xuất phát..."}
-              </Text>
-              <Ionicons name="search" size={10} color={startRoom ? "#10b981" : "#9CA3AF"} />
-            </TouchableOpacity>
-
-            {/* Target location picker */}
-            <TouchableOpacity
-              onPress={() => setModalType("target")}
-              activeOpacity={0.7}
-              className={`flex-row items-center justify-between px-2.5 py-1.5 rounded-lg border mt-2 ${
-                targetRoom ? "bg-rose-50/20 border-rose-100" : "bg-gray-50 border-gray-100"
-              }`}
-            >
-              <Text className="text-[10px] font-bold text-gray-700 truncate flex-1 mr-1">
-                {targetRoom ? `${targetRoom.roomLabel}` : "Điểm cần đến..."}
-              </Text>
-              <Ionicons name="search" size={10} color={targetRoom ? "#ef4444" : "#9CA3AF"} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Route status loading spinner */}
-          {routeLoading && (
-            <View className="flex-row items-center justify-center gap-1.5 py-1.5 bg-gray-50 rounded-lg border border-gray-50 mt-2">
-              <ActivityIndicator size="small" color="#3b82f6" />
-              <Text className="text-[9px] font-semibold text-gray-500">Đang tính...</Text>
+              {(startRoom || targetRoom) && (
+                <TouchableOpacity onPress={handleReset} style={styles.iconBtn} activeOpacity={0.7}>
+                  <Ionicons name="close" size={16} color="#EF4444" />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+          </View>
 
-          {/* Route details distance indicator */}
-          {routeData && !routeLoading && (
-            <View className="p-2 bg-blue-50/30 rounded-lg border border-blue-50/50 mt-2 flex-row items-center justify-between">
-              <View>
-                <Text className="text-gray-400 text-[8px] font-bold">Khoảng cách</Text>
-                <Text className="font-extrabold text-blue-800 text-xs mt-0.5">
-                  ~{Math.round(routeData.totalDistance || routeData.distance || 0)}m
-                </Text>
+          {isPanelExpanded && (
+            <View style={styles.kioskBody}>
+              
+              <View style={styles.roomSelectRow}>
+                <View style={styles.dotStart} />
+                <TouchableOpacity
+                  onPress={() => setModalType("start")}
+                  style={[styles.roomInput, startRoom && styles.roomInputSelected]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.roomText, !startRoom && styles.roomTextPlaceholder]} numberOfLines={1}>
+                    {startRoom ? `${startRoom.roomLabel} (T${startRoom.floorNumber})` : "Chọn điểm xuất phát..."}
+                  </Text>
+                </TouchableOpacity>
               </View>
+
+              <View style={styles.swapRow}>
+                <View style={styles.connectLine} />
+                <TouchableOpacity onPress={handleSwapRooms} style={styles.swapBtn} activeOpacity={0.7}>
+                  <Ionicons name="swap-vertical" size={14} color="#2563EB" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.roomSelectRow}>
+                <View style={styles.dotDestination} />
+                <TouchableOpacity
+                  onPress={() => setModalType("target")}
+                  style={[styles.roomInput, targetRoom && styles.roomInputDestSelected]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.roomText, !targetRoom && styles.roomTextPlaceholder]} numberOfLines={1}>
+                    {targetRoom ? `${targetRoom.roomLabel} (T${targetRoom.floorNumber})` : "Chọn điểm đến..."}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {routeLoading ? (
+                <View style={styles.statusLoading}>
+                  <ActivityIndicator size="small" color="#2563EB" />
+                  <Text style={styles.statusLoadingText}>Đang tính đường đi tối ưu...</Text>
+                </View>
+              ) : routeData ? (
+                <View style={styles.routeStats}>
+                  <View style={styles.statItem}>
+                    <Ionicons name="walk" size={16} color="#2563EB" />
+                    <Text style={styles.statText}>
+                      ~{totalDistance}m • ~{estimatedMinutes} phút
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
             </View>
           )}
         </View>
 
-        {/* Search Modal for selecting location options */}
+        {selectedRoom && (
+          <RoomDetailCard
+            room={selectedRoom}
+            isFullscreen={isFullscreen}
+            onClose={() => {
+              setSelectedRoom(null);
+              setSelectedNodeId(null);
+            }}
+            onNavigateTo={(room) => {
+              setTargetRoom(room);
+              setSelectedRoom(null);
+              setSelectedNodeId(null);
+            }}
+            onSetStart={(room) => {
+              setStartRoom(room);
+              setSelectedRoom(null);
+              setSelectedNodeId(null);
+            }}
+          />
+        )}
+
         <RoomPickerModal
           isOpen={modalType !== null}
           onClose={() => setModalType(null)}
@@ -398,3 +441,203 @@ export default function NavigationScreen() {
     </ScreenWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    position: "relative",
+  },
+  fullscreenContainer: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    elevation: 999,
+  },
+  floorSwitcher: {
+    position: "absolute",
+    right: 16,
+    top: 16,
+    zIndex: 30,
+    alignItems: "center",
+  },
+  floorButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  floorButtonActive: {
+    backgroundColor: "#2563EB",
+    borderWidth: 2,
+    borderColor: "#93C5FD",
+  },
+  floorButtonInactive: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  floorButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  floorTextActive: {
+    color: "#FFFFFF",
+  },
+  floorTextInactive: {
+    color: "#334155",
+  },
+  kioskCard: {
+    position: "absolute",
+    left: 16,
+    top: 16,
+    zIndex: 25,
+    width: 250,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  kioskCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  kioskHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  kioskHeaderTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  kioskHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  iconBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: "#F1F5F9",
+  },
+  kioskBody: {
+    paddingTop: 10,
+  },
+  roomSelectRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dotStart: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#22C55E",
+  },
+  dotDestination: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#EF4444",
+  },
+  roomInput: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  roomInputSelected: {
+    backgroundColor: "#F0FDF4",
+    borderColor: "#BBF7D0",
+  },
+  roomInputDestSelected: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+  },
+  roomText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  roomTextPlaceholder: {
+    color: "#94A3B8",
+    fontWeight: "500",
+  },
+  swapRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 4,
+    marginVertical: 2,
+  },
+  connectLine: {
+    width: 2,
+    height: 12,
+    backgroundColor: "#CBD5E1",
+    marginLeft: 4,
+  },
+  swapBtn: {
+    marginLeft: 14,
+    padding: 4,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 6,
+  },
+  statusLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 10,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  statusLoadingText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#2563EB",
+  },
+  routeStats: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1D4ED8",
+  },
+});

@@ -1,6 +1,5 @@
 import { useWindowDimensions } from "react-native";
 
-/** Breakpoint chuẩn (px) */
 export const BREAKPOINTS = {
   smallPhone: 375,
   tablet: 768,
@@ -17,9 +16,6 @@ export type ResponsiveInfo = {
   contentMaxWidth: number | undefined;
 };
 
-/**
- * Hook quản lý kích thước màn hình và responsive breakpoints
- */
 export function useResponsive(): ResponsiveInfo {
   const { width, height } = useWindowDimensions();
 

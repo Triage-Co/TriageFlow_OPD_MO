@@ -36,8 +36,6 @@ export function ClinicalRouteView() {
     handleConfirmPayment,
   } = useClinicalRoute();
 
-
-  // Grouping steps belonging to the same service order for display
   const displaySteps = React.useMemo(() => {
     const result: any[] = [];
     const processedServiceOrderIds = new Set<string>();
@@ -49,20 +47,15 @@ export function ClinicalRouteView() {
 
       if (!isPayment && serviceOrderId) {
         if (processedServiceOrderIds.has(serviceOrderId)) {
-          continue; // Skip already grouped
+          continue; 
         }
         processedServiceOrderIds.add(serviceOrderId);
 
-        // Find all sibling test steps of the same service order
         const siblingSteps = visibleSteps.filter(s => {
           const sIsPayment = s.step_name?.toLowerCase().trim().startsWith("thanh toán") || s.step_type === "PAYMENT";
           return s.service_order_id === serviceOrderId && !sIsPayment;
         });
 
-        // Determine grouped status:
-        // - COMPLETED if all are completed
-        // - IN_PROGRESS if any is active (matching activeStepId)
-        // - WAITING otherwise
         const isGroupCompleted = siblingSteps.every(s => s.step_status === "COMPLETED");
         const isGroupActive = siblingSteps.some(s => s.step_id === activeStepId);
 
@@ -89,7 +82,6 @@ export function ClinicalRouteView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="light" />
 
-      {/* Header Area */}
       <View className="bg-primary pt-14 pb-5 flex-row items-center justify-between px-5 shadow-sm">
         <Pressable
           onPress={() => router.back()}
@@ -118,7 +110,6 @@ export function ClinicalRouteView() {
         </Pressable>
       </View>
 
-      {/* Timeline Content */}
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -166,7 +157,6 @@ export function ClinicalRouteView() {
         </ScrollView>
       )}
 
-      {/* Payment QR Modal */}
       <PaymentQrModal
         visible={!!selectedStep}
         selectedStep={selectedStep}
@@ -177,7 +167,6 @@ export function ClinicalRouteView() {
         onConfirm={handleConfirmPayment}
       />
 
-      {/* Modal 1: Danh sách đơn dịch vụ chỉ định */}
       <ServiceOrderListModal
         visible={isServiceOrderModalVisible}
         unpaidServiceOrders={unpaidServiceOrders}
@@ -186,7 +175,6 @@ export function ClinicalRouteView() {
         onPayOrderPress={setSelectedServiceOrder}
       />
 
-      {/* Modal 2: Quét mã QR thanh toán đơn dịch vụ chỉ định */}
       <ServiceOrderPaymentQrModal
         visible={!!selectedServiceOrder}
         selectedServiceOrder={selectedServiceOrder}

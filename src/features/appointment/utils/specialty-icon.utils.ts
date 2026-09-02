@@ -8,7 +8,6 @@ interface SpecialtyStyle {
   iconColor: string;
 }
 
-/** Trả về tên icon Ionicons phù hợp với chuyên khoa */
 export function getSpecialtyIcon(specialtyCode: string): IoniconsName {
   const code = (specialtyCode || "").toUpperCase().trim();
   const map: Record<string, IoniconsName> = {
@@ -61,7 +60,6 @@ export function getSpecialtyIcon(specialtyCode: string): IoniconsName {
   return "medical-outline";
 }
 
-/** Trả về màu sắc (bg class và iconColor hex) phù hợp với chuyên khoa */
 export function getSpecialtyColor(specialtyCode: string): SpecialtyStyle {
   const code = (specialtyCode || "").toUpperCase().trim();
   const map: Record<string, SpecialtyStyle> = {

@@ -125,7 +125,6 @@ function ToastItem({ message, type, duration, onHide }: ToastItemProps) {
     };
   }, [insets.top, duration, triggerHide, translateY, opacity]);
 
-
   let bgColor = "bg-neutral-900";
   let iconColor = "#FFFFFF";
   let IconComponent = Info;

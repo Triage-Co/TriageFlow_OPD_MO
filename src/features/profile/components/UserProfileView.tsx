@@ -1,3 +1,4 @@
+import { Colors } from "@/config/colors";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import type { Gender } from "@/features/auth/types/auth.types";
 import { useProfile } from "@/features/profile/hooks/useProfile";
@@ -8,6 +9,9 @@ import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { LoadingView } from "@/shared/components/LoadingView";
 import { GenderToggle } from "@/shared/components/GenderToggle";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
+import { AppAlert } from "@/shared/utils/alert.utils";
+import { getInitials, formatGenderLabel } from "@/shared/utils/string.utils";
+import { isValidVietnamesePhone } from "@/shared/utils/validation.utils";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -15,7 +19,6 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -81,7 +84,7 @@ export function UserProfileView() {
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Cần quyền truy cập", "Vui lòng cho phép truy cập thư viện ảnh trong Cài đặt.");
+      AppAlert.info("Vui lòng cho phép truy cập thư viện ảnh trong Cài đặt.", "Cần quyền truy cập");
       return;
     }
 
@@ -107,15 +110,15 @@ export function UserProfileView() {
 
   const handleSaveProfile = async () => {
     if (!userName.trim()) {
-      Alert.alert("Thông báo", "Vui lòng nhập tên người dùng.");
+      AppAlert.info("Vui lòng nhập tên người dùng.");
       return;
     }
     if (!gender) {
-      Alert.alert("Thông báo", "Vui lòng chọn giới tính.");
+      AppAlert.info("Vui lòng chọn giới tính.");
       return;
     }
-    if (phone.trim() && !/^[0-9]{10,11}$/.test(phone.trim())) {
-      Alert.alert("Thông báo", "Số điện thoại không hợp lệ (phải gồm 10-11 chữ số).");
+    if (phone.trim() && !isValidVietnamesePhone(phone)) {
+      AppAlert.info("Số điện thoại không hợp lệ (10 chữ số).");
       return;
     }
 
@@ -133,27 +136,11 @@ export function UserProfileView() {
     }
   };
 
-  const getInitials = (name?: string) => {
-    if (!name) return "BN";
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    const first = parts[0].charAt(0);
-    const last = parts[parts.length - 1].charAt(0);
-    return (first + last).toUpperCase();
-  };
-
-  const formatGender = (genderVal?: string) => {
-    if (!genderVal) return "—";
-    if (genderVal === "MALE") return "Nam";
-    if (genderVal === "FEMALE") return "Nữ";
-    return genderVal;
-  };
-
   if (isLoading && !user) {
     return (
       <ScreenWrapper edges={["left", "right"]}>
         <StatusBar style="light" />
-        <LoadingView message="Đang tải thông tin hồ sơ..." color="#5B9BD5" className="flex-1 items-center justify-center bg-gray-50" />
+        <LoadingView message="Đang tải thông tin hồ sơ..." color={Colors.primary} className="flex-1 items-center justify-center bg-gray-50" />
       </ScreenWrapper>
     );
   }
@@ -170,7 +157,7 @@ export function UserProfileView() {
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header xanh */}
+          
           <ScreenHeader
             title={isEditing ? "Chỉnh sửa thông tin" : "Thông tin cá nhân"}
             backText={isEditing ? "Hủy" : "Quay lại"}
@@ -195,7 +182,7 @@ export function UserProfileView() {
           />
 
           <View className="bg-primary px-5 pb-6">
-            {/* Profile summary card */}
+            
             <View className="items-center py-2">
               {isEditing ? (
                 <Pressable
@@ -250,7 +237,6 @@ export function UserProfileView() {
             </View>
           </View>
 
-          {/* Form thông tin chi tiết */}
           <View className="mx-5 mt-5 bg-white rounded-[20px] p-5 shadow shadow-black/5">
             <Text className="text-gray-800 text-[16px] font-bold mb-4">
               {isEditing ? "Nhập thông tin mới" : "Thông tin chi tiết"}
@@ -264,7 +250,6 @@ export function UserProfileView() {
                   </View>
                 ) : null}
 
-                {/* Tên người dùng input */}
                 <View>
                   <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
                     Tên người dùng
@@ -280,7 +265,6 @@ export function UserProfileView() {
                   />
                 </View>
 
-                {/* Giới tính input */}
                 <View className="mb-1">
                   <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
                     Giới tính
@@ -295,7 +279,6 @@ export function UserProfileView() {
                   />
                 </View>
 
-                {/* Số điện thoại input */}
                 <View className="mb-4">
                   <Text className="text-gray-500 text-xs font-semibold mb-1.5 ml-1">
                     Số điện thoại
@@ -311,7 +294,6 @@ export function UserProfileView() {
                   />
                 </View>
 
-                {/* Nút lưu thay đổi */}
                 <AppButton
                   title="Lưu thay đổi"
                   variant="primary"
@@ -322,23 +304,21 @@ export function UserProfileView() {
               </View>
             ) : (
               <View>
-                {/* Tên người dùng */}
+                
                 <DetailField
                   iconName={{ ios: "person", android: "person" }}
                   label="Tên người dùng"
                   value={user?.full_name ?? "—"}
                 />
 
-                {/* Giới tính */}
                 <View className="mt-3">
                   <DetailField
                     iconName={{ ios: "person.2", android: "group" }}
                     label="Giới tính"
-                    value={formatGender(user?.gender)}
+                    value={formatGenderLabel(user?.gender)}
                   />
                 </View>
 
-                {/* Số điện thoại */}
                 <View className="mt-3">
                   <DetailField
                     iconName={{ ios: "phone", android: "phone" }}
@@ -347,7 +327,6 @@ export function UserProfileView() {
                   />
                 </View>
 
-                {/* Email */}
                 <View className="mt-3">
                   <DetailField
                     iconName={{ ios: "envelope", android: "mail" }}
@@ -359,7 +338,6 @@ export function UserProfileView() {
             )}
           </View>
 
-          {/* Bottom spacing */}
           <View className="h-10" />
         </ScrollView>
       </KeyboardAvoidingView>

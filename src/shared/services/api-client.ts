@@ -1,15 +1,34 @@
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios, { AxiosRequestConfig } from "axios";
 import { showGlobalToast } from "@/shared/components/ToastProvider";
 
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    skipGlobalToast?: boolean;
+    _retry?: boolean;
+  }
+}
+import {
+  getAccessToken,
+  setAccessToken,
+  getRefreshToken,
+  setRefreshToken,
+  clearTokens,
+  TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+} from "@/shared/utils/token-storage";
+
+export { TOKEN_KEY, REFRESH_TOKEN_KEY };
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 const API_TIMEOUT_MS = process.env.EXPO_PUBLIC_API_TIMEOUT_MS
   ? parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT_MS, 10)
   : 15000;
 
-export const TOKEN_KEY = "auth_access_token";
-export const REFRESH_TOKEN_KEY = "auth_refresh_token";
+let onSessionExpiredCallback: (() => void) | null = null;
+
+export const setOnSessionExpired = (callback: (() => void) | null) => {
+  onSessionExpiredCallback = callback;
+};
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -19,10 +38,9 @@ const apiClient = axios.create({
   },
 });
 
-
 apiClient.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    const token = await getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,7 +48,6 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
 
 let isRefreshing = false;
 let failedQueue: any[] = [];
@@ -46,21 +63,22 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    const requestUrl = originalRequest?.url || "";
+    const isAuthRequest =
+      (requestUrl.includes("/api/auth/") || requestUrl.includes("/auth/")) &&
+      !requestUrl.includes("/logout");
 
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes("/api/auth/refresh") &&
-      !originalRequest.url?.includes("/api/auth/login")
+      !isAuthRequest
     ) {
       if (isRefreshing) {
-
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -75,22 +93,23 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+        const refreshToken = await getRefreshToken();
         if (!refreshToken) {
           throw new Error("No refresh token available");
         }
-
 
         const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
           refreshToken,
         });
 
-        const { token: newToken, refreshToken: newRefreshToken } = response.data?.data || {};
+        const rawData = response.data?.data || response.data || {};
+        const newToken = rawData.access_token || rawData.token;
+        const newRefreshToken = rawData.refresh_token || rawData.refreshToken;
 
         if (newToken) {
-          await AsyncStorage.setItem(TOKEN_KEY, newToken);
+          await setAccessToken(newToken);
           if (newRefreshToken) {
-            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+            await setRefreshToken(newRefreshToken);
           }
 
           apiClient.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
@@ -107,9 +126,11 @@ apiClient.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
+        await clearTokens();
 
-        await AsyncStorage.removeItem(TOKEN_KEY);
-        await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+        if (onSessionExpiredCallback) {
+          onSessionExpiredCallback();
+        }
 
         return Promise.reject(refreshError);
       }
@@ -121,7 +142,6 @@ apiClient.interceptors.response.use(
       "Đã xảy ra lỗi, vui lòng thử lại.";
 
     const config = error?.config;
-    const isAuthRequest = config?.url?.includes("/api/auth/") && !config?.url?.includes("/api/auth/logout");
     const shouldSkipToast = config?.skipGlobalToast || isAuthRequest;
 
     if (!shouldSkipToast) {
@@ -133,4 +153,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-

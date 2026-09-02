@@ -1,10 +1,6 @@
 
-
-
-/** Giới tính theo API */
 export type Gender = "MALE" | "FEMALE";
 
-/** POST /api/auth/register */
 export type RegisterRequest = {
   email: string;
   user_name: string;
@@ -14,7 +10,6 @@ export type RegisterRequest = {
 
 };
 
-/** Response 201 từ /api/auth/register */
 export type RegisterResponse = {
   code: number;
   status: string;
@@ -51,8 +46,16 @@ export type LoginResponse = {
   status: string;
   message: string;
   data: {
-    token: string;
+    access_token?: string;
+    token?: string;
     refresh_token: string;
+    avatar?: string;
+    email?: string;
+    email_verified?: boolean;
+    gender?: string;
+    phone?: string;
+    role?: string;
+    user_name?: string;
   };
 };
 
@@ -65,12 +68,12 @@ export type RefreshTokenResponse = {
   status: string;
   message: string;
   data: {
-    token: string;
+    access_token?: string;
+    token?: string;
     refresh_token: string;
   };
 };
 
-/** Role của bệnh nhân được lưu trong user_metadata.role của Supabase JWT */
 export type UserRole = "USER";
 
 export type UserProfile = {
@@ -107,12 +110,14 @@ export type ForgotPasswordResponse = {
 export type ForgotPasswordVerifyRequest = {
   email: string;
   otp: string;
-  password: string;
+  new_password: string;
 };
 
 export type ForgotPasswordVerifyResponse = {
   code: number;
   status: string;
   message: string;
+  data?: {
+    user?: any;
+  };
 };
-

@@ -15,8 +15,6 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
     if (!dateStr) return 0;
     return new Date(dateStr).getTime();
   };
-
-  // Build the adjacency list and in-degree map
   const inDegree = new Map<string, number>();
   const graph = new Map<string, string[]>();
 
@@ -40,8 +38,6 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
       }
     }
   }
-
-  // Group steps by service_order_id
   const orderGroups = new Map<string, any[]>();
   for (const step of steps) {
     const serviceOrderId = step.service_order_id;
@@ -52,16 +48,12 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
       orderGroups.get(serviceOrderId)!.push(step);
     }
   }
-
-  // Sort steps inside each service order group by created_at time
-  for (const [key, groupSteps] of orderGroups.entries()) {
+  for (const groupSteps of orderGroups.values()) {
     groupSteps.sort((a, b) => getCreatedTime(a) - getCreatedTime(b));
   }
 
   const sorted: any[] = [];
   const sortedIds = new Set<string>();
-
-  // Helper to process a step, decrementing neighbors' inDegrees
   const processNeighbors = (step: any, q: any[]) => {
     const id = step.step_id || step.id;
     if (!id) return;
@@ -94,7 +86,6 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
     });
   };
 
-  // Find start nodes
   const startNodes = steps.filter((step) => {
     const id = step.step_id || step.id;
     return !id || inDegree.get(id) === 0;
@@ -108,7 +99,7 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
     const currentId = current.step_id || current.id;
 
     if (currentId && sortedIds.has(currentId)) {
-      continue; // Already processed as part of a service order group
+      continue;
     }
 
     sorted.push(current);
@@ -116,11 +107,8 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
       sortedIds.add(currentId);
     }
 
-    // Process neighbors of the current step
     processNeighbors(current, queue);
 
-    // Grouping logic: If this is a Payment step belonging to a service order,
-    // pull all its sibling test steps and output them immediately.
     if (isPaymentStep(current) && current.service_order_id) {
       const siblings = orderGroups.get(current.service_order_id) || [];
       const testSiblings = siblings.filter((s) => !isPaymentStep(s));
@@ -130,7 +118,6 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
         if (siblingId && !sortedIds.has(siblingId)) {
           sorted.push(sibling);
           sortedIds.add(siblingId);
-          // Process neighbors of the sibling as well
           processNeighbors(sibling, queue);
         }
       }
@@ -139,7 +126,6 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
     sortQueue(queue);
   }
 
-  // Fallback for any step not processed
   for (const step of steps) {
     const id = step.step_id || step.id;
     if (id && !sortedIds.has(id)) {
@@ -152,3 +138,33 @@ export const sortStepsTopologically = (steps: any[]): any[] => {
 
   return sorted;
 };
+
+export interface StepVisualInfo {
+  icon: "flask-outline" | "eye-outline" | "medkit-outline";
+  color: string;
+  label: string;
+}
+
+export function getStepVisualInfo(stepType?: string, primaryColor = "#5B9BD5"): StepVisualInfo {
+  switch (stepType) {
+    case "LAB_TEST":
+      return {
+        icon: "flask-outline",
+        color: "#6366F1",
+        label: "Xét nghiệm",
+      };
+    case "IMAGING":
+      return {
+        icon: "eye-outline",
+        color: "#0EA5E9",
+        label: "Chẩn đoán hình ảnh",
+      };
+    case "CLINICAL":
+    default:
+      return {
+        icon: "medkit-outline",
+        color: primaryColor,
+        label: "Khám lâm sàng",
+      };
+  }
+}

@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { BodyRegion, BodyGender } from "@/features/body-map/types";
-import { getLocalSymptoms } from "../services/symptom-lookup.service";
+import { getLocalSymptoms, getRegionSearchPhrases } from "../services/symptom-lookup.service";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { triageApiService } from "../services/triage-api.service";
 import { triageCacheService } from "../services/triage-cache.service";
@@ -11,6 +11,7 @@ import { profileService } from "@/features/profile/services/profile.service";
 import { patientService } from "@/features/patient/services/patient.service";
 import {
   Evidence,
+  SymptomSearchItem,
   TranslatedSymptomSearchItem,
   DiagnosisQuestion,
   RecommendSpecialistResponse,
@@ -41,6 +42,11 @@ type TriageContextType = {
     searchPhrase: string;
     fallbackSearchPhrases?: string[];
   }) => Promise<void>;
+  parseAndAddSymptoms: (params: {
+    text: string;
+    gender?: BodyGender;
+    age?: number;
+  }) => Promise<{ addedCount: number; symptoms: TranslatedSymptomSearchItem[] }>;
   startDiagnosisSession: (patientId?: string) => Promise<void>;
   answerQuestion: (selectedAnswers: Evidence[]) => Promise<void>;
   triggerRecommendation: () => Promise<void>;
@@ -68,8 +74,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [error, setError] = useState<string | null>(null);
   const [patientId, setPatientId] = useState<string | undefined>(undefined);
   const [patientName, setPatientName] = useState<string | undefined>(undefined);
+  const searchSessionRef = useRef<number>(0);
 
-  
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -124,7 +130,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return Object.values(selectedSymptomsMap).flat();
   };
 
-  
   const searchSymptomsByRegion = async (params: {
     bodyPartId: string;
     gender: BodyGender;
@@ -132,70 +137,177 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     searchPhrase: string;
     fallbackSearchPhrases?: string[];
   }) => {
+    const currentSessionId = ++searchSessionRef.current;
     setError(null);
 
-    
+    // 1. Nạp ngay triệu chứng local có sẵn
     const localSymptoms = getLocalSymptoms(params.bodyPartId, params.gender);
     setSymptoms(localSymptoms);
+    setIsLoading(false);
 
-    if (localSymptoms.length === 0) {
-      setIsLoading(true);
-    } else {
-      setIsLoading(false);
-    }
-
-    const mergeApiResults = (apiSymptoms: TranslatedSymptomSearchItem[]) => {
-      const existingIds = new Set(localSymptoms.map((s) => s.id));
-      const newItems = apiSymptoms.filter((s) => !existingIds.has(s.id));
-      if (newItems.length > 0) {
-        setSymptoms((prev) => [...prev, ...newItems]);
-      }
-    };
-
-    
     try {
-      const phrasesToTry = [params.searchPhrase, ...(params.fallbackSearchPhrases ?? [])];
+      const regionPhrases = getRegionSearchPhrases(params.bodyPartId);
+      const phrasesToTry = [
+        ...regionPhrases,
+        params.searchPhrase,
+        ...(params.fallbackSearchPhrases ?? []),
+      ].filter((p) => Boolean(p && p.trim() && p !== "Lưng" && p !== "Lưng dưới"));
 
+      // Kiểm tra cache đã có trước đó
       for (const phrase of phrasesToTry) {
         const cached = await triageCacheService.getCachedSymptoms(params.age, phrase);
         if (cached && cached.length > 0) {
-          mergeApiResults(cached);
-          setIsLoading(false);
+          if (searchSessionRef.current !== currentSessionId) return;
+          const existingIds = new Set(localSymptoms.map((s) => s.id));
+          const newItems = cached.filter((s) => !existingIds.has(s.id));
+          if (newItems.length > 0) {
+            setSymptoms((prev) => [...prev, ...newItems]);
+          }
           return;
         }
       }
 
-      let finalResults: any[] = [];
+      // 2. Gọi API Infermedica tìm triệu chứng bổ sung
+      let apiResults: any[] = [];
       let successfulPhrase = "";
 
       for (const phrase of phrasesToTry) {
+        if (searchSessionRef.current !== currentSessionId) return;
         const results = await triageApiService.searchSymptoms({ age: params.age, phrase });
         if (Array.isArray(results) && results.length > 0) {
-          finalResults = results;
+          apiResults = results;
           successfulPhrase = phrase;
           break;
         }
       }
 
-      if (finalResults.length > 0) {
-        const translated = await translationService.translateSymptomItems(finalResults);
-        await triageCacheService.setCachedSymptoms(params.age, successfulPhrase, translated);
-        mergeApiResults(translated);
+      if (apiResults.length === 0 || searchSessionRef.current !== currentSessionId) return;
+
+      const existingIds = new Set(localSymptoms.map((s) => s.id));
+      const uncachedApiItems = apiResults.filter((item) => !existingIds.has(item.id));
+
+      const allTranslatedForCache: TranslatedSymptomSearchItem[] = [];
+
+      // 3. Dịch từng triệu chứng một và đưa dần dần lên UI
+      for (const item of uncachedApiItems) {
+        if (searchSessionRef.current !== currentSessionId) return;
+
+        const translatedVi = await translationService.translateEnToVi(item.label, item.id);
+        if (searchSessionRef.current !== currentSessionId) return;
+
+        const translatedItem: TranslatedSymptomSearchItem = {
+          id: item.id,
+          labelEn: item.label,
+          labelVi: translatedVi || item.label,
+        };
+
+        allTranslatedForCache.push(translatedItem);
+
+        // Đưa ngay triệu chứng vừa dịch xong lên giao diện
+        setSymptoms((prev) => {
+          if (prev.some((p) => p.id === item.id)) return prev;
+          return [...prev, translatedItem];
+        });
+      }
+
+      // 4. Lưu cache cho những lần xem sau
+      if (allTranslatedForCache.length > 0 && successfulPhrase) {
+        await triageCacheService.setCachedSymptoms(params.age, successfulPhrase, allTranslatedForCache);
       }
     } catch (err: any) {
-      console.warn("[TriageContext] API enrichment thất bại, dùng local data:", err);
-      if (localSymptoms.length === 0) {
+      if (searchSessionRef.current === currentSessionId && localSymptoms.length === 0) {
         setError(err?.message || "Không thể tìm kiếm triệu chứng. Vui lòng thử lại.");
       }
     } finally {
-      setIsLoading(false);
+      if (searchSessionRef.current === currentSessionId) {
+        setIsLoading(false);
+      }
     }
   };
 
-  /**
-   * Bắt đầu phiên chẩn đoán mới từ các triệu chứng đã chọn trên Body Map.
-   * Gọi diagnose API lần đầu (không có interview_token), lưu session và navigate sang interview.
-   */
+  const parseAndAddSymptoms = async (params: {
+    text: string;
+    gender?: BodyGender;
+    age?: number;
+  }): Promise<{ addedCount: number; symptoms: TranslatedSymptomSearchItem[] }> => {
+    const rawInput = params.text?.trim();
+    if (!rawInput) {
+      return { addedCount: 0, symptoms: [] };
+    }
+
+    setError(null);
+
+    try {
+      const age = params.age || 30;
+      const sex: PatientSex = params.gender === "female" ? "female" : "male";
+
+      // 1. Gọi trực tiếp API /api/infermedica/parse với câu tiếng Việt của người dùng
+      // BE đã tự động dịch và trả về các triệu chứng bằng tiếng Việt
+      const mentions = await triageApiService.parseSymptoms({
+        text: rawInput,
+        age,
+        sex,
+      });
+
+      // Lọc các triệu chứng hợp lệ (id bắt đầu bằng 's_')
+      const validMentions = (mentions || []).filter((m) => m?.id && m.id.startsWith("s_"));
+      if (validMentions.length === 0) {
+        return { addedCount: 0, symptoms: [] };
+      }
+
+      // Khử trùng lặp theo ID
+      const uniqueMentionMap = new Map<string, any>();
+      validMentions.forEach((m) => {
+        if (!uniqueMentionMap.has(m.id)) {
+          uniqueMentionMap.set(m.id, m);
+        }
+      });
+      const uniqueMentions = Array.from(uniqueMentionMap.values());
+
+      // 2. Lấy trực tiếp tên tiếng Việt do BE trả về (không cần dịch ở MO nữa)
+      const translated: TranslatedSymptomSearchItem[] = uniqueMentions.map((m) => {
+        const viName = m.common_name || m.name || m.orth || m.id;
+        return {
+          id: m.id,
+          labelEn: m.name || viName,
+          labelVi: viName,
+        };
+      });
+
+      // 4. Ghép triệu chứng mới dịch được vào state của người dùng
+      let addedCount = 0;
+      setSelectedSymptomsMap((prev) => {
+        const allExisting = Object.values(prev).flat();
+        const existingIds = new Set(allExisting.map((s) => s.id));
+
+        const newItems: TranslatedSymptomSearchItem[] = [];
+        translated.forEach((item) => {
+          if (!existingIds.has(item.id)) {
+            newItems.push(item);
+            existingIds.add(item.id);
+            addedCount++;
+          }
+        });
+
+        if (newItems.length === 0) {
+          return prev;
+        }
+
+        const currentAiSymptoms = prev["ai_parsed"] || [];
+        return {
+          ...prev,
+          ai_parsed: [...currentAiSymptoms, ...newItems],
+        };
+      });
+
+      return { addedCount, symptoms: translated };
+    } catch (err: any) {
+      console.error("[TriageContext] Lỗi khi parse triệu chứng:", err);
+      setError(err?.message || "Không thể phân tích triệu chứng từ mô tả.");
+      return { addedCount: 0, symptoms: [] };
+    }
+  };
+
   const startDiagnosisSession = async (selectedPatientId?: string) => {
     const allSelected = getAllSelectedSymptoms();
     if (allSelected.length === 0) {
@@ -245,10 +357,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      
       citizenId = citizenId || user?.account_id || user?.id || "";
 
-      
       if (!citizenId || !genderVal || !dobVal) {
         console.log("[Triage] Thiếu thông tin trong JWT, đang tải từ Profile API...");
         const profileRes = await profileService.getProfile();
@@ -276,6 +386,7 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const initialEvidence: Evidence[] = allSelected.map((s) => ({
         id: s.id,
         choice_id: "present",
+        name: s.labelVi || s.labelEn,
       }));
 
       console.log(`[Triage] Bắt đầu phiên chẩn đoán: ${allSelected.length} triệu chứng, age=${age}, sex=${sex}`);
@@ -304,7 +415,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPatientName(targetPatientName);
       if (allSelected.length > 0) setSelectedSymptom(allSelected[0]);
 
-      
       setSelectedSymptomsMap(currentMap);
 
       const newSession: DiagnosisSessionCache = {
@@ -342,10 +452,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  /**
-   * Trả lời câu hỏi trong phiên hỏi bệnh (lần 2 trở đi).
-   * Evidence được tích lũy dần theo từng lần trả lời.
-   */
   const answerQuestion = async (selectedAnswers: Evidence[]) => {
     setIsLoading(true);
     setError(null);
@@ -354,7 +460,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const session = await triageCacheService.getDiagnosisSession();
       if (!session) throw new Error("Không tìm thấy phiên làm việc hiện tại. Vui lòng thử lại.");
 
-      
       let citizenId = session.citizenId;
       if (!citizenId) {
         citizenId = user?.citizen_id;
@@ -368,12 +473,14 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       if (!citizenId) throw new Error("Không tìm thấy thông tin định danh người dùng. Vui lòng đăng nhập lại.");
 
-      
       const updatedEvidence = [...session.evidence];
       selectedAnswers.forEach((ans) => {
         const index = updatedEvidence.findIndex((e) => e.id === ans.id);
         if (index > -1) {
           updatedEvidence[index].choice_id = ans.choice_id;
+          if (ans.name) {
+            updatedEvidence[index].name = ans.name;
+          }
         } else {
           updatedEvidence.push(ans);
         }
@@ -381,7 +488,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setEvidence(updatedEvidence);
 
-      
       const nextCount = (session.questionCount || 1) + 1;
       console.log(`[Triage] Câu hỏi số ${nextCount}. Gọi diagnose lần ${updatedEvidence.length} evidence, token=${session.interviewToken}`);
 
@@ -401,12 +507,10 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error((response as any).message || "API chẩn đoán trả về lỗi không xác định.");
       }
 
-      
       const isForcedStop = nextCount >= 5 || response.should_stop;
 
       const translatedQuestion = isForcedStop ? null : await translationService.translateQuestion(response.question);
       setCurrentQuestion(translatedQuestion);
-      
       setShouldStop(isForcedStop);
 
       const updatedSession: DiagnosisSessionCache = {
@@ -421,6 +525,11 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await triageCacheService.saveDiagnosisSession(updatedSession);
 
       console.log(`[Triage] Kết quả lần này: nextCount=${nextCount}, should_stop=${isForcedStop}, token=${session.interviewToken}`);
+
+      if (isForcedStop) {
+        await triggerRecommendation();
+        return;
+      }
     } catch (err: any) {
       console.error("[TriageContext] Lỗi khi trả lời câu hỏi:", err);
       if (err?.response) {
@@ -433,9 +542,6 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  /**
-   * Gọi API đề xuất chuyên khoa sau khi hoàn tất hỏi bệnh (should_stop = true).
-   */
   const triggerRecommendation = async () => {
     setIsLoading(true);
     setError(null);
@@ -537,6 +643,7 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         patientName,
         setSelectedRegion,
         searchSymptomsByRegion,
+        parseAndAddSymptoms,
         startDiagnosisSession,
         answerQuestion,
         triggerRecommendation,

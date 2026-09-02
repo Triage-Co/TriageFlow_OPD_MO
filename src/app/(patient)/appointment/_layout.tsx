@@ -8,6 +8,10 @@ export default function AppointmentLayout() {
         headerShown: false,
         animation: "slide_from_right",
       }}
-    />
+    >
+      <Stack.Screen name="method-select" />
+      <Stack.Screen name="specialty-select" />
+      <Stack.Screen name="my-appointments" />
+    </Stack>
   );
 }

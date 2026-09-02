@@ -60,4 +60,3 @@ export type DeletePatientResponse = {
   status: string;
   message: string;
 };
-

@@ -20,7 +20,7 @@ class TriageCacheService {
   }
 
   private getSearchCacheKey(regionId: string): string {
-    return `triage:search:${regionId.toLowerCase().trim()}`;
+    return `v2:triage:search:${regionId.toLowerCase().trim()}`;
   }
 
   async getSearchCache(regionId: string): Promise<TranslatedSymptomSearchItem[] | null> {
@@ -44,14 +44,18 @@ class TriageCacheService {
   }
 
   private getSymptomSearchKey(age: number, phrase: string): string {
-    return `triage:symptom-search:${age}:${phrase.toLowerCase().trim()}`;
+    return `v2:triage:symptom-search:${age}:${phrase.toLowerCase().trim()}`;
   }
 
   async getCachedSymptoms(age: number, phrase: string): Promise<TranslatedSymptomSearchItem[] | null> {
     try {
       const key = this.getSymptomSearchKey(age, phrase);
       const cached = await AsyncStorage.getItem(key);
-      return cached ? JSON.parse(cached) : null;
+      if (!cached) return null;
+      const parsed: TranslatedSymptomSearchItem[] = JSON.parse(cached);
+      // Chỉ dùng cache nếu các triệu chứng đã có tiếng Việt
+      const hasVietnamese = parsed.some((item) => item.labelVi && item.labelVi !== item.labelEn);
+      return hasVietnamese ? parsed : null;
     } catch (error) {
       console.error("Lỗi khi đọc cache triệu chứng:", error);
       return null;

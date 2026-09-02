@@ -3,13 +3,8 @@ import { GeoJSONFeatureCollection, BuildingMapData } from "../types/map.types";
 import { fetchBuildingMap, HARDCODED_BUILDING_ID } from "../services/map.service";
 import { buildingMapToGeoJSON } from "../utils/building-to-geojson";
 
-
 const cache = new Map<string, GeoJSONFeatureCollection>();
 
-/**
- * Hook to fetch building map data for a specific building and floor level.
- * Automatically transforms backend coordinate geometry to 3D scene GeoJSON features.
- */
 export function useBuildingMap(floorNumber: number, buildingId: string = HARDCODED_BUILDING_ID) {
   const cacheKey = `${buildingId}-${floorNumber}`;
 
@@ -29,8 +24,8 @@ export function useBuildingMap(floorNumber: number, buildingId: string = HARDCOD
   }, []);
 
   useEffect(() => {
-    if (cache.has(cacheKey)) {
-      const cachedData = cache.get(cacheKey)!;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
       setData(cachedData);
       setRawMap(cachedData.rawMap ?? null);
       setLoading(false);

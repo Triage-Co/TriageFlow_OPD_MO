@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "@/config/colors";
 
 type AppInputProps = TextInputProps & {
   label?: string;
@@ -14,11 +15,6 @@ type AppInputProps = TextInputProps & {
   rightIcon?: React.ReactNode;
 };
 
-/**
- * AppInput – shared input component
- * Style theo Figma: border nhẹ, rounded-xl, placeholder only (không cần label)
- * label prop vẫn support nhưng không bắt buộc
- */
 export function AppInput({
   label,
   error,
@@ -46,7 +42,7 @@ export function AppInput({
           borderColor: error
             ? "#FCA5A5"
             : isFocused
-            ? "#5B9BD5"
+            ? Colors.primary
             : "#E5E7EB",
         }}
       >

@@ -3,4 +3,3 @@ import { PendingPaymentsView } from "@/features/visit/components/PendingPayments
 export default function PendingPaymentsScreen() {
   return <PendingPaymentsView />;
 }
-

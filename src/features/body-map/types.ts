@@ -35,10 +35,6 @@ export type SelectedBodyPart = BodyPart & {
   searchPhrase: string;
 };
 
-/**
- * Giữ lại type này để các màn cũ đang import BodyRegion chưa bị vỡ ngay.
- * Sau khi refactor xong hết flow search/triage thì có thể đổi tên sang SelectedBodyPart.
- */
 export type BodyRegion = {
   id: string;
   name?: string;

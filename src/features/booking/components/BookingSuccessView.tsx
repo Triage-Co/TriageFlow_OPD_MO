@@ -15,10 +15,11 @@ export function BookingSuccessView() {
   const queueNumber = params.queueNumber as string;
   const status = params.status as string;
   const doctorName = params.doctorName as string;
-  const specialtyName = params.specialtyName as string;
+  const specialtyName = (params.packageName as string) || (params.specialtyName as string) || "Khám chuyên khoa";
+  const roomName = params.roomName as string;
   const selectedDate = params.selectedDate as string;
   const slotTime = params.slotTime as string;
-  const bookingId = params.bookingId as string;
+  const bookingId = (params.ticketCode as string) || (params.bookingId as string);
 
   const getStatusLabel = (s: string) => {
     switch (s?.toUpperCase()) {
@@ -50,7 +51,7 @@ export function BookingSuccessView() {
       <StatusBar style="dark" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          {/* Header */}
+          
           <View className="items-center pt-16 pb-6">
             <View className="w-20 h-20 rounded-full bg-emerald-50 items-center justify-center mb-4 border border-emerald-100">
               <SymbolView
@@ -67,7 +68,6 @@ export function BookingSuccessView() {
             </Text>
           </View>
 
-          {/* ── 1. PHIẾU KHÁM / SỐ THỨ TỰ ── */}
           <View className="mx-5 bg-white rounded-[24px] p-6 border border-emerald-100 shadow-sm items-center mb-4 relative overflow-hidden">
             <View className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-50/50 rounded-full" />
             
@@ -89,7 +89,6 @@ export function BookingSuccessView() {
             </View>
           </View>
 
-          {/* ── 2. CHI TIẾT LỊCH HẸN KHÁM ── */}
           <View className="mx-5 bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm mb-6">
             <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-4">
               Chi tiết lịch khám
@@ -99,34 +98,44 @@ export function BookingSuccessView() {
               <View className="flex-row justify-between items-start">
                 <Text className="text-gray-400 text-[12px] font-medium">Bác sĩ khám</Text>
                 <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
-                  {doctorName}
+                  {doctorName || "Bác sĩ phụ trách"}
                 </Text>
               </View>
 
               <View className="flex-row justify-between items-start">
-                <Text className="text-gray-400 text-[12px] font-medium">Chuyên khoa</Text>
+                <Text className="text-gray-400 text-[12px] font-medium">Dịch vụ / Gói khám</Text>
                 <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
                   {specialtyName}
                 </Text>
               </View>
 
+              {roomName ? (
+                <View className="flex-row justify-between items-start">
+                  <Text className="text-gray-400 text-[12px] font-medium">Phòng khám</Text>
+                  <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
+                    {roomName}
+                  </Text>
+                </View>
+              ) : null}
+
               <View className="flex-row justify-between items-start">
                 <Text className="text-gray-400 text-[12px] font-medium">Thời gian khám</Text>
                 <Text className="text-gray-800 text-[13px] font-bold text-right flex-1 ml-6">
-                  {slotTime} - {selectedDate}
+                  {slotTime ? `${slotTime} - ` : ""}{selectedDate}
                 </Text>
               </View>
 
-              <View className="flex-row justify-between items-start border-t border-gray-50 pt-3.5">
-                <Text className="text-gray-400 text-[12px] font-medium">Mã phiếu khám</Text>
-                <Text className="text-gray-700 text-[12px] font-semibold text-right">
-                  {bookingId}
-                </Text>
-              </View>
+              {bookingId ? (
+                <View className="flex-row justify-between items-start border-t border-gray-50 pt-3.5">
+                  <Text className="text-gray-400 text-[12px] font-medium">Mã phiếu khám</Text>
+                  <Text className="text-gray-700 text-[12px] font-semibold text-right">
+                    {bookingId}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </View>
 
-          {/* ── 3. LƯU Ý ── */}
           <View className="mx-5 bg-blue-50/50 rounded-[18px] p-4 border border-blue-50/70 flex-row gap-3">
             <SymbolView name="info.circle.fill" size={16} tintColor={Colors.primary} />
             <View className="flex-1">
@@ -138,7 +147,6 @@ export function BookingSuccessView() {
           </View>
         </ScrollView>
 
-        {/* Nút hành động */}
         <View className="px-5 pb-12 pt-4 bg-white border-t border-gray-50">
           <AppButton
             title="Về Trang Chủ"

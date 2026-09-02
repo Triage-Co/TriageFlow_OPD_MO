@@ -29,7 +29,6 @@ export function RoomPickerModal({
 }: RoomPickerModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  
   const allRooms = useMemo(() => {
     if (!floors) return [];
     const options: RoomOption[] = [];
@@ -49,7 +48,6 @@ export function RoomPickerModal({
     return options;
   }, [floors]);
 
-  
   const filteredRooms = useMemo(() => {
     if (!searchQuery.trim()) return allRooms;
     const q = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -69,7 +67,7 @@ export function RoomPickerModal({
     >
       <View style={styles.modalOverlay}>
         <SafeAreaView style={styles.modalContainer}>
-          {/* Header */}
+          
           <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
             <Text className="text-gray-800 text-[16px] font-extrabold">{title}</Text>
             <TouchableOpacity onPress={onClose} activeOpacity={0.7} className="p-1">
@@ -77,7 +75,6 @@ export function RoomPickerModal({
             </TouchableOpacity>
           </View>
 
-          {/* Search Box */}
           <View className="p-4 bg-gray-50 flex-row items-center px-5 border-b border-gray-100">
             <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
             <TextInput
@@ -90,7 +87,6 @@ export function RoomPickerModal({
             />
           </View>
 
-          {/* List of rooms */}
           <FlatList
             data={filteredRooms}
             keyExtractor={(item) => item.id}

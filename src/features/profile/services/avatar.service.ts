@@ -2,11 +2,7 @@ const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
 
 export const avatarService = {
-  /**
-   * Upload ảnh lên Cloudinary bằng unsigned preset
-   * @param localUri - URI cục bộ trả về từ expo-image-picker
-   * @returns URL công khai của ảnh sau khi upload
-   */
+  
   async uploadAvatar(localUri: string): Promise<string> {
     console.log("[avatarService] Khởi động upload ảnh qua XHR, localUri:", localUri);
     const filename = localUri.split("/").pop() ?? "avatar.jpg";

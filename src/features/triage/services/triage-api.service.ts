@@ -1,13 +1,39 @@
 import apiClient from "@/shared/services/api-client";
 import {
   SymptomSearchItem,
+  ParseMentionItem,
   DiagnosisRequest,
   DiagnosisResponse,
   RecommendSpecialistRequest,
   RecommendSpecialistResponse,
+  PatientSex,
 } from "../types/triage.types";
 
 class TriageApiService {
+  async parseSymptoms(params: {
+    text: string;
+    age?: number;
+    sex?: PatientSex;
+  }): Promise<ParseMentionItem[]> {
+    const payload: Record<string, any> = {
+      question: params.text,
+      age: typeof params.age === "number" ? params.age : 30,
+    };
+
+    if (params.sex) {
+      payload.sex = params.sex;
+    }
+
+    const response = await apiClient.post<any>("/api/infermedica/parse", payload);
+    const mentions =
+      response.data?.data?.mentions ||
+      response.data?.mentions ||
+      response.data?.data ||
+      response.data ||
+      [];
+    return Array.isArray(mentions) ? mentions : [];
+  }
+
   async searchSymptoms(params: { age: number; phrase: string }): Promise<SymptomSearchItem[]> {
     const response = await apiClient.get<any>("/api/infermedica/search", {
       params: {

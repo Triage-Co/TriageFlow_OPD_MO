@@ -64,8 +64,8 @@ export function ForgotVerifyForm() {
     let err: string | undefined;
     if (!otp.trim()) {
       err = "Vui lòng nhập mã OTP.";
-    } else if (otp.trim().length !== 8) {
-      err = "Mã OTP phải có độ dài đúng 8 chữ số.";
+    } else if (otp.trim().length < 6 || otp.trim().length > 8) {
+      err = "Mã OTP phải có độ dài từ 6 đến 8 chữ số.";
     }
     setFieldErrors((p) => ({ ...p, otp: err }));
   };
@@ -95,8 +95,8 @@ export function ForgotVerifyForm() {
 
     if (!otp.trim()) {
       nextErrors.otp = "Vui lòng nhập mã OTP.";
-    } else if (otp.trim().length !== 8) {
-      nextErrors.otp = "Mã OTP phải có độ dài đúng 8 chữ số.";
+    } else if (otp.trim().length < 6 || otp.trim().length > 8) {
+      nextErrors.otp = "Mã OTP phải có độ dài từ 6 đến 8 chữ số.";
     }
 
     const passErr = validatePasswordField(password, 6);
@@ -135,8 +135,8 @@ export function ForgotVerifyForm() {
         <FormErrorBanner error={error} />
 
         <AppInput
-          label="Mã xác thực OTP (8 chữ số)"
-          placeholder="Nhập 8 chữ số OTP"
+          label="Mã xác thực OTP"
+          placeholder="Nhập mã OTP"
           value={otp}
           onChangeText={(v) => {
             setOtp(v.replace(/[^0-9]/g, "").slice(0, 8));

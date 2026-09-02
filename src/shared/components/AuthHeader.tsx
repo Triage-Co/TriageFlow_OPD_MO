@@ -26,8 +26,10 @@ export function AuthHeader({
   const handleBack = () => {
     if (onBack) {
       onBack();
-    } else {
+    } else if (router.canGoBack()) {
       router.back();
+    } else {
+      router.replace("/(auth)/login");
     }
   };
 
@@ -38,7 +40,6 @@ export function AuthHeader({
       className="bg-primary rounded-b-[28px] px-6 pb-8 shadow-sm"
       style={{ paddingTop: insets.top + (showLogo ? 24 : 20) }}
     >
-      {/* Back button */}
       {showBackButton && (
         <Pressable
           onPress={handleBack}
@@ -49,7 +50,6 @@ export function AuthHeader({
         </Pressable>
       )}
 
-      {/* Logo row */}
       {showLogo && (
         <View className="flex-row items-center gap-2.5 mb-6">
           <View className="w-10 h-10 bg-white rounded-xl items-center justify-center p-1 shadow-sm">
@@ -63,11 +63,9 @@ export function AuthHeader({
         </View>
       )}
 
-      {/* Title + subtitle */}
       <Text
-        className={`font-extrabold text-white tracking-tight mb-1.5 leading-tight ${
-          isLarge ? "text-[34px]" : "text-[28px]"
-        }`}
+        className={`font-extrabold text-white tracking-tight mb-1.5 leading-tight ${isLarge ? "text-[34px]" : "text-[28px]"
+          }`}
       >
         {title}
       </Text>

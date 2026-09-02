@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 import { doctorService } from "../services/doctor.service";
 import { BookingResponseData, BookingGenerateData, StepDetailData } from "../types/doctor.types";
 
@@ -27,9 +28,9 @@ export function useBooking() {
         setError(response.message || "Đặt lịch khám thất bại. Vui lòng thử lại.");
         return null;
       } catch (err: any) {
-        const errMsg = err?.response?.data?.message || err?.message || "Đặt lịch khám thất bại.";
+        const errMsg = getErrorMessage(err, "Đặt lịch khám thất bại.");
         setError(errMsg);
-        return { error: errMsg } as any; // Trả về object chứa field error thay vì ném lỗi để tránh màn hình đỏ ở môi trường Development
+        return { error: errMsg } as any; 
       } finally {
         setIsSubmitting(false);
       }
@@ -54,7 +55,7 @@ export function useBooking() {
         return null;
       } catch (err: any) {
         console.error("[useBooking] Fetch booking result error:", err);
-        const errMsg = err?.response?.data?.message || err?.message || "Xác nhận thanh toán thất bại.";
+        const errMsg = getErrorMessage(err, "Xác nhận thanh toán thất bại.");
         setError(errMsg);
         return null;
       } finally {
@@ -81,7 +82,7 @@ export function useBooking() {
         return null;
       } catch (err: any) {
         console.error("[useBooking] Create auto booking error:", err);
-        const errMsg = err?.response?.data?.message || err?.message || "Xếp phòng khám tự động thất bại.";
+        const errMsg = getErrorMessage(err, "Xếp phòng khám tự động thất bại.");
         setError(errMsg);
         return null;
       } finally {
@@ -108,7 +109,7 @@ export function useBooking() {
         return null;
       } catch (err: any) {
         console.error("[useBooking] Fetch step detail error:", err);
-        const errMsg = err?.response?.data?.message || err?.message || "Xác nhận thanh toán thất bại.";
+        const errMsg = getErrorMessage(err, "Xác nhận thanh toán thất bại.");
         setError(errMsg);
         return null;
       } finally {

@@ -1,5 +1,5 @@
 diff --git a/node_modules/three-stdlib/controls/OrbitControls.cjs b/node_modules/three-stdlib/controls/OrbitControls.cjs
-index aa73053..33b1e14 100644
+index aa73053..9d03c34 100644
 --- a/node_modules/three-stdlib/controls/OrbitControls.cjs
 +++ b/node_modules/three-stdlib/controls/OrbitControls.cjs
 @@ -566,6 +566,7 @@ class OrbitControls extends EventDispatcher.EventDispatcher {
@@ -39,16 +39,139 @@ index aa73053..33b1e14 100644
        dollyStart.copy(dollyEnd);
      }
      function handleTouchMoveDollyPan(event) {
-@@ -842,6 +850,7 @@ class OrbitControls extends EventDispatcher.EventDispatcher {
+@@ -620,6 +628,8 @@ class OrbitControls extends EventDispatcher.EventDispatcher {
+       if (pointers.length === 0) {
+         (_a = scope.domElement) == null ? void 0 : _a.ownerDocument.addEventListener("pointermove", onPointerMove);
+         (_b = scope.domElement) == null ? void 0 : _b.ownerDocument.addEventListener("pointerup", onPointerUp);
++        scope.domElement?.addEventListener("pointermove", onPointerMove);
++        scope.domElement?.addEventListener("pointerup", onPointerUp);
+       }
+       addPointer(event);
+       if (event.pointerType === "touch") {
+@@ -644,9 +654,34 @@ class OrbitControls extends EventDispatcher.EventDispatcher {
+         (_a = scope.domElement) == null ? void 0 : _a.releasePointerCapture(event.pointerId);
+         (_b = scope.domElement) == null ? void 0 : _b.ownerDocument.removeEventListener("pointermove", onPointerMove);
+         (_c = scope.domElement) == null ? void 0 : _c.ownerDocument.removeEventListener("pointerup", onPointerUp);
++        scope.domElement?.removeEventListener("pointermove", onPointerMove);
++        scope.domElement?.removeEventListener("pointerup", onPointerUp);
++        state = STATE.NONE;
++      } else if (pointers.length === 1) {
++        if (state === STATE.TOUCH_DOLLY_PAN || state === STATE.TOUCH_DOLLY_ROTATE) {
++          switch (scope.touches.ONE) {
++            case THREE.TOUCH.ROTATE:
++              if (scope.enableRotate) {
++                handleTouchStartRotate();
++                state = STATE.TOUCH_ROTATE;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            case THREE.TOUCH.PAN:
++              if (scope.enablePan) {
++                handleTouchStartPan();
++                state = STATE.TOUCH_PAN;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            default:
++              state = STATE.NONE;
++          }
++        }
+       }
+       scope.dispatchEvent(endEvent);
+-      state = STATE.NONE;
+     }
+     function onMouseDown(event) {
+       let mouseAction;
+@@ -786,6 +821,31 @@ class OrbitControls extends EventDispatcher.EventDispatcher {
+     }
+     function onTouchMove(event) {
+       trackPointer(event);
++      if (state === STATE.TOUCH_DOLLY_PAN || state === STATE.TOUCH_DOLLY_ROTATE) {
++        const secondPos = getSecondPointerPosition(event);
++        if (pointers.length < 2 || !secondPos) {
++          switch (scope.touches.ONE) {
++            case THREE.TOUCH.ROTATE:
++              if (scope.enableRotate) {
++                handleTouchStartRotate();
++                state = STATE.TOUCH_ROTATE;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            case THREE.TOUCH.PAN:
++              if (scope.enablePan) {
++                handleTouchStartPan();
++                state = STATE.TOUCH_PAN;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            default:
++              state = STATE.NONE;
++          }
++        }
++      }
+       switch (state) {
+         case STATE.TOUCH_ROTATE:
+           if (scope.enableRotate === false)
+@@ -820,15 +880,33 @@ class OrbitControls extends EventDispatcher.EventDispatcher {
+         return;
+       event.preventDefault();
+     }
++    let lastPointerTime = 0;
+     function addPointer(event) {
++      const now = Date.now();
++      if (now - lastPointerTime > 300) {
++        pointers.length = 0;
++        for (const k in pointerPositions) delete pointerPositions[k];
++      }
++      lastPointerTime = now;
++      for (let i = pointers.length - 1; i >= 0; i--) {
++        if (pointers[i].pointerId === event.pointerId) {
++          pointers.splice(i, 1);
++        }
++      }
++      while (pointers.length >= 2) {
++        const removed = pointers.shift();
++        if (removed) delete pointerPositions[removed.pointerId];
++      }
+       pointers.push(event);
+     }
+     function removePointer(event) {
+-      delete pointerPositions[event.pointerId];
+-      for (let i = 0; i < pointers.length; i++) {
+-        if (pointers[i].pointerId == event.pointerId) {
+-          pointers.splice(i, 1);
+-          return;
++      if (event && event.pointerId !== void 0) {
++        delete pointerPositions[event.pointerId];
++        for (let i = 0; i < pointers.length; i++) {
++          if (pointers[i].pointerId == event.pointerId) {
++            pointers.splice(i, 1);
++            return;
++          }
+         }
+       }
+     }
+@@ -842,8 +920,14 @@ class OrbitControls extends EventDispatcher.EventDispatcher {
      }
      function getSecondPointerPosition(event) {
        const pointer = event.pointerId === pointers[0].pointerId ? pointers[1] : pointers[0];
 +      if (!pointer || !pointerPositions[pointer.pointerId]) return undefined;
        return pointerPositions[pointer.pointerId];
      }
++    this.resetPointers = () => {
++      pointers.length = 0;
++      for (const k in pointerPositions) delete pointerPositions[k];
++      state = STATE.NONE;
++    };
      this.dollyIn = (dollyScale = getZoomScale()) => {
+       dollyIn(dollyScale);
+       scope.update();
 diff --git a/node_modules/three-stdlib/controls/OrbitControls.js b/node_modules/three-stdlib/controls/OrbitControls.js
-index 576ad6f..9c04cdd 100644
+index 576ad6f..520724b 100644
 --- a/node_modules/three-stdlib/controls/OrbitControls.js
 +++ b/node_modules/three-stdlib/controls/OrbitControls.js
 @@ -564,6 +564,7 @@ class OrbitControls extends EventDispatcher {
@@ -88,11 +211,134 @@ index 576ad6f..9c04cdd 100644
        dollyStart.copy(dollyEnd);
      }
      function handleTouchMoveDollyPan(event) {
-@@ -840,6 +848,7 @@ class OrbitControls extends EventDispatcher {
+@@ -618,6 +626,8 @@ class OrbitControls extends EventDispatcher {
+       if (pointers.length === 0) {
+         (_a = scope.domElement) == null ? void 0 : _a.ownerDocument.addEventListener("pointermove", onPointerMove);
+         (_b = scope.domElement) == null ? void 0 : _b.ownerDocument.addEventListener("pointerup", onPointerUp);
++        scope.domElement?.addEventListener("pointermove", onPointerMove);
++        scope.domElement?.addEventListener("pointerup", onPointerUp);
+       }
+       addPointer(event);
+       if (event.pointerType === "touch") {
+@@ -642,9 +652,34 @@ class OrbitControls extends EventDispatcher {
+         (_a = scope.domElement) == null ? void 0 : _a.releasePointerCapture(event.pointerId);
+         (_b = scope.domElement) == null ? void 0 : _b.ownerDocument.removeEventListener("pointermove", onPointerMove);
+         (_c = scope.domElement) == null ? void 0 : _c.ownerDocument.removeEventListener("pointerup", onPointerUp);
++        scope.domElement?.removeEventListener("pointermove", onPointerMove);
++        scope.domElement?.removeEventListener("pointerup", onPointerUp);
++        state = STATE.NONE;
++      } else if (pointers.length === 1) {
++        if (state === STATE.TOUCH_DOLLY_PAN || state === STATE.TOUCH_DOLLY_ROTATE) {
++          switch (scope.touches.ONE) {
++            case TOUCH.ROTATE:
++              if (scope.enableRotate) {
++                handleTouchStartRotate();
++                state = STATE.TOUCH_ROTATE;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            case TOUCH.PAN:
++              if (scope.enablePan) {
++                handleTouchStartPan();
++                state = STATE.TOUCH_PAN;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            default:
++              state = STATE.NONE;
++          }
++        }
+       }
+       scope.dispatchEvent(endEvent);
+-      state = STATE.NONE;
+     }
+     function onMouseDown(event) {
+       let mouseAction;
+@@ -784,6 +819,31 @@ class OrbitControls extends EventDispatcher {
+     }
+     function onTouchMove(event) {
+       trackPointer(event);
++      if (state === STATE.TOUCH_DOLLY_PAN || state === STATE.TOUCH_DOLLY_ROTATE) {
++        const secondPos = getSecondPointerPosition(event);
++        if (pointers.length < 2 || !secondPos) {
++          switch (scope.touches.ONE) {
++            case TOUCH.ROTATE:
++              if (scope.enableRotate) {
++                handleTouchStartRotate();
++                state = STATE.TOUCH_ROTATE;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            case TOUCH.PAN:
++              if (scope.enablePan) {
++                handleTouchStartPan();
++                state = STATE.TOUCH_PAN;
++              } else {
++                state = STATE.NONE;
++              }
++              break;
++            default:
++              state = STATE.NONE;
++          }
++        }
++      }
+       switch (state) {
+         case STATE.TOUCH_ROTATE:
+           if (scope.enableRotate === false)
+@@ -818,15 +878,33 @@ class OrbitControls extends EventDispatcher {
+         return;
+       event.preventDefault();
+     }
++    let lastPointerTime = 0;
+     function addPointer(event) {
++      const now = Date.now();
++      if (now - lastPointerTime > 300) {
++        pointers.length = 0;
++        for (const k in pointerPositions) delete pointerPositions[k];
++      }
++      lastPointerTime = now;
++      for (let i = pointers.length - 1; i >= 0; i--) {
++        if (pointers[i].pointerId === event.pointerId) {
++          pointers.splice(i, 1);
++        }
++      }
++      while (pointers.length >= 2) {
++        const removed = pointers.shift();
++        if (removed) delete pointerPositions[removed.pointerId];
++      }
+       pointers.push(event);
+     }
+     function removePointer(event) {
+-      delete pointerPositions[event.pointerId];
+-      for (let i = 0; i < pointers.length; i++) {
+-        if (pointers[i].pointerId == event.pointerId) {
+-          pointers.splice(i, 1);
+-          return;
++      if (event && event.pointerId !== void 0) {
++        delete pointerPositions[event.pointerId];
++        for (let i = 0; i < pointers.length; i++) {
++          if (pointers[i].pointerId == event.pointerId) {
++            pointers.splice(i, 1);
++            return;
++          }
+         }
+       }
+     }
+@@ -840,8 +918,14 @@ class OrbitControls extends EventDispatcher {
      }
      function getSecondPointerPosition(event) {
        const pointer = event.pointerId === pointers[0].pointerId ? pointers[1] : pointers[0];
 +      if (!pointer || !pointerPositions[pointer.pointerId]) return undefined;
        return pointerPositions[pointer.pointerId];
      }
++    this.resetPointers = () => {
++      pointers.length = 0;
++      for (const k in pointerPositions) delete pointerPositions[k];
++      state = STATE.NONE;
++    };
      this.dollyIn = (dollyScale = getZoomScale()) => {
+       dollyIn(dollyScale);
+       scope.update();

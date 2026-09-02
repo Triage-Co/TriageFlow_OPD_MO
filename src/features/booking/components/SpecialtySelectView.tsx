@@ -21,7 +21,7 @@ import {
 import { Specialty } from "@/features/appointment/types/specialty.types";
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding/margins
+const CARD_WIDTH = (width - 48) / 2; 
 
 export function SpecialtySelectView() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export function SpecialtySelectView() {
         style={{ width: CARD_WIDTH }}
         className="m-1.5 p-4 rounded-3xl bg-white items-center justify-center border border-gray-100 shadow-sm shadow-black/5 active:opacity-90 active:scale-95"
       >
-        {/* Icon Container with dynamic background color */}
+        
         <View
           className={`w-14 h-14 items-center justify-center rounded-2xl mb-3 ${styleTokens.bg}`}
         >
@@ -66,17 +66,11 @@ export function SpecialtySelectView() {
           />
         </View>
 
-        {/* Specialty Name */}
         <Text
           className="text-gray-800 text-[13px] font-bold text-center mt-1 leading-5 h-10"
           numberOfLines={2}
         >
           {item.specialty_name}
-        </Text>
-
-        {/* Specialty Code (Subtle indicator) */}
-        <Text className="text-[10px] text-gray-400 font-semibold mt-1">
-          {item.specialty_code}
         </Text>
       </Pressable>
     );
@@ -86,7 +80,7 @@ export function SpecialtySelectView() {
     <ScreenWrapper edges={["left", "right", "bottom"]}>
       <StatusBar style="dark" />
       <View className="flex-1">
-        {/* ── 1. HEADER ── */}
+        
         <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
           <Pressable
             onPress={() => router.back()}
@@ -102,7 +96,6 @@ export function SpecialtySelectView() {
           <View className="w-10" />
         </View>
 
-        {/* ── 2. SEARCH BAR ── */}
         <View className="px-5 mb-3">
           <View className="flex-row items-center bg-white px-4 rounded-2xl border border-gray-100 shadow-sm h-12">
             <Ionicons name="search-outline" size={20} color={Colors.textMuted} />
@@ -123,7 +116,6 @@ export function SpecialtySelectView() {
           </View>
         </View>
 
-        {/* ── 3. CONTENT AREA ── */}
         {isLoading ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" color={Colors.primary} />

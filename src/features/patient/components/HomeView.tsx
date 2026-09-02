@@ -1,32 +1,26 @@
-import { ScrollView, View, Text, Pressable, ActivityIndicator, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { ScrollView, View, Text, Pressable, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
 import { patientService } from "@/features/patient/services/patient.service";
 import { Patient } from "@/features/patient/types/patient.types";
 import { PatientPickerModal } from "@/shared/components/PatientPickerModal";
+import { getInitials } from "@/shared/utils/string.utils";
+import { AppAlert } from "@/shared/utils/alert.utils";
+
+import { HomeBannerCarousel } from "./HomeBannerCarousel";
 
 export function HomeView() {
   const { user } = useAuthContext();
   const router = useRouter();
 
-  const getInitials = (name?: string) => {
-    if (!name) return "BN";
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    const first = parts[0].charAt(0);
-    const last = parts[parts.length - 1].charAt(0);
-    return (first + last).toUpperCase();
-  };
-
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isPatientModalVisible, setIsPatientModalVisible] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [bookingFlowType, setBookingFlowType] = useState<"booking" | "triage" | "payment" | "package" | null>(null);
   const [isFetchingPatients, setIsFetchingPatients] = useState(false);
 
   const loadPatients = async () => {
@@ -34,6 +28,9 @@ export function HomeView() {
       const res = await patientService.getPatients();
       if (res?.data) {
         setPatients(res.data);
+        if (res.data.length > 0 && !selectedPatientId) {
+          setSelectedPatientId(res.data[0].patient_id);
+        }
         return res.data;
       }
     } catch (err) {
@@ -46,77 +43,48 @@ export function HomeView() {
     loadPatients();
   }, []);
 
-  const handlePressBooking = async (type: "booking" | "triage" | "payment" | "package") => {
-    setBookingFlowType(type);
+  const handleOpenBookingHub = async () => {
     setIsFetchingPatients(true);
     const list = await loadPatients();
     setIsFetchingPatients(false);
 
     if (list.length === 0) {
-      Alert.alert(
+      AppAlert.confirm(
         "Yêu cầu hồ sơ",
         "Tài khoản của bạn chưa có hồ sơ bệnh nhân nào. Vui lòng tạo hồ sơ bệnh nhân mới trước.",
-        [
-          { text: "Hủy", style: "cancel" },
-          {
-            text: "Tạo hồ sơ",
-            onPress: () => router.push("/(patient)/triage/patient-list"),
-          }
-        ]
+        () => router.push("/(patient)/triage/patient-list"),
+        undefined,
+        "Tạo hồ sơ",
+        "Hủy"
       );
     } else {
-      setSelectedPatientId(list[0].patient_id);
+      if (!selectedPatientId && list.length > 0) {
+        setSelectedPatientId(list[0].patient_id);
+      }
       setIsPatientModalVisible(true);
     }
   };
 
-  const handleConfirmPatient = (patientId: string) => {
-    console.log("[HomeScreen] handleConfirmPatient called with patientId:", patientId, "bookingFlowType:", bookingFlowType);
-    setIsPatientModalVisible(false);
+  const handleConfirmPatient = (patientId: string, patientName: string) => {
     setSelectedPatientId(patientId);
-
-    if (bookingFlowType === "booking") {
-      console.log("[HomeScreen] Navigating to specialty-select");
-      router.push({
-        pathname: "/(patient)/appointment/specialty-select",
-        params: { patientId }
-      });
-    } else if (bookingFlowType === "triage") {
-      console.log("[HomeScreen] Navigating to body-map");
-      router.push({
-        pathname: "/(patient)/triage/body-map",
-        params: { patientId }
-      });
-    } else if (bookingFlowType === "payment") {
-      console.log("[HomeScreen] Navigating to pending-payments");
-      const selected = patients.find(p => p.patient_id === patientId);
-      router.push({
-        pathname: "/(patient)/visit/pending-payments",
-        params: { patientId, patientName: selected?.full_name || "Bệnh nhân" }
-      });
-    } else if (bookingFlowType === "package") {
-      console.log("[HomeScreen] Navigating to package-select");
-      try {
-        router.push({
-          pathname: "/(patient)/package/package-select",
-          params: { patientId }
-        });
-      } catch (err) {
-        console.error("[HomeScreen] router.push error:", err);
-      }
-    } else {
-      console.warn("[HomeScreen] Unknown bookingFlowType:", bookingFlowType);
-    }
+    setIsPatientModalVisible(false);
+    router.push({
+      pathname: "/(patient)/appointment/method-select",
+      params: {
+        patientId,
+        patientName,
+      },
+    });
   };
 
   return (
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-        {/* Header Immersive */}
+
         <View className="bg-primary rounded-b-[36px] px-6 pt-14 pb-8 shadow-md">
           <View className="flex-row items-center justify-between">
-            {/* Trái: Avatar và lời chào */}
+
             <View className="flex-row items-center gap-3">
               <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center overflow-hidden">
                 {user?.avatar ? (
@@ -133,26 +101,17 @@ export function HomeView() {
               </View>
             </View>
 
-            {/* Phải: Chuông thông báo */}
-            <Pressable className="w-10 h-10 rounded-full bg-white/20 items-center justify-center relative active:opacity-80">
+            <Pressable
+              onPress={() => router.push("/(patient)/notification" as any)}
+              className="w-10 h-10 rounded-full bg-white/20 items-center justify-center relative active:opacity-80"
+            >
               <Ionicons name="notifications" size={22} color="white" />
             </Pressable>
           </View>
         </View>
 
-        {/* Thao tác nhanh */}
         <View className="px-5 py-4 gap-4">
           <View className="flex-row gap-4">
-            <Pressable
-              onPress={() => handlePressBooking("booking")}
-              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
-            >
-              <View className="mb-3.5 mt-1">
-                <Ionicons name="calendar-outline" size={42} color="#A855F7" />
-              </View>
-              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Đặt lịch khám</Text>
-              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Đăng ký hẹn</Text>
-            </Pressable>
 
             <Pressable
               onPress={() => router.push("/(patient)/(tabs)/ticket")}
@@ -162,11 +121,23 @@ export function HomeView() {
                 <Ionicons name="document-text-outline" size={42} color="#2563EB" />
               </View>
               <Text className="text-[14px] text-gray-800 font-extrabold text-center">Phiếu khám</Text>
-              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Số thứ tự khám</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Xem vé & Lịch hẹn</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/(patient)/profile/history" as any)}
+              className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
+            >
+              <View className="mb-3.5 mt-1">
+                <Ionicons name="time-outline" size={42} color="#8B5CF6" />
+              </View>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Lịch sử khám</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Hồ sơ bệnh án</Text>
             </Pressable>
           </View>
 
           <View className="flex-row gap-4">
+
             <Pressable
               onPress={() => router.push("/(patient)/(tabs)/navigation")}
               className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
@@ -179,57 +150,47 @@ export function HomeView() {
             </Pressable>
 
             <Pressable
-              onPress={() => handlePressBooking("package")}
+              onPress={() => router.push("/(patient)/invoice" as any)}
               className="flex-1 bg-white rounded-[28px] p-5 border border-gray-100 shadow shadow-black/5 items-center justify-center active:scale-95 transition-transform"
             >
               <View className="mb-3.5 mt-1">
-                <Ionicons name="medkit-outline" size={42} color="#10B981" />
+                <Ionicons name="receipt-outline" size={42} color="#059669" />
               </View>
-              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Gói khám</Text>
-              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Gói sức khỏe</Text>
+              <Text className="text-[14px] text-gray-800 font-extrabold text-center">Hóa đơn</Text>
+              <Text className="text-[10px] text-gray-400 font-bold text-center mt-1">Lịch sử & Biên lai</Text>
             </Pressable>
           </View>
         </View>
 
-        {/* Banner Đặt Khám */}
         <View className="px-5 mb-6">
           <Pressable
-            onPress={() => handlePressBooking("triage")}
-            className="bg-primary rounded-[24px] p-5 flex-row items-center justify-between shadow-sm shadow-primary/20 active:opacity-90"
+            onPress={handleOpenBookingHub}
+            className="bg-primary rounded-[28px] px-6 py-6 items-center justify-center shadow-md shadow-primary/25 active:opacity-90 min-h-[112px]"
           >
-            <View className="flex-1 pr-4">
-              <Text className="text-white/80 text-[12px] font-medium">Chưa đặt khám?</Text>
-              <Text className="text-white text-[20px] font-extrabold mt-0.5">Đặt Khám</Text>
-              <Text className="text-white/95 text-[11px] mt-1.5 leading-4">
-                Mô tả triệu chứng để được hỗ trợ
-              </Text>
-            </View>
-            <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center">
-              <Text className="text-white text-lg font-bold">›</Text>
-            </View>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 34,
+                fontWeight: "900",
+                letterSpacing: -0.8,
+                lineHeight: 38,
+                textAlign: "center",
+              }}
+            >
+              Đặt Khám
+            </Text>
+            <Text className="text-white/90 text-[13px] mt-2 leading-5 font-semibold text-center">
+              AI gợi ý chuyên khoa • Đặt khám • Gói sức khỏe
+            </Text>
           </Pressable>
         </View>
 
-        {/* Mẹo sức khỏe */}
-        <View className="px-5 mb-8">
-          <Text className="text-gray-800 text-[16px] font-bold mb-3">Mẹo sức khỏe</Text>
-          <View className="bg-amber-100/70 border border-amber-200/50 rounded-2xl p-5 flex-row items-center gap-4">
-            <Text className="text-4xl text-amber-500">🧡</Text>
-            <View className="flex-1">
-              <Text className="text-amber-900 text-sm font-bold">
-                Uống đủ 2L nước mỗi ngày
-              </Text>
-              <Text className="text-amber-800/80 text-xs mt-1 leading-[18px]">
-                Giúp cơ thể duy trì hoạt động tối ưu và tăng cường miễn dịch.
-              </Text>
-            </View>
-          </View>
-        </View>
+        {/* Banner Slider Carousel */}
+        <HomeBannerCarousel />
 
-        <View className="h-24" />
+        <View className="h-32" />
       </ScrollView>
 
-      {/* Modal chọn bệnh nhân */}
       <PatientPickerModal
         visible={isPatientModalVisible}
         onClose={() => setIsPatientModalVisible(false)}
@@ -237,7 +198,6 @@ export function HomeView() {
         onConfirm={handleConfirmPatient}
       />
 
-      {/* Fetching overlay */}
       {isFetchingPatients && (
         <View className="absolute inset-0 bg-black/10 items-center justify-center z-50">
           <View className="bg-white p-4 rounded-2xl flex-row items-center gap-3 shadow-md">

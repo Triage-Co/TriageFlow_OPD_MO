@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { useBuildingMap } from "../../hooks/useBuildingMap";
 import { MapRenderer } from "./MapRenderer";
 
+import { useNavigationStore } from "../../store/useNavigationStore";
+
 interface FloorRendererProps {
   floorLevel: number;
   activeFloor: number;
@@ -10,12 +12,12 @@ interface FloorRendererProps {
 
 export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
   const isActive = floorLevel === activeFloor;
+  const activeBuildingId = useNavigationStore((s) => s.activeBuildingId);
 
-  const { data, loading, error } = useBuildingMap(floorLevel);
+  const { data, loading, error } = useBuildingMap(floorLevel, activeBuildingId || undefined);
 
   const floorData3D = data?.floorData3D;
 
-  
   const slabMesh = React.useMemo(() => {
     if (!floorData3D || !floorData3D.floorOutlinePoints || floorData3D.floorOutlinePoints.length < 3) {
       return null;
@@ -35,13 +37,11 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
 
   return (
     <group visible={true}>
-      {/* 1. Base floor slab */}
+      
       {slabMesh ? (
         <mesh position={[0, -0.5, 0]} geometry={slabMesh}>
           <meshLambertMaterial
-            color="#ffffff"
-            transparent
-            opacity={0.9}
+            color="#e2e8f0"
           />
         </mesh>
       ) : (
@@ -51,7 +51,6 @@ export function FloorRenderer({ floorLevel, activeFloor }: FloorRendererProps) {
         </mesh>
       )}
 
-      {/* 2. Room & Architectural models */}
       {!loading && !error && data && (
         <MapRenderer
           featureCollection={data}

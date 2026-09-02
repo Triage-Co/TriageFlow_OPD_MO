@@ -3,6 +3,7 @@ import { UserProfile } from "@/features/auth/types/auth.types";
 import { profileService } from "@/features/profile/services/profile.service";
 import { UpdateProfileRequest } from "@/features/profile/types/profile.types";
 import { avatarService } from "@/features/profile/services/avatar.service";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 import { useCallback, useState } from "react";
 
 export function useProfile() {
@@ -40,14 +41,13 @@ export function useProfile() {
         };
         setProfileData(mappedData);
 
-        
         updateUser(mappedData);
         return mappedData;
       }
       setError(response.message || "Lấy thông tin hồ sơ thất bại.");
       return null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lấy thông tin hồ sơ thất bại.");
+      setError(getErrorMessage(err, "Lấy thông tin hồ sơ thất bại."));
       return null;
     } finally {
       setIsLoading(false);
@@ -60,7 +60,6 @@ export function useProfile() {
     try {
       const response = await profileService.updateProfile(data);
       if (response.status === "success" || response.code === 200) {
-        
         setProfileData((prev) => {
           if (!prev) return null;
           return {
@@ -72,7 +71,6 @@ export function useProfile() {
           };
         });
 
-        
         updateUser({
           full_name: data.user_name,
           gender: data.gender,
@@ -84,7 +82,7 @@ export function useProfile() {
       setError(response.message || "Cập nhật hồ sơ thất bại.");
       return false;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Cập nhật hồ sơ thất bại.");
+      setError(getErrorMessage(err, "Cập nhật hồ sơ thất bại."));
       return false;
     } finally {
       setIsUpdating(false);
@@ -98,7 +96,7 @@ export function useProfile() {
       const url = await avatarService.uploadAvatar(localUri);
       return url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload ảnh thất bại.");
+      setError(getErrorMessage(err, "Upload ảnh thất bại."));
       return null;
     } finally {
       setIsUploadingAvatar(false);

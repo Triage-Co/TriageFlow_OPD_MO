@@ -14,8 +14,6 @@ type BodyMapProps = {
   onSelectRegion?: (part: BodyRegion) => void;
 };
 
-const FALLBACK_PRIMARY = "#006BFF";
-
 export function BodyMap({
   gender = "male",
   selectedPartId,
@@ -24,7 +22,7 @@ export function BodyMap({
   onSelectRegion,
 }: BodyMapProps) {
   const [side, setSide] = useState<BodySide>("front");
-  const strokeColor = Colors.primary ?? FALLBACK_PRIMARY;
+  const strokeColor = Colors.primary;
   const activePartId = selectedPartId ?? selectedRegionId ?? null;
 
   const handleSelectPart = (part: SelectedBodyPart) => {
@@ -74,7 +72,7 @@ export function BodyMap({
         />
 
         <Text className="text-primary text-[16px] font-medium">
-          Rotate model
+          Xoay mô hình
         </Text>
       </Pressable>
     </View>

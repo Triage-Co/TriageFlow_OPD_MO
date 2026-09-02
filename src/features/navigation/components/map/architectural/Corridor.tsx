@@ -24,13 +24,12 @@ export function Corridor({
 
   return (
     <animated.group position={position as any} rotation={rotation as any}>
-      {/* Floor */}
+      
       <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[w, d]} />
         <animated.meshStandardMaterial color={color} opacity={opacity} transparent />
       </mesh>
 
-      {/* Subtle border to define the corridor */}
       <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[w, d]} />
         <animated.meshStandardMaterial

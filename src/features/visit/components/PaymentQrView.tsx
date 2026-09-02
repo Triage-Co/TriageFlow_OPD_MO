@@ -1,17 +1,17 @@
 import { Colors } from "@/config/colors";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { bookingStorageService } from "@/features/booking/services/booking-storage.service";
+import { visitService } from "@/features/visit/services/visit.service";
 import { AppButton } from "@/shared/components/AppButton";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { AppAlert } from "@/shared/utils/alert.utils";
+import { formatVND, getQrCodeUrl } from "@/shared/utils/string.utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SymbolView } from "expo-symbols";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-  Alert,
   Clipboard,
-  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -19,6 +19,7 @@ import {
   View,
   Modal
 } from "react-native";
+import { Image } from "expo-image";
 
 export function PaymentQrView() {
   const router = useRouter();
@@ -35,49 +36,35 @@ export function PaymentQrView() {
   const checkoutUrl = params.checkoutUrl as string;
   const qrCode = params.qrCode as string;
   const patientName = params.patientName as string;
+  const patientId = (params.patientId as string) || "";
   const orderCode = (params.orderCode || params.ordercode) as string;
 
   const doctorName = params.doctorName as string;
   const specialtyName = params.specialtyName as string;
+  const roomName = params.roomName as string;
   const selectedDate = params.selectedDate as string;
   const slotTime = params.slotTime as string;
+  const isPackageBooking = params.isPackageBooking === "true";
 
-  const [paymentChecked, setPaymentChecked] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [confirmedData, setConfirmedData] = useState<{
-    queueNumber: string;
-    specialtyName: string;
-    roomName: string;
-    startTime: string;
-    patientName: string;
-    bookingId: string;
-    stepId: string;
-    patientId: string;
-  } | null>(null);
 
   const handleViewTicket = () => {
     setShowSuccessModal(false);
-    if (confirmedData) {
-      router.push({
-        pathname: "/(patient)/visit/ticket-screen",
-        params: confirmedData,
-      });
-    }
+    router.replace("/(patient)/(tabs)/ticket");
   };
 
   const amount = parseInt(amountStr || "0", 10);
-  const formattedAmount = amount.toLocaleString("vi-VN") + " VND";
+  const formattedAmount = formatVND(amount);
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-    qrCode
-  )}`;
+  const qrImageUrl = getQrCodeUrl(qrCode);
 
   const copyToClipboard = (text: string, label: string) => {
     try {
       Clipboard.setString(text);
-      Alert.alert("Đã sao chép", `Đã sao chép ${label} vào bộ nhớ tạm.`);
+      AppAlert.info(`Đã sao chép ${label} vào bộ nhớ tạm.`, "Đã sao chép");
     } catch {
-      Alert.alert("Sao chép", `${label}: ${text}`);
+      AppAlert.info(`${label}: ${text}`, "Sao chép");
     }
   };
 
@@ -88,22 +75,67 @@ export function PaymentQrView() {
       if (supported) {
         await Linking.openURL(checkoutUrl);
       } else {
-        Alert.alert("Lỗi", "Không thể mở trang thanh toán này trên thiết bị.");
+        AppAlert.error("Không thể mở trang thanh toán này trên thiết bị.");
       }
     } catch (err) {
-      Alert.alert("Lỗi", "Đã xảy ra lỗi khi mở liên kết thanh toán.");
+      AppAlert.error("Đã xảy ra lỗi khi mở liên kết thanh toán.");
     }
   };
 
   const handleConfirmPayment = async () => {
-    if (!stepId) return;
+    if (isPackageBooking) {
+      if (!patientId) {
+        AppAlert.error("Không tìm thấy mã bệnh nhân để xác nhận.");
+        return;
+      }
+
+      setIsCheckingPayment(true);
+      try {
+        const activeRes = await visitService.getActiveFlow(patientId);
+        const activeData = activeRes?.data || activeRes;
+        const activeFlow = Array.isArray(activeData) ? activeData[0] : activeData;
+
+        if (activeFlow && (activeFlow.flow_id || activeFlow.ticket_code)) {
+          const foundStepId =
+            activeFlow.steps?.[0]?.step_id ||
+            stepId ||
+            "";
+
+          if (foundStepId) {
+            await bookingStorageService.saveActiveBookingStep(foundStepId, patientName || "");
+          }
+
+          setShowSuccessModal(true);
+          return;
+        } else {
+          AppAlert.info(
+            "Hệ thống chưa ghi nhận giao dịch thanh toán cho gói khám này. Nếu bạn đã chuyển khoản, vui lòng đợi 1-2 phút rồi bấm lại nút xác nhận.",
+            "Chưa nhận được thanh toán"
+          );
+          return;
+        }
+      } catch (err: any) {
+        console.error("[PaymentQrView] Error checking active package flow:", err);
+        AppAlert.info(
+          "Hệ thống chưa ghi nhận giao dịch thanh toán cho gói khám này. Nếu bạn đã chuyển khoản, vui lòng đợi 1-2 phút rồi bấm lại nút xác nhận.",
+          "Chưa nhận được thanh toán"
+        );
+        return;
+      } finally {
+        setIsCheckingPayment(false);
+      }
+    }
+
+    if (!stepId) {
+      AppAlert.error("Không tìm thấy mã bước tiếp nhận để xác nhận thanh toán.");
+      return;
+    }
 
     const bookingResult = await fetchBookingResult(stepId);
     if (!bookingResult) {
-      Alert.alert(
-        "Chưa nhận được thanh toán",
+      AppAlert.info(
         "Hệ thống chưa ghi nhận giao dịch thanh toán cho lịch hẹn này. Nếu bạn đã chuyển khoản, vui lòng đợi 1-2 phút rồi bấm lại nút xác nhận.",
-        [{ text: "Đồng ý" }]
+        "Chưa nhận được thanh toán"
       );
       return;
     }
@@ -114,17 +146,6 @@ export function PaymentQrView() {
     }
 
     await bookingStorageService.saveActiveBookingStep(stepId, patientName || "");
-
-    setConfirmedData({
-      queueNumber: bookingResult.queue?.queue_number || bookingResult.queue_number || "--",
-      specialtyName: stepDetail.flow?.booking?.slot?.shift?.room?.specialty?.specialty_name || specialtyName || "",
-      roomName: stepDetail.flow?.booking?.slot?.shift?.room?.room_name || "",
-      startTime: stepDetail.flow?.booking?.slot?.start_time || slotTime || "",
-      patientName: patientName || "",
-      bookingId: bookingId || "",
-      stepId: stepId || "",
-      patientId: (params.patientId as string) || "",
-    });
     setShowSuccessModal(true);
   };
 
@@ -133,23 +154,22 @@ export function PaymentQrView() {
       <StatusBar style="dark" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          {/* ── 1. HEADER ── */}
+
           <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
             <Pressable
               onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-white items-center justify-center border border-gray-100 shadow-sm active:opacity-75"
             >
-              <SymbolView
-                name="chevron.left"
-                size={18}
-                tintColor={Colors.neutral700}
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={Colors.neutral700}
               />
             </Pressable>
             <Text className="text-gray-800 text-[17px] font-bold">Thanh toán đặt lịch</Text>
             <View className="w-10" />
           </View>
 
-          {/* ── 2. THÔNG TIN LỊCH KHÁM ── */}
           <View className="mx-5 bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm mb-4">
             <Text className="text-gray-400 text-[11px] font-bold uppercase tracking-wider mb-3">
               Thông tin dịch vụ
@@ -157,18 +177,24 @@ export function PaymentQrView() {
 
             <View className="flex-row items-center pb-4 border-b border-gray-50 mb-4">
               <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center mr-3">
-                <SymbolView name="person.fill" size={18} tintColor={Colors.primary} />
+                <Ionicons name="person" size={18} color={Colors.primary} />
               </View>
               <View className="flex-1">
-                <Text className="text-gray-800 text-[14px] font-bold">{doctorName}</Text>
+                <Text className="text-gray-800 text-[14px] font-bold">{doctorName || "Khám theo gói dịch vụ"}</Text>
                 <Text className="text-gray-500 text-[11px] font-medium">{specialtyName}</Text>
               </View>
             </View>
 
+            {roomName ? (
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-gray-400 text-[12px] font-medium">Phòng khám</Text>
+                <Text className="text-gray-700 text-[12px] font-bold">{roomName}</Text>
+              </View>
+            ) : null}
             <View className="flex-row justify-between mb-2">
               <Text className="text-gray-400 text-[12px] font-medium">Thời gian khám</Text>
               <Text className="text-gray-700 text-[12px] font-bold">
-                {slotTime} - {selectedDate}
+                {slotTime ? `${slotTime} - ` : ""}{selectedDate || "Hôm nay"}
               </Text>
             </View>
             <View className="flex-row justify-between mb-2">
@@ -181,81 +207,40 @@ export function PaymentQrView() {
             </View>
           </View>
 
-          {/* ── 3. KHU VỰC QUÉT MÃ QR ── */}
           <View className="mx-5 bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm items-center mb-6">
-            {/* QR Frame */}
-            <View className="bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm mb-5">
+
+            <View className="bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm mb-5 items-center justify-center">
               <Image
                 source={{ uri: qrImageUrl }}
-                className="w-52 h-52"
-                resizeMode="contain"
+                style={{ width: 220, height: 220 }}
+                contentFit="contain"
               />
             </View>
 
-            {/* Số tiền cần thanh toán */}
             <Text className="text-gray-400 text-[12px] font-semibold">Số tiền thanh toán</Text>
-            <Text className="text-primary text-[24px] font-extrabold mb-5">{formattedAmount}</Text>
+            <Text className="text-primary text-[24px] font-extrabold mb-2">{formattedAmount}</Text>
 
-            {/* Chi tiết chuyển khoản */}
-            <View className="w-full bg-gray-50 rounded-[18px] p-4 gap-y-3">
-              <View className="flex-row justify-between items-center">
-                <Text className="text-gray-400 text-[12px] font-medium">Tên tài khoản</Text>
-                <Pressable
-                  onPress={() => copyToClipboard(accountName, "Tên tài khoản")}
-                  className="flex-row items-center gap-1 active:opacity-60"
-                >
-                  <Text className="text-gray-700 text-[12px] font-bold mr-1">{accountName}</Text>
-                  <SymbolView name="doc.on.doc" size={12} tintColor={Colors.textMuted} />
-                </Pressable>
-              </View>
-
-              <View className="flex-row justify-between items-center">
-                <Text className="text-gray-400 text-[12px] font-medium">Số tài khoản</Text>
-                <Pressable
-                  onPress={() => copyToClipboard(accountNumber, "Số tài khoản")}
-                  className="flex-row items-center gap-1 active:opacity-60"
-                >
-                  <Text className="text-gray-700 text-[12px] font-bold mr-1">{accountNumber}</Text>
-                  <SymbolView name="doc.on.doc" size={12} tintColor={Colors.textMuted} />
-                </Pressable>
-              </View>
-
-              <View className="flex-row justify-between items-center">
-                <Text className="text-gray-400 text-[12px] font-medium">Nội dung CK</Text>
-                <Pressable
-                  onPress={() => copyToClipboard(description, "Nội dung chuyển khoản")}
-                  className="flex-row items-center gap-1 active:opacity-60"
-                >
-                  <Text className="text-gray-700 text-[12px] font-bold mr-1">{description}</Text>
-                  <SymbolView name="doc.on.doc" size={12} tintColor={Colors.textMuted} />
-                </Pressable>
-              </View>
-            </View>
-
-            {/* Option to Open in browser */}
             {checkoutUrl ? (
               <Pressable
                 onPress={handleOpenCheckoutUrl}
                 className="mt-5 flex-row items-center gap-1.5 py-2 px-4 rounded-[12px] bg-blue-50 active:opacity-75"
               >
-                <SymbolView name="safari" size={14} tintColor={Colors.primary} />
+                <Ionicons name="globe-outline" size={14} color={Colors.primary} />
                 <Text className="text-primary text-[12px] font-bold">Mở trang thanh toán PayOS</Text>
               </Pressable>
             ) : null}
           </View>
         </ScrollView>
 
-        {/* ── 4. ACTIONS DƯỚI CÙNG ── */}
         <View className="px-5 pb-12 pt-4 bg-white border-t border-gray-50">
           <AppButton
             title="Tôi đã thanh toán xong"
-            isLoading={isFetchingStepDetail || isFetchingResult}
-            disabled={isFetchingStepDetail || isFetchingResult}
+            isLoading={isFetchingStepDetail || isFetchingResult || isCheckingPayment}
+            disabled={isFetchingStepDetail || isFetchingResult || isCheckingPayment}
             onPress={handleConfirmPayment}
           />
         </View>
 
-        {/* ── 5. SUCCESS PAYMENT POPUP MODAL ── */}
         <Modal
           visible={showSuccessModal}
           transparent={true}
@@ -264,21 +249,19 @@ export function PaymentQrView() {
         >
           <View className="flex-1 justify-center items-center bg-black/50 px-6">
             <View className="bg-white w-full rounded-[28px] overflow-hidden shadow-2xl max-w-sm relative">
-              {/* Top Blue Header Portion matching mockup design */}
+
               <View style={{ backgroundColor: "#82A9F5" }} className="h-24 w-full justify-center items-end px-5">
                 <View className="bg-white px-3 py-1 rounded-full shadow-sm">
                   <Text className="text-gray-900 text-xs font-bold">Đã thanh toán</Text>
                 </View>
               </View>
 
-              {/* Modal Body */}
               <View className="items-center px-6 pt-12 pb-8 bg-white">
-                {/* Title Text */}
+
                 <Text style={{ color: "#6C94EC" }} className="text-[20px] font-bold text-center mb-8 mt-4">
                   Thanh toán thành công!
                 </Text>
 
-                {/* View Ticket button */}
                 <Pressable
                   onPress={handleViewTicket}
                   style={{ backgroundColor: "#82A9F5" }}
@@ -288,7 +271,6 @@ export function PaymentQrView() {
                 </Pressable>
               </View>
 
-              {/* Overlapping Checkmark Circle with white border sitting on the boundary */}
               <View
                 style={{
                   backgroundColor: "#82A9F5",

@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenWrapper } from "@/shared/components/ScreenWrapper";
+import { AppAlert } from "@/shared/utils/alert.utils";
 import { Colors } from "@/config/colors";
 import { useDoctorSlots } from "@/features/booking/hooks/useDoctorSlots";
 import { Slot } from "@/features/booking/types/doctor.types";
@@ -18,6 +18,8 @@ import { AppButton } from "@/shared/components/AppButton";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { useBooking } from "@/features/booking/hooks/useBooking";
 import { patientService } from "@/features/patient/services/patient.service";
+import { getInitials } from "@/shared/utils/string.utils";
+import { toISODateString } from "@/shared/utils/date.utils";
 
 export function DoctorSlotsView() {
   const router = useRouter();
@@ -34,29 +36,99 @@ export function DoctorSlotsView() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
 
   const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${year}-${month}-${day}`;
+  const todayStr = toISODateString(today);
   const isToday = initialDate === todayStr;
   const currentHours = today.getHours();
   const currentMinutes = today.getMinutes();
 
   const { slots, isLoading, error } = useDoctorSlots(doctorId, initialDate);
 
-  const getInitials = (name: string): string => {
-    const cleanName = name.replace(/^(BS\.|BS|PGS\.|PGS|TS\.|TS|ThS\.|ThS)\s+/i, "");
-    const parts = cleanName.trim().split(/\s+/);
-    if (parts.length === 0) return "DR";
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    const first = parts[0];
-    const last = parts[parts.length - 1];
-    return (first.charAt(0) + last.charAt(0)).toUpperCase();
-  };
+  const morningSlots = useMemo(() => {
+    return slots.filter((slot) => {
+      if (!slot.start_time) return false;
+      const parts = slot.start_time.split(":");
+      if (parts.length < 2) return true;
+      const slotHours = parseInt(parts[0], 10);
+      return slotHours < 12;
+    });
+  }, [slots]);
+
+  const afternoonSlots = useMemo(() => {
+    return slots.filter((slot) => {
+      if (!slot.start_time) return false;
+      const parts = slot.start_time.split(":");
+      if (parts.length < 2) return false;
+      const slotHours = parseInt(parts[0], 10);
+      return slotHours >= 12;
+    });
+  }, [slots]);
 
   const handleSlotSelect = (slot: Slot) => {
     if (slot.status !== "AVAILABLE" || slot.capacity <= 0) return;
     setSelectedSlot(slot);
+  };
+
+  const renderSlotItem = (slot: Slot) => {
+    let isPastSlot = false;
+    if (isToday) {
+      const parts = slot.start_time.split(":");
+      if (parts.length >= 2) {
+        const slotHours = parseInt(parts[0], 10);
+        const slotMinutes = parseInt(parts[1], 10);
+        if (
+          slotHours < currentHours ||
+          (slotHours === currentHours && slotMinutes <= currentMinutes)
+        ) {
+          isPastSlot = true;
+        }
+      }
+    }
+
+    const isAvailable = slot.status === "AVAILABLE" && slot.capacity > 0 && !isPastSlot;
+    const isSelected = selectedSlot?.slot_id === slot.slot_id;
+
+    return (
+      <TouchableOpacity
+        key={`${isSelected ? "selected" : "unselected"}-${slot.slot_id}`}
+        disabled={!isAvailable}
+        onPress={() => handleSlotSelect(slot)}
+        activeOpacity={0.7}
+        style={{ width: "22.5%" }}
+        className={`py-3 rounded-[18px] items-center justify-center border ${isSelected
+          ? "bg-primary border-primary shadow-md shadow-primary/20"
+          : !isAvailable
+            ? "bg-gray-50 border-gray-100 opacity-50"
+            : "bg-white border-gray-100 shadow-sm shadow-black/5"
+          }`}
+      >
+        <Text
+          className={`text-[14px] font-extrabold ${isSelected
+            ? "text-white"
+            : !isAvailable
+              ? "text-gray-300"
+              : "text-gray-700"
+            }`}
+        >
+          {slot.start_time}
+        </Text>
+
+        <View
+          className={`w-5 h-[1.5px] my-1 ${isSelected ? "bg-white/30" : "bg-gray-100"
+            }`}
+        />
+
+        <Text
+          className={`text-[10px] font-bold ${isSelected
+            ? "text-white/80"
+            : !isAvailable
+              ? "text-gray-300"
+              : "text-gray-400"
+            }`}
+        >
+          {slot.end_time}
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   const handleConfirmBooking = async () => {
@@ -64,9 +136,9 @@ export function DoctorSlotsView() {
 
     const accountId = user?.account_id || user?.id;
     if (!accountId) {
-      Alert.alert(
-        "Không tìm thấy tài khoản",
-        "Vui lòng đăng nhập lại để thực hiện đặt lịch khám."
+      AppAlert.info(
+        "Vui lòng đăng nhập lại để thực hiện đặt lịch khám.",
+        "Không tìm thấy tài khoản"
       );
       return;
     }
@@ -74,9 +146,9 @@ export function DoctorSlotsView() {
     try {
       const patientsRes = await patientService.getPatients();
       if (!patientsRes?.data || patientsRes.data.length === 0) {
-        Alert.alert(
-          "Không tìm thấy bệnh nhân",
-          "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch."
+        AppAlert.info(
+          "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch.",
+          "Không tìm thấy bệnh nhân"
         );
         return;
       }
@@ -88,13 +160,23 @@ export function DoctorSlotsView() {
       const patientName = targetPatient.full_name;
 
       const bookingResult = await submitBooking(patientId, selectedSlot.slot_id);
-      
+
       if (bookingResult && !("error" in bookingResult)) {
+        const bTicketCode = (bookingResult as any)?.ticket_code || "";
+        const bRoom =
+          (bookingResult as any)?.room ||
+          (bookingResult as any)?.room_name ||
+          (selectedSlot as any)?.room?.room_name ||
+          (selectedSlot as any)?.shift?.room?.room_name ||
+          (params.roomName as string) ||
+          "";
+
         router.push({
           pathname: "/(patient)/visit/payment-qr",
           params: {
             stepId: bookingResult.step_id,
             bookingId: bookingResult.booking_id || bookingResult.data?.booking_id || "",
+            ticketCode: bTicketCode,
             bin: bookingResult.payment.data.bin,
             accountNumber: bookingResult.payment.data.accountNumber,
             accountName: bookingResult.payment.data.accountName,
@@ -106,6 +188,7 @@ export function DoctorSlotsView() {
             ordercode: bookingResult.payment.data.orderCode.toString(),
             doctorName,
             specialtyName,
+            roomName: bRoom,
             selectedDate: initialDate,
             slotTime: selectedSlot.start_time,
             patientName,
@@ -125,7 +208,7 @@ export function DoctorSlotsView() {
       <StatusBar style="dark" />
       <View className="flex-1 justify-between">
         <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          {/* ── 1. HEADER ── */}
+
           <View className="flex-row items-center justify-between px-5 pt-12 pb-4">
             <TouchableOpacity
               onPress={() => router.back()}
@@ -142,7 +225,6 @@ export function DoctorSlotsView() {
             <View className="w-10" />
           </View>
 
-          {/* ── 2. THÔNG TIN BÁC SĨ ĐÃ CHỌN ── */}
           <View className="mx-5 bg-white rounded-[24px] p-4 border border-gray-100 shadow-sm flex-row items-center">
             <View className="w-12 h-12 rounded-full bg-[#84AFEB]/20 items-center justify-center mr-4">
               <Text className="text-primary text-[14px] font-bold">
@@ -166,7 +248,6 @@ export function DoctorSlotsView() {
             </View>
           </View>
 
-          {/* ── 4. CHỌN GIỜ KHÁM ── */}
           <View className="mt-6 px-5 mb-10">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-gray-800 text-[14px] font-bold">Chọn giờ khám</Text>
@@ -201,68 +282,42 @@ export function DoctorSlotsView() {
                 </Text>
               </View>
             ) : (
-              <View className="flex-row flex-wrap gap-2.5">
-                {slots.map((slot) => {
-                  let isPastSlot = false;
-                  if (isToday) {
-                    const parts = slot.start_time.split(":");
-                    if (parts.length >= 2) {
-                      const slotHours = parseInt(parts[0], 10);
-                      const slotMinutes = parseInt(parts[1], 10);
-                      if (slotHours < currentHours ||
-                        (slotHours === currentHours && slotMinutes < currentMinutes)
-                      ) {
-                        isPastSlot = true;
-                      }
-                    }
-                  }
+              <View className="gap-6">
 
-                  const isAvailable = slot.status === "AVAILABLE" && slot.capacity > 0 && !isPastSlot;
-                  const isSelected = selectedSlot?.slot_id === slot.slot_id;
+                {morningSlots.length > 0 && (
+                  <View>
+                    <View className="flex-row items-center gap-2 mb-3">
+                      <View className="w-6 h-6 rounded-full bg-amber-50 items-center justify-center border border-amber-100">
+                        <Ionicons name="sunny-outline" size={13} color="#D97706" />
+                      </View>
+                      <Text className="text-gray-800 text-[13px] font-bold">
+                        Buổi sáng
+                      </Text>
+                    </View>
 
-                  return (
-                    <TouchableOpacity
-                      key={`${isSelected ? "selected" : "unselected"}-${slot.slot_id}`}
-                      disabled={!isAvailable}
-                      onPress={() => handleSlotSelect(slot)}
-                      activeOpacity={0.7}
-                      style={{ width: "22.5%" }}
-                      className={`py-3 rounded-[18px] items-center justify-center border ${isSelected
-                        ? "bg-primary border-primary shadow-md shadow-primary/20"
-                        : !isAvailable
-                          ? "bg-gray-50 border-gray-100 opacity-50"
-                          : "bg-white border-gray-100 shadow-sm shadow-black/5"
-                        }`}
-                    >
-                      <Text
-                        className={`text-[14px] font-extrabold ${isSelected
-                          ? "text-white"
-                          : !isAvailable
-                            ? "text-gray-300"
-                            : "text-gray-700"
-                          }`}
-                      >
-                        {slot.start_time}
+                    <View className="flex-row flex-wrap gap-2.5">
+                      {morningSlots.map((slot: Slot) => renderSlotItem(slot))}
+                    </View>
+                  </View>
+                )}
+
+                {afternoonSlots.length > 0 && (
+                  <View>
+                    <View className="flex-row items-center gap-2 mb-3">
+                      <View className="w-6 h-6 rounded-full bg-blue-50 items-center justify-center border border-blue-100">
+                        <Ionicons name="partly-sunny-outline" size={13} color={Colors.primary} />
+                      </View>
+                      <Text className="text-gray-800 text-[13px] font-bold">
+                        Buổi chiều
                       </Text>
 
-                      <View
-                        className={`w-5 h-[1.5px] my-1 ${isSelected ? "bg-white/30" : "bg-gray-100"
-                          }`}
-                      />
+                    </View>
 
-                      <Text
-                        className={`text-[10px] font-bold ${isSelected
-                          ? "text-white/80"
-                          : !isAvailable
-                            ? "text-gray-300"
-                            : "text-gray-400"
-                          }`}
-                      >
-                        {slot.end_time}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                    <View className="flex-row flex-wrap gap-2.5">
+                      {afternoonSlots.map((slot: Slot) => renderSlotItem(slot))}
+                    </View>
+                  </View>
+                )}
               </View>
             )}
           </View>

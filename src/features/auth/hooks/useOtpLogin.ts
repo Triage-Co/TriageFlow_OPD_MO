@@ -1,8 +1,17 @@
 import { useState, useCallback } from "react";
 import { otpService } from "@/features/auth/services/otp.service";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
+import { getErrorMessage } from "@/shared/utils/error.utils";
 
-export function useOtpLogin() {
+export interface UseOtpLoginReturn {
+  isLoading: boolean;
+  error: string | null;
+  clearError: () => void;
+  sendOtp: (email: string) => Promise<boolean>;
+  verifyOtpLogin: (email: string, otp: string) => Promise<boolean>;
+}
+
+export function useOtpLogin(): UseOtpLoginReturn {
   const { loginWithToken } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +25,7 @@ export function useOtpLogin() {
       await otpService.sendLoginOtp({ email });
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể gửi mã OTP.");
+      setError(getErrorMessage(err, "Không thể gửi mã OTP."));
       return false;
     } finally {
       setIsLoading(false);
@@ -29,13 +38,16 @@ export function useOtpLogin() {
       setError(null);
       try {
         const response = await otpService.verifyLoginOtp({ email, otp });
-        if (response && response.data?.token) {
-          await loginWithToken(response.data.token, response.data.refresh_token);
+        const accessToken = response?.data?.access_token || response?.data?.token;
+        const refreshToken = response?.data?.refresh_token || "";
+
+        if (accessToken) {
+          await loginWithToken(accessToken, refreshToken);
           return true;
         }
         throw new Error("Không nhận được token xác thực.");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Xác thực OTP thất bại.");
+        setError(getErrorMessage(err, "Xác thực OTP thất bại."));
         return false;
       } finally {
         setIsLoading(false);

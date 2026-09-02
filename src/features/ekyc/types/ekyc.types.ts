@@ -18,10 +18,6 @@ export interface EkycResult {
   lastStep: string;          
 }
 
-/**
- * Dữ liệu OCR đã được parse ra từ ocrResult trả về bởi VNPT SDK.
- * Các field này nằm trong object.object bên trong chuỗi JSON lồng nhau.
- */
 export interface EkycOcrObject {
   name: string;       
   birth_day: string;  
