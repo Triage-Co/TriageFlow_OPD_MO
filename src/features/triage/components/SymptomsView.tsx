@@ -103,7 +103,6 @@ export function SymptomsView() {
         
         <ScreenHeader
           title={`Triệu chứng vùng ${params.labelVi || "cơ thể"}`}
-          progress={{ current: 2, total: 3 }}
         />
 
         <View className="flex-1 px-5 pt-4">

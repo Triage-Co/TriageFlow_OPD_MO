@@ -128,25 +128,37 @@ export function PackageBookingView() {
   }, [selectedDate]);
 
   const morningSlots = useMemo(() => {
-    return slots.filter((slot) => {
-      const sTime = slot.start_time || (slot as any).startTime;
-      if (!sTime) return true;
-      const parts = sTime.split(":");
-      if (parts.length < 2) return true;
-      const slotHours = parseInt(parts[0], 10);
-      return slotHours < 12;
-    });
+    return slots
+      .filter((slot) => {
+        const sTime = slot.start_time || (slot as any).startTime;
+        if (!sTime) return true;
+        const parts = sTime.split(":");
+        if (parts.length < 2) return true;
+        const slotHours = parseInt(parts[0], 10);
+        return slotHours < 12;
+      })
+      .sort((a, b) => {
+        const timeA = a.start_time || (a as any).startTime || "";
+        const timeB = b.start_time || (b as any).startTime || "";
+        return timeA.localeCompare(timeB);
+      });
   }, [slots]);
 
   const afternoonSlots = useMemo(() => {
-    return slots.filter((slot) => {
-      const sTime = slot.start_time || (slot as any).startTime;
-      if (!sTime) return false;
-      const parts = sTime.split(":");
-      if (parts.length < 2) return false;
-      const slotHours = parseInt(parts[0], 10);
-      return slotHours >= 12;
-    });
+    return slots
+      .filter((slot) => {
+        const sTime = slot.start_time || (slot as any).startTime;
+        if (!sTime) return false;
+        const parts = sTime.split(":");
+        if (parts.length < 2) return false;
+        const slotHours = parseInt(parts[0], 10);
+        return slotHours >= 12;
+      })
+      .sort((a, b) => {
+        const timeA = a.start_time || (a as any).startTime || "";
+        const timeB = b.start_time || (b as any).startTime || "";
+        return timeA.localeCompare(timeB);
+      });
   }, [slots]);
 
   const handleSelectDate = (date: string) => {
@@ -206,6 +218,7 @@ export function PackageBookingView() {
           style={[
             styles.slotStartText,
             isSelected ? styles.textWhite : !isAvailable ? styles.textDisabled : styles.textDark,
+            isPastSlot && { textDecorationLine: "line-through" },
           ]}
         >
           {sTime}
@@ -222,6 +235,7 @@ export function PackageBookingView() {
           style={[
             styles.slotEndText,
             isSelected ? styles.textWhite : !isAvailable ? styles.textDisabled : styles.textMuted,
+            isPastSlot && { textDecorationLine: "line-through" },
           ]}
         >
           {eTime}

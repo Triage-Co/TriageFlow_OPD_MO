@@ -37,7 +37,7 @@ export function ProfileView() {
   return (
     <ScreenWrapper edges={["left", "right"]}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: 130 }}>
 
         <View className="px-6 py-6 bg-primary">
           <Text className="text-white text-[24px] font-extrabold tracking-tight mb-5 mt-5">
@@ -87,7 +87,7 @@ export function ProfileView() {
           </View>
         </View>
 
-        <View className="mt-6 px-5 gap-3.5 mb-28">
+        <View className="mt-6 px-5 gap-3.5">
           <ActionCard
             iconName={{ ios: "person", android: "person" }}
             title="Thông tin cá nhân"

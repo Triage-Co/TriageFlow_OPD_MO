@@ -219,7 +219,7 @@ export function BookingMethodSelectView() {
           </Text>
 
           <View className="flex-row items-center gap-1">
-            <Text className="text-xs font-bold text-blue-600">Bắt đầu khám cùng AI</Text>
+            <Text className="text-xs font-bold text-blue-600">Bắt đầu cùng AI</Text>
             <Ionicons name="chevron-forward" size={14} color="#2563EB" />
           </View>
         </Pressable>

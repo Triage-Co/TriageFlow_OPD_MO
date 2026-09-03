@@ -118,8 +118,8 @@ export function InterviewView() {
       <StatusBar style="light" />
       <View className="flex-1 justify-between bg-[#F8FAFC]">
         
-        <View className="bg-primary px-5 pt-12 pb-5 shadow-sm">
-          <View className="flex-row items-center justify-between mb-4">
+        <View className="bg-primary px-5 pt-12 pb-4 shadow-sm">
+          <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
               <TouchableOpacity
                 onPress={handleQuit}
@@ -143,15 +143,6 @@ export function InterviewView() {
             >
               <Text className="text-white text-[11px] font-bold">Hủy bỏ</Text>
             </TouchableOpacity>
-          </View>
-
-          <View className="mt-1">
-            <Text className="text-white/80 text-[11px] font-semibold">
-              Bước 3/3
-            </Text>
-            <View className="h-[3px] bg-white/25 w-full rounded-full mt-1.5 relative overflow-hidden">
-              <View className="h-full bg-white w-full rounded-full absolute left-0 top-0" />
-            </View>
           </View>
         </View>
 

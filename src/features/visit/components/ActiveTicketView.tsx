@@ -58,7 +58,8 @@ const getFlowExamDate = (flow: any): string => {
 
 export function ActiveTicketView() {
   const router = useRouter();
-  const searchParams = useLocalSearchParams<{ tab?: string }>();
+  const searchParams = useLocalSearchParams<{ tab?: string; patientId?: string; patientName?: string }>();
+  const appliedParamPatientIdRef = React.useRef<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -390,8 +391,19 @@ export function ActiveTicketView() {
   }, [todayFlows, selectedPatientName, selectFlow, selectedPatientId, loadPrescription, loadVisitInvoice, selectedFlow]);
 
   useEffect(() => {
-    setIsPatientModalVisible(true);
-  }, []);
+    if (searchParams?.patientId && searchParams.patientId !== appliedParamPatientIdRef.current) {
+      appliedParamPatientIdRef.current = searchParams.patientId;
+      const pId = searchParams.patientId;
+      const pName = searchParams.patientName || "Bệnh nhân";
+      setSelectedPatientId(pId);
+      setSelectedPatientName(pName);
+      setIsPatientModalVisible(false);
+      setSelectedFlow(null);
+      loadTicketData(pId, pName, true);
+    } else if (!selectedPatientId && !searchParams?.patientId) {
+      setIsPatientModalVisible(true);
+    }
+  }, [searchParams?.patientId, searchParams?.patientName, selectedPatientId, loadTicketData]);
 
   const handleConfirmPatient = (patientId: string, patientName: string) => {
     setSelectedPatientId(patientId);
