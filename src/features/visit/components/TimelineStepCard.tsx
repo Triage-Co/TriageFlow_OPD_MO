@@ -166,25 +166,31 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                         </View>
                       </View>
 
-                      <View className="flex-row justify-between items-center mt-1">
-                        <View className="flex-row items-center gap-3">
-                          <View className="flex-row items-center gap-1">
-                            <Ionicons name="location" size={11} color="#9CA3AF" />
+                      <View className="flex-row items-center justify-between mt-1">
+                        <View className="flex-row items-center gap-1 flex-1 mr-2">
+                          <Ionicons name="location" size={11} color="#9CA3AF" />
+                          <Text className="text-gray-500 text-[11px] font-semibold" numberOfLines={1}>
+                            {subRoomName}
+                          </Text>
+                        </View>
+                        {subQueueNo ? (
+                          <View className="flex-row items-center gap-1 shrink-0">
+                            <Ionicons name="list" size={11} color="#9CA3AF" />
                             <Text className="text-gray-500 text-[11px] font-semibold">
-                              {subRoomName}
+                              Số: <Text className="text-gray-800 font-bold">{subQueueNo}</Text>
                             </Text>
                           </View>
-                          {subQueueNo && (
-                            <View className="flex-row items-center gap-1">
-                              <Ionicons name="list" size={11} color="#9CA3AF" />
-                              <Text className="text-gray-500 text-[11px] font-semibold">
-                                Số: <Text className="text-gray-800 font-bold">{subQueueNo}</Text>
-                              </Text>
-                            </View>
-                          )}
-                        </View>
+                        ) : null}
+                      </View>
 
-                        {isSubActive && !isHistoryMode && (
+                      {isSubActive && !isHistoryMode && (
+                        <View className="mt-2.5 pt-2 border-t border-blue-200/60 flex-row justify-between items-center">
+                          <View className="flex-row items-center gap-1">
+                            <Ionicons name="navigate-circle-outline" size={12} color={Colors.primary} />
+                            <Text className="text-primary/80 text-[10.5px] font-medium">
+                              Di chuyển đến phòng này
+                            </Text>
+                          </View>
                           <Pressable
                             onPress={() => {
                               const prevRoom = getPreviousPhysicalRoom(subStep.step_id || subStep.id);
@@ -201,13 +207,13 @@ export const TimelineStepCard: React.FC<TimelineStepCardProps> = ({
                                 },
                               });
                             }}
-                            className="bg-blue-100 px-2.5 py-1 rounded-full flex-row items-center gap-1 active:opacity-75"
+                            className="bg-blue-100 px-3 py-1.5 rounded-full flex-row items-center gap-1 active:opacity-75"
                           >
-                            <Ionicons name="navigate-outline" size={10} color={Colors.primary} />
-                            <Text className="text-primary text-[10px] font-bold">Đường đi</Text>
+                            <Ionicons name="navigate-outline" size={11} color={Colors.primary} />
+                            <Text className="text-primary text-[10.5px] font-bold">Chỉ đường</Text>
                           </Pressable>
-                        )}
-                      </View>
+                        </View>
+                      )}
                     </View>
                   );
                 })}

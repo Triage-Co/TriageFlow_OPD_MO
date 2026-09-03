@@ -138,7 +138,7 @@ export function BodyMapView() {
         
         {/* Top Header */}
         <View className="bg-primary px-5 pt-12 pb-4 shadow-sm">
-          <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
               <TouchableOpacity
                 onPress={() => router.back()}
@@ -164,8 +164,8 @@ export function BodyMapView() {
               style={{
                 paddingHorizontal: 16,
                 paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: hasAnySelected && !isLoading ? "#FFFFFF" : "rgba(255,255,255,0.4)",
+                borderRadius: 20,
+                backgroundColor: hasAnySelected && !isLoading ? "#FFFFFF" : "rgba(255,255,255,0.2)",
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
@@ -186,15 +186,6 @@ export function BodyMapView() {
                   : `Tiếp tục${hasAnySelected ? ` (${allSelected.length})` : ""}`}
               </Text>
             </TouchableOpacity>
-          </View>
-
-          <View className="mt-1">
-            <Text className="text-white/80 text-[11px] font-semibold">
-              Bước 1/3
-            </Text>
-            <View className="h-[3px] bg-white/25 w-full rounded-full mt-1.5 relative overflow-hidden">
-              <View className="h-full bg-white w-1/3 rounded-full absolute left-0 top-0" />
-            </View>
           </View>
         </View>
 

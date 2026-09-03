@@ -406,8 +406,8 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error((response as any).message || "API chẩn đoán trả về lỗi không xác định.");
       }
 
-      const translatedQuestion = await translationService.translateQuestion(response.question);
-      setCurrentQuestion(translatedQuestion);
+      const question = response.question;
+      setCurrentQuestion(question);
       setInterviewToken(response.interview_token);
       setEvidence(initialEvidence);
       setShouldStop(response.should_stop);
@@ -426,7 +426,7 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         questionCount: 1,
         selectedSymptoms: currentMap,
         evidence: initialEvidence,
-        currentQuestion: translatedQuestion,
+        currentQuestion: question,
         interviewToken: response.interview_token,
         shouldStop: response.should_stop,
         updatedAt: new Date().toISOString(),
@@ -509,14 +509,14 @@ export const TriageProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const isForcedStop = nextCount >= 5 || response.should_stop;
 
-      const translatedQuestion = isForcedStop ? null : await translationService.translateQuestion(response.question);
-      setCurrentQuestion(translatedQuestion);
+      const nextQuestion = isForcedStop ? null : response.question;
+      setCurrentQuestion(nextQuestion);
       setShouldStop(isForcedStop);
 
       const updatedSession: DiagnosisSessionCache = {
         ...session,
         evidence: updatedEvidence,
-        currentQuestion: translatedQuestion,
+        currentQuestion: nextQuestion,
         interviewToken: session.interviewToken, 
         shouldStop: isForcedStop,
         questionCount: nextCount,

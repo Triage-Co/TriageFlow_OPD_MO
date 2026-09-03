@@ -44,23 +44,27 @@ export function DoctorSlotsView() {
   const { slots, isLoading, error } = useDoctorSlots(doctorId, initialDate);
 
   const morningSlots = useMemo(() => {
-    return slots.filter((slot) => {
-      if (!slot.start_time) return false;
-      const parts = slot.start_time.split(":");
-      if (parts.length < 2) return true;
-      const slotHours = parseInt(parts[0], 10);
-      return slotHours < 12;
-    });
+    return slots
+      .filter((slot) => {
+        if (!slot.start_time) return false;
+        const parts = slot.start_time.split(":");
+        if (parts.length < 2) return true;
+        const slotHours = parseInt(parts[0], 10);
+        return slotHours < 12;
+      })
+      .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
   }, [slots]);
 
   const afternoonSlots = useMemo(() => {
-    return slots.filter((slot) => {
-      if (!slot.start_time) return false;
-      const parts = slot.start_time.split(":");
-      if (parts.length < 2) return false;
-      const slotHours = parseInt(parts[0], 10);
-      return slotHours >= 12;
-    });
+    return slots
+      .filter((slot) => {
+        if (!slot.start_time) return false;
+        const parts = slot.start_time.split(":");
+        if (parts.length < 2) return false;
+        const slotHours = parseInt(parts[0], 10);
+        return slotHours >= 12;
+      })
+      .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
   }, [slots]);
 
   const handleSlotSelect = (slot: Slot) => {
@@ -102,6 +106,7 @@ export function DoctorSlotsView() {
           }`}
       >
         <Text
+          style={isPastSlot ? { textDecorationLine: "line-through" } : undefined}
           className={`text-[14px] font-extrabold ${isSelected
             ? "text-white"
             : !isAvailable
@@ -118,6 +123,7 @@ export function DoctorSlotsView() {
         />
 
         <Text
+          style={isPastSlot ? { textDecorationLine: "line-through" } : undefined}
           className={`text-[10px] font-bold ${isSelected
             ? "text-white/80"
             : !isAvailable

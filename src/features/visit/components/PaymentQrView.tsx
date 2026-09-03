@@ -51,7 +51,13 @@ export function PaymentQrView() {
 
   const handleViewTicket = () => {
     setShowSuccessModal(false);
-    router.replace("/(patient)/(tabs)/ticket");
+    router.replace({
+      pathname: "/(patient)/(tabs)/ticket",
+      params: {
+        patientId,
+        patientName,
+      },
+    });
   };
 
   const amount = parseInt(amountStr || "0", 10);

@@ -170,10 +170,10 @@ export function HomeView() {
             <Text
               style={{
                 color: "#FFFFFF",
-                fontSize: 34,
+                fontSize: 25,
                 fontWeight: "900",
                 letterSpacing: -0.8,
-                lineHeight: 38,
+                lineHeight: 29,
                 textAlign: "center",
               }}
             >
